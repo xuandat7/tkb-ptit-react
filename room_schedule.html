@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Phòng Học - TKB Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .back-button {
+            position: absolute;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-50%) translateY(-2px);
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 1px;
+            background: #dee2e6;
+            margin: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .time-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+        }
+
+        .day-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .time-slot {
+            background: white;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .time-slot:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+            transform: scale(1.02);
+        }
+
+        .time-slot.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .time-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .room-count {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .occupied-count {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .available-count {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .room-details {
+            background: #f8f9fa;
+            margin: 20px;
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+        }
+
+        .room-details.show {
+            display: block;
+        }
+
+        .details-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .details-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .close-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .close-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .rooms-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .rooms-list {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .section-title.occupied {
+            color: #dc3545;
+            border-bottom-color: #dc3545;
+        }
+
+        .section-title.available {
+            color: #28a745;
+            border-bottom-color: #28a745;
+        }
+
+        .room-item {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+        }
+
+        .room-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .room-item.occupied {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .room-item.available {
+            border-left-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .room-item.nt {
+            border-left-color: #ffc107;
+            background: #fffdf0;
+        }
+
+        .room-code {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .room-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+
+        .room-capacity {
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        .room-type {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .room-building {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .weeks-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .time-slot .time-label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+        }
+
+        .time-slot .tiet-info {
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .time-slot.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .time-slot.clickable:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .time-slot.no-activity {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: default;
+        }
+
+        .time-slot.no-activity .time-label {
+            color: white;
+            font-weight: bold;
+        }
+
+        .no-activity-text {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* Filter Section Styles */
+        .filter-section {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            min-width: 150px;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        /* Legend Styles */
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .legend-color.occupied {
+            background: #ff6b6b;
+        }
+
+        .legend-color.available {
+            background: #51cf66;
+        }
+
+        .legend-color.time-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .legend-color.clickable {
+            background: #e9ecef;
+            border: 2px dashed #6c757d;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #f0f0f0;
+        }
+
+        .modal-body {
+            padding: 30px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        /* Modal Filter Styles */
+        .modal-filter-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .modal-filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .modal-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 120px;
+        }
+
+        .modal-filter-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal-filter-group select {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .modal-filter-group select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .details-section {
+            margin-bottom: 30px;
+        }
+
+        .details-section h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .room-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .room-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .room-item.occupied {
+            border-color: #ff6b6b;
+            background: #fff5f5;
+        }
+
+        .room-item.available {
+            border-color: #51cf66;
+            background: #f8fff8;
+        }
+
+        .room-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .room-code {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .status-toggle-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-toggle-btn:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+
+        .status-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        .room-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .room-info > div {
+            margin-bottom: 4px;
+        }
+
+        .no-rooms {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        /* Building Groups in Modal */
+        .building-group {
+            margin-bottom: 25px;
+        }
+
+        .building-title {
+            color: #333;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 6px;
+        }
+
+        .building-rooms {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-left: 10px;
+        }
+
+        /* Notification animations */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .stats-bar {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #007bff;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 1200px) {
+            .schedule-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .schedule-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .rooms-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .back-button {
+                position: static;
+                transform: none;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="back-button" onclick="goBack()">← Quay lại</button>
+            <h1>📅 Lịch Phòng Học</h1>
+            <p>Xem trạng thái phòng học theo từng tiết trong tuần</p>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color occupied"></div>
+                    <span>Phòng đã sử dụng</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color available"></div>
+                    <span>Phòng còn trống</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color time-header"></div>
+                    <span>Tiết không có phòng</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color clickable"></div>
+                    <span>Click để xem chi tiết</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-item">
+                <div class="stat-number" id="total-rooms">-</div>
+                <div class="stat-label">Tổng phòng học</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="total-occupied">-</div>
+                <div class="stat-label">Phòng đã sử dụng</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="total-available">-</div>
+                <div class="stat-label">Phòng còn trống</div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="buildingFilter">Tòa nhà:</label>
+                    <select id="buildingFilter" onchange="applyFilters()">
+                        <option value="">Tất cả tòa nhà</option>
+                        <option value="A1">A1</option>
+                        <option value="A2">A2</option>
+                        <option value="A3">A3</option>
+                        <option value="NT">NT (Ngọc Trục)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="capacityFilter">Sĩ số:</label>
+                    <select id="capacityFilter" onchange="applyFilters()">
+                        <option value="">Tất cả sĩ số</option>
+                        <option value="0-30">≤ 30</option>
+                        <option value="31-50">31-50</option>
+                        <option value="51-80">51-80</option>
+                        <option value="81-100">81-100</option>
+                        <option value="100+">> 100</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="statusFilter">Trạng thái:</label>
+                    <select id="statusFilter" onchange="applyFilters()">
+                        <option value="">Tất cả</option>
+                        <option value="occupied">Đã sử dụng</option>
+                        <option value="available">Còn trống</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="resetFilters()">🔄 Làm mới</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">Đang tải lịch phòng học...</div>
+        
+        <div class="schedule-grid" id="schedule-grid" style="display: none;">
+            <!-- Schedule will be loaded here -->
+        </div>
+
+        <!-- Room Details Modal -->
+        <div id="room-details-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="details-title">Chi tiết phòng học</h3>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Filter controls in modal -->
+                    <div class="modal-filter-section">
+                        <div class="modal-filter-row">
+                            <div class="modal-filter-group">
+                                <label for="modalBuildingFilter">Tòa nhà:</label>
+                                <select id="modalBuildingFilter" onchange="applyModalFilters()">
+                                    <option value="">Tất cả tòa nhà</option>
+                                    <option value="A1">A1</option>
+                                    <option value="A2">A2</option>
+                                    <option value="A3">A3</option>
+                                    <option value="NT">NT (Ngọc Trục)</option>
+                                </select>
+                            </div>
+                            <div class="modal-filter-group">
+                                <label for="modalCapacityFilter">Sĩ số:</label>
+                                <select id="modalCapacityFilter" onchange="applyModalFilters()">
+                                    <option value="">Tất cả sĩ số</option>
+                                    <option value="0-30">≤ 30</option>
+                                    <option value="31-50">31-50</option>
+                                    <option value="51-80">51-80</option>
+                                    <option value="81-100">81-100</option>
+                                    <option value="100+">> 100</option>
+                                </select>
+                            </div>
+                            <div class="modal-filter-group">
+                                <label for="modalStatusFilter">Trạng thái:</label>
+                                <select id="modalStatusFilter" onchange="applyModalFilters()">
+                                    <option value="">Tất cả</option>
+                                    <option value="occupied">Đã sử dụng</option>
+                                    <option value="available">Còn trống</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="resetModalFilters()">🔄 Làm mới</button>
+                        </div>
+                    </div>
+                    
+                    <div class="details-section">
+                        <h4>Phòng đã sử dụng</h4>
+                        <div id="occupied-rooms" class="room-list"></div>
+                    </div>
+                    
+                    <div class="details-section">
+                        <h4>Phòng còn trống</h4>
+                        <div id="available-rooms" class="room-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dynamic API base - works for both localhost and external access
+        const API_BASE = window.location.protocol + '//' + window.location.host;
+        
+        // Spring Boot API for rooms
+        const SPRING_BOOT_API = 'http://localhost:8080/api';
+        
+        let currentSchedule = null;
+        let selectedTimeSlot = null;
+        let allRooms = [];
+        let filteredSchedule = null;
+        
+        // Load all rooms from Spring Boot API
+        async function loadAllRooms() {
+            try {
+                console.log('Loading all rooms from Spring Boot API...');
+                const response = await fetch(`${SPRING_BOOT_API}/rooms`);
+                
+                if (!response.ok) {
+                    console.error('Failed to load rooms:', response.statusText);
+                    return [];
+                }
+                
+                // Parse JSON response
+                const jsonData = await response.json();
+                console.log('Raw response:', jsonData);
+                
+                // Extract rooms from response.data
+                allRooms = jsonData.data || [];
+                console.log(`Loaded ${allRooms.length} rooms from Spring Boot API`);
+                
+                // Convert to expected format
+                if (Array.isArray(allRooms)) {
+                    allRooms = allRooms.map(room => ({
+                        phong: room.phong,
+                        capacity: room.capacity,
+                        day: room.day || 'A1',
+                        type: (room.type || 'GENERAL').toLowerCase(),
+                        ma_phong: room.ma_phong || `${room.phong}-${room.day}`,
+                        note: room.note || '',
+                        status: room.status,
+                        id: room.id,
+                        typeDisplayName: room.typeDisplayName || '',
+                        statusDisplayName: room.statusDisplayName || ''
+                    }));
+                }
+                
+                return allRooms;
+            } catch (error) {
+                console.error('Error loading rooms from Spring Boot API:', error);
+                return [];
+            }
+        }
+
+        // Load schedule data
+        async function loadSchedule() {
+            try {
+                console.log('Loading rooms from Spring Boot API...');
+                
+                // First, load rooms from Spring Boot API (if not already loaded)
+                if (allRooms.length === 0) {
+                    const roomsResponse = await fetch(`${SPRING_BOOT_API}/rooms`);
+                    if (roomsResponse.ok) {
+                        const roomsData = await roomsResponse.json();
+                        console.log('Rooms response:', roomsData);
+                        allRooms = roomsData.data || [];
+                        console.log(`Loaded ${allRooms.length} rooms from Spring Boot`);
+                    }
+                } else {
+                    console.log(`Using cached ${allRooms.length} rooms from Spring Boot`);
+                }
+                
+                // Try Flask API for schedule
+                console.log('Loading schedule data from Flask API...');
+                const response = await fetch(`${API_BASE}/rooms/schedule`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('API response:', data);
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                currentSchedule = data.schedule;
+                console.log('Current schedule set:', currentSchedule);
+                console.log('Schedule keys:', Object.keys(currentSchedule || {}));
+                console.log('Sample schedule entry:', currentSchedule ? Object.values(currentSchedule)[0] : 'None');
+                
+                // Debug: Log first few entries to see structure
+                if (currentSchedule) {
+                    const firstKeys = Object.keys(currentSchedule).slice(0, 5);
+                    console.log('First 5 schedule keys:', firstKeys);
+                    firstKeys.forEach(key => {
+                        console.log(`Schedule[${key}]:`, currentSchedule[key]);
+                    });
+                }
+                
+                // If no schedule data, try to load basic room info
+                if (!currentSchedule || Object.keys(currentSchedule).length === 0) {
+                    console.log('No schedule data, loading basic room info...');
+                    await loadBasicRoomInfo();
+                    return;
+                }
+                
+                displaySchedule(data);
+                
+                // Update stats with correct room count from Spring Boot
+                updateStatsWithSpringBootData(data, allRooms);
+                
+                console.log('✅ Schedule loaded successfully');
+                console.log('Using room count from Spring Boot:', allRooms.length);
+            } catch (error) {
+                console.error('Error loading schedule from Flask:', error);
+                
+                // Final fallback
+                document.getElementById('loading').innerHTML = `<div class="error">Lỗi tải dữ liệu: ${error.message}</div>`;
+                await loadBasicRoomInfo();
+            }
+        }
+
+        // Load basic room information as fallback
+        async function loadBasicRoomInfo() {
+            try {
+                console.log('Loading basic room info from Spring Boot API...');
+                const rooms = await loadAllRooms();
+                
+                if (Array.isArray(rooms) && rooms.length > 0) {
+                    const totalRooms = rooms.length;
+                    document.getElementById('total-rooms').textContent = totalRooms;
+                    document.getElementById('total-occupied').textContent = '0';
+                    document.getElementById('total-available').textContent = totalRooms;
+                    
+                    // Show message that schedule is not available
+                    document.getElementById('loading').innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <h3>📅 Lịch phòng học</h3>
+                            <p>Tổng số phòng: <strong>${totalRooms}</strong></p>
+                            <p>Chưa có dữ liệu lịch học. Vui lòng sinh TKB trước.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading basic room info:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="error">
+                        Không thể tải dữ liệu phòng học. 
+                        <br>Vui lòng kiểm tra kết nối server.
+                    </div>
+                `;
+            }
+        }
+
+        // Display schedule grid
+        function displaySchedule(data) {
+            const grid = document.getElementById('schedule-grid');
+            const loading = document.getElementById('loading');
+            
+            loading.style.display = 'none';
+            grid.style.display = 'grid';
+            
+            console.log('displaySchedule called with data:', data);
+            console.log('data.schedule keys:', data.schedule ? Object.keys(data.schedule) : 'none');
+
+            let html = '';
+
+            // Empty cell for top-left corner
+            html += `<div class="time-header"></div>`;
+
+            // Day headers
+            const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+            for (let i = 0; i < 7; i++) {
+                html += `<div class="day-header">${days[i]}</div>`;
+            }
+
+            // Time slots - 12 tiết per day (4 kíp x 3 tiết each)
+            const kipToTiet = {
+                1: [1, 2, 3],    // Kíp 1: Tiết 1, 2, 3
+                2: [4, 5, 6],    // Kíp 2: Tiết 4, 5, 6
+                3: [7, 8, 9],    // Kíp 3: Tiết 7, 8, 9
+                4: [10, 11, 12]  // Kíp 4: Tiết 10, 11, 12
+            };
+
+            // Create individual tiết rows
+            for (let kip = 1; kip <= 4; kip++) {
+                const tiets = kipToTiet[kip];
+                
+                for (let tietIndex = 0; tietIndex < tiets.length; tietIndex++) {
+                    const tiet = tiets[tietIndex];
+                    
+                    // Time header for this tiết
+                    html += `<div class="time-header">Tiết ${tiet}</div>`;
+                    
+                    // Time slots for each day
+                    for (let thu = 2; thu <= 8; thu++) {
+                        const timeKey = `Thứ ${thu} - Kíp ${kip}`;
+                        const slot = data.schedule[timeKey];
+                        
+                        if (tiet === 1 && kip === 1) {
+                            console.log(`Looking for slot: "${timeKey}", found:`, slot ? 'YES' : 'NO');
+                        }
+                        
+                        if (slot) {
+                            const occupiedCount = slot.total_occupied;
+                            const availableCount = slot.total_available;
+                            
+                            // Check if this tiết has any room activity
+                            const hasActivity = occupiedCount > 0 || availableCount > 0;
+                            
+                            if (hasActivity) {
+                                // Tiết có phòng - hiển thị thông tin
+                                html += `
+                                    <div class="time-slot clickable" onclick="showRoomDetails('${timeKey}')" data-time="${timeKey}">
+                                        <div class="time-label">Tiết ${tiet}</div>
+                                        <div class="room-count">
+                                            <div class="occupied-count">${occupiedCount} phòng đã dùng</div>
+                                            <div class="available-count">${availableCount} phòng còn trống</div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                // Tiết không có phòng - hiển thị màu tím
+                                html += `
+                                    <div class="time-slot no-activity">
+                                        <div class="time-label">Tiết ${tiet}</div>
+                                        <div class="no-activity-text">Không có phòng</div>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            // Không có dữ liệu cho tiết này
+                            html += `
+                                <div class="time-slot no-activity">
+                                    <div class="time-label">Tiết ${tiet}</div>
+                                    <div class="no-activity-text">Không có phòng</div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // Show room details for selected time slot
+        function showRoomDetails(timeKey) {
+            if (!currentSchedule || !currentSchedule[timeKey]) return;
+
+            const slot = currentSchedule[timeKey];
+            selectedTimeSlot = timeKey;
+
+            // Update selected state
+            document.querySelectorAll('.time-slot').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector(`[data-time="${timeKey}"]`).classList.add('selected');
+
+            // Update details title
+            document.getElementById('details-title').textContent = `Chi tiết phòng học - ${timeKey}`;
+
+            // Show occupied rooms
+            const occupiedRoomsEl = document.getElementById('occupied-rooms');
+            let occupiedHtml = '';
+            
+            if (slot.occupied_rooms.length === 0) {
+                occupiedHtml = '<div style="text-align: center; color: #6c757d; padding: 20px;">Không có phòng nào được sử dụng</div>';
+            } else {
+                for (const room of slot.occupied_rooms) {
+                    const roomType = getRoomTypeLabel(room.type);
+                    const buildingType = room.day === 'NT' ? 'Ngọc Trục' : `Tòa ${room.day}`;
+                    
+                    occupiedHtml += `
+                        <div class="room-item occupied ${room.type === 'nt' ? 'nt' : ''}">
+                            <div class="room-code">${room.phong}</div>
+                            <div class="room-info">
+                                <div><span class="room-building">${buildingType}</span> - <span class="room-type">${roomType}</span></div>
+                                <div>Sức chứa: <span class="room-capacity">${room.capacity} chỗ</span></div>
+                                <div>Mã phòng: ${room.ma_phong}</div>
+                                ${room.weeks ? `<div class="weeks-info">Tuần: ${Array.isArray(room.weeks) ? room.weeks.join(', ') : room.weeks}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            occupiedRoomsEl.innerHTML = occupiedHtml;
+
+            // Show available rooms
+            const availableRoomsEl = document.getElementById('available-rooms');
+            let availableHtml = '';
+            
+            if (slot.available_rooms.length === 0) {
+                availableHtml = '<div style="text-align: center; color: #6c757d; padding: 20px;">Không có phòng trống</div>';
+            } else {
+                for (const room of slot.available_rooms) {
+                    const roomType = getRoomTypeLabel(room.type);
+                    const buildingType = room.day === 'NT' ? 'Ngọc Trục' : `Tòa ${room.day}`;
+                    
+                    availableHtml += `
+                        <div class="room-item available ${room.type === 'nt' ? 'nt' : ''}">
+                            <div class="room-code">${room.phong}</div>
+                            <div class="room-info">
+                                <div><span class="room-building">${buildingType}</span> - <span class="room-type">${roomType}</span></div>
+                                <div>Sức chứa: <span class="room-capacity">${room.capacity} chỗ</span></div>
+                                <div>Mã phòng: ${room.ma_phong}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            availableRoomsEl.innerHTML = availableHtml;
+
+            // Show details panel
+            document.getElementById('room-details').classList.add('show');
+        }
+
+        // Close room details
+        function closeDetails() {
+            document.getElementById('room-details').classList.remove('show');
+            document.querySelectorAll('.time-slot').forEach(el => {
+                el.classList.remove('selected');
+            });
+            selectedTimeSlot = null;
+        }
+
+        // Update statistics
+        function updateStats(data) {
+            document.getElementById('total-rooms').textContent = data.total_rooms;
+            document.getElementById('total-occupied').textContent = data.total_occupied_slots;
+            
+            // Calculate total available rooms
+            let totalAvailable = 0;
+            for (const slot of Object.values(data.schedule)) {
+                totalAvailable += slot.total_available;
+            }
+            document.getElementById('total-available').textContent = totalAvailable;
+        }
+
+        // Helper function to get room type label
+        function getRoomTypeLabel(type) {
+            const typeLabels = {
+                'general': 'Thường',
+                'GENERAL': 'Thường',
+                'english': 'Tiếng Anh',
+                'ENGLISH': 'Tiếng Anh',
+                'english_class': 'Tiếng Anh',
+                'ENGLISH_CLASS': 'Tiếng Anh',
+                'clc': 'CLC',
+                'CLC': 'CLC',
+                'khoa_2024': 'Khóa 2024',
+                'KHOA_2024': 'Khóa 2024',
+                'year2024': 'Khóa 2024',
+                'nt': 'Ngọc Trục',
+                'NT': 'Ngọc Trục',
+                'ngoc_truc': 'Ngọc Trục',
+                'NGOC_TRUC': 'Ngọc Trục'
+            };
+            // Try lowercase first
+            const lowerType = (type || '').toLowerCase();
+            return typeLabels[type] || typeLabels[lowerType] || type || 'Thường';
+        }
+
+        // Go back to main page
+        function goBack() {
+            window.location.href = '/web/integrated.html';
+        }
+
+        // Global variables for modal data
+        let modalOriginalData = null;
+
+        // Show room details for selected time slot
+        async function showRoomDetails(timeKey) {
+            if (!currentSchedule || !currentSchedule[timeKey]) return;
+
+            const slot = currentSchedule[timeKey];
+            selectedTimeSlot = timeKey;
+
+            console.log('Show room details for:', timeKey);
+            console.log('Slot data:', slot);
+            console.log('Occupied rooms:', slot.occupied_rooms);
+
+            // Remove previous selection
+            document.querySelectorAll('.time-slot').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // Add selection to current slot
+            document.querySelector(`[data-time="${timeKey}"]`).classList.add('selected');
+
+            // Update details title
+            document.getElementById('details-title').textContent = `Chi tiết phòng học - ${timeKey}`;
+
+            // Get occupied rooms from slot (Flask API data)
+            const occupiedRooms = slot.occupied_rooms || [];
+            
+            // Get available rooms from Spring Boot API database
+            // Filter rooms that are not in occupied list
+            const occupiedRoomCodes = new Set(occupiedRooms.map(r => r.phong));
+            const availableRoomsFromDB = allRooms.filter(room => 
+                !occupiedRoomCodes.has(room.phong) && room.status === 'AVAILABLE'
+            );
+            
+            console.log('Total rooms from DB:', allRooms.length);
+            console.log('Occupied rooms in slot:', occupiedRooms.length);
+            console.log('Available rooms from DB:', availableRoomsFromDB.length);
+
+            // Store original data for filtering
+            modalOriginalData = {
+                occupied_rooms: occupiedRooms,
+                available_rooms: availableRoomsFromDB
+            };
+
+            // Reset modal filters
+            document.getElementById('modalBuildingFilter').value = '';
+            document.getElementById('modalCapacityFilter').value = '';
+            document.getElementById('modalStatusFilter').value = '';
+
+            // Display rooms (initially unfiltered)
+            displayModalRooms(modalOriginalData.occupied_rooms, modalOriginalData.available_rooms);
+
+            // Show modal
+            document.getElementById('room-details-modal').style.display = 'block';
+        }
+
+        // Display rooms in modal with optional filtering
+        function displayModalRooms(occupiedRooms, availableRooms) {
+            console.log('Display modal rooms:', { 
+                occupied: occupiedRooms.length, 
+                available: availableRooms.length 
+            });
+            
+            // Show occupied rooms
+            const occupiedRoomsEl = document.getElementById('occupied-rooms');
+            let occupiedHtml = '';
+            
+            if (occupiedRooms.length === 0) {
+                occupiedHtml = '<div class="no-rooms">Không có phòng nào được sử dụng</div>';
+            } else {
+                // Group by building
+                const groupedOccupied = groupRoomsByBuilding(occupiedRooms);
+                
+                Object.keys(groupedOccupied).sort().forEach(building => {
+                    occupiedHtml += `<div class="building-group">
+                        <h5 class="building-title">Tòa ${building}</h5>
+                        <div class="building-rooms">`;
+                    
+                    groupedOccupied[building].forEach(room => {
+                        const roomBuilding = room.day || room.building || 'Unknown';
+                        const roomType = getRoomTypeLabel(room.type);
+                        occupiedHtml += `
+                            <div class="room-item occupied">
+                                <div class="room-header">
+                                    <div class="room-code">${room.phong || 'N/A'}</div>
+                                    <button class="status-toggle-btn" onclick="toggleRoomStatus('${room.phong}', 'occupied')" title="Chuyển sang trống">
+                                        ➡️
+                                    </button>
+                                </div>
+                                <div class="room-info">
+                                    <div class="room-capacity">Sức chứa: ${room.capacity || 0}</div>
+                                    <div class="room-building">Tòa: ${roomBuilding}</div>
+                                    <div class="room-type">Loại: ${roomType}</div>
+                                    ${room.weeks ? `<div class="room-weeks">Tuần: ${room.weeks}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    occupiedHtml += `</div></div>`;
+                });
+            }
+            occupiedRoomsEl.innerHTML = occupiedHtml;
+
+            // Show available rooms
+            const availableRoomsEl = document.getElementById('available-rooms');
+            let availableHtml = '';
+            
+            if (availableRooms.length === 0) {
+                availableHtml = '<div class="no-rooms">Không có phòng nào còn trống</div>';
+            } else {
+                // Group by building
+                const groupedAvailable = groupRoomsByBuilding(availableRooms);
+                
+                Object.keys(groupedAvailable).sort().forEach(building => {
+                    availableHtml += `<div class="building-group">
+                        <h5 class="building-title">Tòa ${building}</h5>
+                        <div class="building-rooms">`;
+                    
+                    groupedAvailable[building].forEach(room => {
+                        const roomBuilding = room.day || room.building || 'Unknown';
+                        const roomType = getRoomTypeLabel(room.type);
+                        availableHtml += `
+                            <div class="room-item available">
+                                <div class="room-header">
+                                    <div class="room-code">${room.phong || 'N/A'}</div>
+                                    <button class="status-toggle-btn" onclick="toggleRoomStatus('${room.phong}', 'available')" title="Chuyển sang sử dụng">
+                                        ⬅️
+                                    </button>
+                                </div>
+                                <div class="room-info">
+                                    <div class="room-capacity">Sức chứa: ${room.capacity || 0}</div>
+                                    <div class="room-building">Tòa: ${roomBuilding}</div>
+                                    <div class="room-type">Loại: ${roomType}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    availableHtml += `</div></div>`;
+                });
+            }
+            availableRoomsEl.innerHTML = availableHtml;
+        }
+
+        // Group rooms by building
+        function groupRoomsByBuilding(rooms) {
+            const grouped = {};
+            rooms.forEach(room => {
+                // Support multiple field names: day, building, tòa
+                const building = room.day || room.building || room.tòa || room.ma_phong?.split('-')[1] || 'Unknown';
+                const displayBuilding = building === 'NT' ? 'Ngọc Trục' : building;
+                
+                if (!grouped[displayBuilding]) {
+                    grouped[displayBuilding] = [];
+                }
+                grouped[displayBuilding].push(room);
+            });
+            return grouped;
+        }
+
+        function closeModal() {
+            document.getElementById('room-details-modal').style.display = 'none';
+            selectedTimeSlot = null;
+            modalOriginalData = null;
+            
+            // Remove selection
+            document.querySelectorAll('.time-slot').forEach(el => {
+                el.classList.remove('selected');
+            });
+        }
+
+        // Apply filters in modal
+        function applyModalFilters() {
+            if (!modalOriginalData) return;
+
+            const buildingFilter = document.getElementById('modalBuildingFilter').value;
+            const capacityFilter = document.getElementById('modalCapacityFilter').value;
+            const statusFilter = document.getElementById('modalStatusFilter').value;
+
+            // Filter occupied rooms
+            let filteredOccupied = modalOriginalData.occupied_rooms.filter(room => {
+                // Building filter
+                if (buildingFilter && room.day !== buildingFilter) {
+                    return false;
+                }
+                
+                // Capacity filter
+                if (capacityFilter) {
+                    const capacity = room.capacity || 0;
+                    switch (capacityFilter) {
+                        case '0-30':
+                            if (capacity > 30) return false;
+                            break;
+                        case '31-50':
+                            if (capacity < 31 || capacity > 50) return false;
+                            break;
+                        case '51-80':
+                            if (capacity < 51 || capacity > 80) return false;
+                            break;
+                        case '81-100':
+                            if (capacity < 81 || capacity > 100) return false;
+                            break;
+                        case '100+':
+                            if (capacity <= 100) return false;
+                            break;
+                    }
+                }
+                
+                return true;
+            });
+
+            // Filter available rooms
+            let filteredAvailable = modalOriginalData.available_rooms.filter(room => {
+                // Building filter
+                if (buildingFilter && room.day !== buildingFilter) {
+                    return false;
+                }
+                
+                // Capacity filter
+                if (capacityFilter) {
+                    const capacity = room.capacity || 0;
+                    switch (capacityFilter) {
+                        case '0-30':
+                            if (capacity > 30) return false;
+                            break;
+                        case '31-50':
+                            if (capacity < 31 || capacity > 50) return false;
+                            break;
+                        case '51-80':
+                            if (capacity < 51 || capacity > 80) return false;
+                            break;
+                        case '81-100':
+                            if (capacity < 81 || capacity > 100) return false;
+                            break;
+                        case '100+':
+                            if (capacity <= 100) return false;
+                            break;
+                    }
+                }
+                
+                return true;
+            });
+
+            // Apply status filter
+            if (statusFilter === 'occupied') {
+                filteredAvailable = [];
+            } else if (statusFilter === 'available') {
+                filteredOccupied = [];
+            }
+
+            // Display filtered rooms
+            displayModalRooms(filteredOccupied, filteredAvailable);
+        }
+
+        // Reset modal filters
+        function resetModalFilters() {
+            document.getElementById('modalBuildingFilter').value = '';
+            document.getElementById('modalCapacityFilter').value = '';
+            document.getElementById('modalStatusFilter').value = '';
+            
+            if (modalOriginalData) {
+                displayModalRooms(modalOriginalData.occupied_rooms, modalOriginalData.available_rooms);
+            }
+        }
+
+        // Toggle room status between occupied and available
+        function toggleRoomStatus(roomCode, currentStatus) {
+            if (!modalOriginalData) return;
+
+            console.log(`Toggling room ${roomCode} from ${currentStatus}`);
+
+            if (currentStatus === 'occupied') {
+                // Move from occupied to available
+                const roomIndex = modalOriginalData.occupied_rooms.findIndex(room => room.phong === roomCode);
+                if (roomIndex !== -1) {
+                    const room = modalOriginalData.occupied_rooms.splice(roomIndex, 1)[0];
+                    modalOriginalData.available_rooms.push(room);
+                    
+                    // Update server
+                    updateRoomStatusOnServer(roomCode, 'available');
+                }
+            } else if (currentStatus === 'available') {
+                // Move from available to occupied
+                const roomIndex = modalOriginalData.available_rooms.findIndex(room => room.phong === roomCode);
+                if (roomIndex !== -1) {
+                    const room = modalOriginalData.available_rooms.splice(roomIndex, 1)[0];
+                    modalOriginalData.occupied_rooms.push(room);
+                    
+                    // Update server
+                    updateRoomStatusOnServer(roomCode, 'occupied');
+                }
+            }
+
+            // Refresh modal display
+            displayModalRooms(modalOriginalData.occupied_rooms, modalOriginalData.available_rooms);
+            
+            // Update main schedule if needed
+            updateMainSchedule();
+        }
+
+        // Update room status on server
+        async function updateRoomStatusOnServer(roomCode, newStatus) {
+            try {
+                const response = await fetch(`${API_BASE}/rooms/update-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        room_code: roomCode,
+                        status: newStatus,
+                        time_key: selectedTimeSlot
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('Room status updated:', result);
+                
+                // Show success message
+                showNotification(`Phòng ${roomCode} đã chuyển sang ${newStatus === 'occupied' ? 'đã sử dụng' : 'còn trống'}`, 'success');
+                
+            } catch (error) {
+                console.error('Error updating room status:', error);
+                showNotification(`Lỗi cập nhật phòng ${roomCode}: ${error.message}`, 'error');
+            }
+        }
+
+        // Update main schedule after room status change
+        function updateMainSchedule() {
+            if (!selectedTimeSlot || !currentSchedule) return;
+
+            // Update current schedule
+            currentSchedule[selectedTimeSlot] = {
+                ...currentSchedule[selectedTimeSlot],
+                occupied_rooms: modalOriginalData.occupied_rooms,
+                available_rooms: modalOriginalData.available_rooms,
+                total_occupied: modalOriginalData.occupied_rooms.length,
+                total_available: modalOriginalData.available_rooms.length
+            };
+
+            // Update main page stats
+            updateStats({ schedule: currentSchedule }, false);
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            // Style notification
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                max-width: 300px;
+            `;
+            
+            // Set background color based on type
+            switch (type) {
+                case 'success':
+                    notification.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                    break;
+                case 'error':
+                    notification.style.background = 'linear-gradient(135deg, #dc3545, #e74c3c)';
+                    break;
+                default:
+                    notification.style.background = 'linear-gradient(135deg, #007bff, #0056b3)';
+            }
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Update statistics display
+        function updateStats(data, isFiltered = false) {
+            console.log('updateStats called with data:', data, 'isFiltered:', isFiltered);
+            
+            const stats = data.schedule || {};
+            
+            // If no schedule data, show basic info
+            if (!stats || Object.keys(stats).length === 0) {
+                console.log('No schedule data available');
+                const totalRooms = data.total_rooms || 0;
+                document.getElementById('total-rooms').textContent = totalRooms;
+                document.getElementById('total-occupied').textContent = '0';
+                document.getElementById('total-available').textContent = totalRooms;
+                return;
+            }
+            
+            // Count unique rooms (both occupied and available) across all time slots
+            const allRoomsSet = new Set();
+            const occupiedRoomsSet = new Set();
+            
+            Object.values(stats).forEach(slot => {
+                // Add occupied rooms to sets
+                if (slot.occupied_rooms && Array.isArray(slot.occupied_rooms)) {
+                    slot.occupied_rooms.forEach(room => {
+                        if (room && room.phong) {
+                            allRoomsSet.add(room.phong);
+                            occupiedRoomsSet.add(room.phong);
+                        }
+                    });
+                }
+                
+                // Add available rooms to set
+                if (slot.available_rooms && Array.isArray(slot.available_rooms)) {
+                    slot.available_rooms.forEach(room => {
+                        if (room && room.phong) {
+                            allRoomsSet.add(room.phong);
+                        }
+                    });
+                }
+            });
+            
+            // Calculate counts based on filtered data
+            const totalRooms = allRoomsSet.size; // Total rooms in filtered data
+            const totalOccupied = occupiedRoomsSet.size;
+            const totalAvailable = totalRooms - totalOccupied;
+            
+            document.getElementById('total-rooms').textContent = totalRooms;
+            document.getElementById('total-occupied').textContent = totalOccupied;
+            document.getElementById('total-available').textContent = totalAvailable;
+            
+            console.log('Stats updated:', { 
+                totalRooms, 
+                totalOccupied, 
+                totalAvailable,
+                allRooms: Array.from(allRoomsSet),
+                occupiedRooms: Array.from(occupiedRoomsSet),
+                scheduleKeys: Object.keys(stats),
+                isFiltered
+            });
+        }
+
+        // Update statistics using Spring Boot data for room count
+        function updateStatsWithSpringBootData(flaskData, springBootRooms) {
+            const schedule = flaskData.schedule || {};
+            const totalRooms = springBootRooms.length; // Use count from Spring Boot
+            
+            // Count unique occupied rooms from schedule
+            const occupiedRoomsSet = new Set();
+            let totalAvailableSlots = 0;
+            
+            Object.values(schedule).forEach(slot => {
+                if (slot.occupied_rooms && Array.isArray(slot.occupied_rooms)) {
+                    slot.occupied_rooms.forEach(room => {
+                        if (room && room.phong) {
+                            occupiedRoomsSet.add(room.phong);
+                        }
+                    });
+                }
+                if (slot.total_available) {
+                    totalAvailableSlots += slot.total_available;
+                }
+            });
+            
+            const totalOccupied = occupiedRoomsSet.size;
+            const avgAvailable = totalAvailableSlots / Math.max(Object.keys(schedule).length, 1);
+            
+            document.getElementById('total-rooms').textContent = totalRooms;
+            document.getElementById('total-occupied').textContent = totalOccupied;
+            document.getElementById('total-available').textContent = Math.round(avgAvailable);
+            
+            console.log('Stats updated with Spring Boot data:', {
+                totalRooms,
+                totalOccupied,
+                avgAvailable: Math.round(avgAvailable)
+            });
+        }
+
+        // Load initial data
+        // Filter functions
+        function applyFilters() {
+            const buildingFilter = document.getElementById('buildingFilter').value;
+            const capacityFilter = document.getElementById('capacityFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            if (!currentSchedule) {
+                console.log('No currentSchedule data available for filtering');
+                return;
+            }
+            
+            console.log('Applying filters:', { buildingFilter, capacityFilter, statusFilter });
+            
+            filteredSchedule = {};
+            
+            for (const [timeKey, slot] of Object.entries(currentSchedule)) {
+                // Filter occupied rooms
+                let filteredOccupiedRooms = slot.occupied_rooms.filter(room => {
+                    // Building filter
+                    if (buildingFilter && room.day !== buildingFilter) {
+                        return false;
+                    }
+                    
+                    // Capacity filter
+                    if (capacityFilter) {
+                        const capacity = room.capacity || 0;
+                        switch (capacityFilter) {
+                            case '0-30':
+                                if (capacity > 30) return false;
+                                break;
+                            case '31-50':
+                                if (capacity < 31 || capacity > 50) return false;
+                                break;
+                            case '51-80':
+                                if (capacity < 51 || capacity > 80) return false;
+                                break;
+                            case '81-100':
+                                if (capacity < 81 || capacity > 100) return false;
+                                break;
+                            case '100+':
+                                if (capacity <= 100) return false;
+                                break;
+                        }
+                    }
+                    
+                    return true;
+                });
+                
+                // Filter available rooms
+                let filteredAvailableRooms = slot.available_rooms.filter(room => {
+                    // Building filter
+                    if (buildingFilter && room.day !== buildingFilter) {
+                        return false;
+                    }
+                    
+                    // Capacity filter
+                    if (capacityFilter) {
+                        const capacity = room.capacity || 0;
+                        switch (capacityFilter) {
+                            case '0-30':
+                                if (capacity > 30) return false;
+                                break;
+                            case '31-50':
+                                if (capacity < 31 || capacity > 50) return false;
+                                break;
+                            case '51-80':
+                                if (capacity < 51 || capacity > 80) return false;
+                                break;
+                            case '81-100':
+                                if (capacity < 81 || capacity > 100) return false;
+                                break;
+                            case '100+':
+                                if (capacity <= 100) return false;
+                                break;
+                        }
+                    }
+                    
+                    return true;
+                });
+                
+                // Apply status filter
+                if (statusFilter === 'occupied') {
+                    filteredAvailableRooms = [];
+                } else if (statusFilter === 'available') {
+                    filteredOccupiedRooms = [];
+                }
+                
+                // Create filtered slot
+                filteredSchedule[timeKey] = {
+                    ...slot,
+                    occupied_rooms: filteredOccupiedRooms,
+                    available_rooms: filteredAvailableRooms,
+                    total_occupied: filteredOccupiedRooms.length,
+                    total_available: filteredAvailableRooms.length
+                };
+            }
+            
+            console.log('Filtered schedule created with', Object.keys(filteredSchedule).length, 'time slots');
+            
+            // Re-display with filtered data
+            displaySchedule({ schedule: filteredSchedule });
+            updateStats({ schedule: filteredSchedule }, true); // Mark as filtered data
+        }
+        
+        function resetFilters() {
+            document.getElementById('buildingFilter').value = '';
+            document.getElementById('capacityFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            
+            console.log('Resetting filters, currentSchedule available:', !!currentSchedule);
+            
+            if (currentSchedule) {
+                filteredSchedule = { ...currentSchedule }; // Create a copy
+                displaySchedule({ schedule: currentSchedule });
+                updateStats({ schedule: currentSchedule }, false); // Not filtered data
+                console.log('Filters reset successfully');
+            } else {
+                console.log('No currentSchedule data available for reset');
+                // Try to reload data
+                loadSchedule();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllRooms(); // Load all rooms first
+            loadSchedule();
+            
+            // Listen for room schedule updates
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'roomScheduleNeedsReload') {
+                    console.log('Room schedule needs reload, refreshing data...');
+                    loadAllRooms();
+                    loadSchedule();
+                }
+            });
+            
+            // Also listen for custom event from same window context
+            window.addEventListener('roomScheduleUpdate', function() {
+                console.log('Room schedule update event received, reloading...');
+                loadAllRooms();
+                loadSchedule();
+            });
+            
+            // Poll for data changes every 5 seconds
+            setInterval(function() {
+                const lastReloadTime = localStorage.getItem('roomScheduleNeedsReload');
+                if (lastReloadTime && parseInt(lastReloadTime) > window.lastScheduleLoadTime) {
+                    console.log('New schedule data detected, reloading...');
+                    loadAllRooms();
+                    loadSchedule();
+                    window.lastScheduleLoadTime = Date.now();
+                }
+            }, 5000);
+            
+            // Initialize last load time
+            window.lastScheduleLoadTime = Date.now();
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('room-details-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
