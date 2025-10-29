@@ -200,19 +200,31 @@ const SubjectsPage = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã môn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên môn</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số tín</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã môn</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên môn</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngành</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã CN</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sĩ số</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lớp</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tín chỉ</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiết LT</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {subjects.map((subject) => (
                 <tr key={subject.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-900">{subject.subjectCode}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{subject.subjectName}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{subject.credits}</td>
-                  <td className="px-6 py-4 text-sm font-medium">
+                  <td className="px-4 py-4 text-sm text-gray-900">{subject.subjectCode}</td>
+                  <td className="px-4 py-4 text-sm font-medium text-gray-900">{subject.subjectName}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{subject.classYear}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{subject.majorCode}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{subject.programType}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{subject.numberOfStudents}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{subject.numberOfClasses}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{subject.credits}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500">{subject.theoryHours}</td>
+                  <td className="px-4 py-4 text-sm font-medium">
                     <button 
                       onClick={() => handleViewDetail(subject)} 
                       className="text-green-600 hover:text-green-900 mr-2"
