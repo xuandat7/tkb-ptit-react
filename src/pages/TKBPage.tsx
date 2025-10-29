@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { Play, Loader, RefreshCw } from 'lucide-react'
-import api from '../services/api'
+import { useState, useEffect, useRef } from 'react'
+import { Play, Loader, RefreshCw, Upload } from 'lucide-react'
+import api, { curriculumService } from '../services/api'
 import toast from 'react-hot-toast'
 
 interface BatchRow {
@@ -31,6 +31,7 @@ interface TKBResultRow {
   phong?: string
   O_to_AG?: string[]
   ah?: string
+  student_year?: string
 }
 
 interface SavedResult {
@@ -51,6 +52,8 @@ const TKBPage = () => {
   const [results, setResults] = useState<TKBResultRow[]>([])
   const [savedResults, setSavedResults] = useState<SavedResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (systemType === '') {
@@ -227,6 +230,46 @@ const TKBPage = () => {
     }
   }
 
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['.xlsx', '.xls']
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+    if (!validTypes.includes(fileExtension)) {
+      toast.error('Vui lòng chọn file Excel (.xlsx hoặc .xls)')
+      return
+    }
+
+    try {
+      setImporting(true)
+      // Import với học kỳ mặc định (có thể điều chỉnh)
+      const response = await curriculumService.importExcel(file, '1')
+      
+      if (response.data.success) {
+        toast.success(response.data.message || 'Import thành công!')
+        // Reload dữ liệu
+        await loadKhoas()
+        // Reset selections
+        setSelectedKhoa('')
+        setSelectedMajorGroup('')
+        setBatchRows([])
+      } else {
+        toast.error(response.data.message || 'Import thất bại')
+      }
+    } catch (error: any) {
+      console.error('Import error:', error)
+      toast.error(error.response?.data?.message || 'Lỗi khi import file')
+    } finally {
+      setImporting(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   const saveToResults = async () => {
     if (results.length === 0) {
       toast.error('Không có dữ liệu TKB để lưu')
@@ -290,6 +333,21 @@ const TKBPage = () => {
           <p className="text-gray-600 mt-2">Quản lý và tạo thời khóa biểu tự động</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Upload className="w-5 h-5" />
+            {importing ? 'Đang import...' : 'Import Excel'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleImportExcel}
+            className="hidden"
+          />
           <button
             onClick={resetTKB}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -364,7 +422,7 @@ const TKBPage = () => {
                 <button
                   onClick={loadSubjectsByMajorGroup}
                   disabled={!selectedMajorGroup || loading}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                 >
                   Tải môn học
                 </button>
@@ -378,7 +436,7 @@ const TKBPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-purple-600 text-white">
+                <tr className="bg-red-600 text-white">
                   <th className="px-4 py-2 border">Mã môn</th>
                   <th className="px-4 py-2 border">Tên môn</th>
                   <th className="px-4 py-2 border">Sĩ số</th>
@@ -465,7 +523,7 @@ const TKBPage = () => {
           <button
             onClick={generateTKB}
             disabled={loading || batchRows.length === 0}
-            className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
             {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
             🚀 Sinh TKB Batch
@@ -488,7 +546,7 @@ const TKBPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-purple-50">
+                <tr className="bg-red-50">
                   <th className="px-4 py-2 border">Lớp</th>
                   <th className="px-4 py-2 border">Mã môn</th>
                   <th className="px-4 py-2 border">Tên môn</th>
@@ -500,24 +558,65 @@ const TKBPage = () => {
                   <th className="px-4 py-2 border">Tiết BD</th>
                   <th className="px-4 py-2 border">L</th>
                   <th className="px-4 py-2 border">Mã phòng</th>
+                  {Array.from({ length: 18 }, (_, i) => (
+                    <th key={i} className="px-2 py-2 border text-center">
+                      Tuần {i + 1}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {results.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 border text-center">{row.lop || ''}</td>
-                    <td className="px-4 py-2 border">{row.ma_mon || ''}</td>
-                    <td className="px-4 py-2 border">{row.ten_mon || ''}</td>
-                    <td className="px-4 py-2 border text-center">{row.khoa || ''}</td>
-                    <td className="px-4 py-2 border">{row.nganh || ''}</td>
-                    <td className="px-4 py-2 border">{row.he_dac_thu || ''}</td>
-                    <td className="px-4 py-2 border text-center">{row.thu || ''}</td>
-                    <td className="px-4 py-2 border text-center">{row.kip || ''}</td>
-                    <td className="px-4 py-2 border text-center">{row.tiet_bd || ''}</td>
-                    <td className="px-4 py-2 border text-center">{row.l || ''}</td>
-                    <td className="px-4 py-2 border">{row.phong || ''}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  let lastKey: string | null = null
+                  let flip = false
+                  
+                  return results.map((row, idx) => {
+                    const schedule = row.O_to_AG || []
+                    const key = `${row.ma_mon || ''}|${row.lop || ''}`
+                    if (key !== lastKey) {
+                      flip = !flip
+                      lastKey = key
+                    }
+                    const rowClass = flip ? 'bg-blue-50' : 'bg-white'
+                    
+                    return (
+                      <tr key={idx} className={`hover:bg-gray-100 ${rowClass}`}>
+                        <td className="px-4 py-2 border text-center">{row.lop || ''}</td>
+                        <td className="px-4 py-2 border">{row.ma_mon || ''}</td>
+                        <td className="px-4 py-2 border">{row.ten_mon || ''}</td>
+                        <td className="px-4 py-2 border text-center">{row.khoa || row.student_year || ''}</td>
+                        <td className="px-4 py-2 border">{row.nganh || ''}</td>
+                        <td className="px-4 py-2 border">{row.he_dac_thu || ''}</td>
+                        <td className="px-4 py-2 border text-center">{row.thu || ''}</td>
+                        <td className="px-4 py-2 border text-center">{row.kip || ''}</td>
+                        <td className="px-4 py-2 border text-center">{row.tiet_bd || ''}</td>
+                        <td className="px-4 py-2 border text-center">{row.l || ''}</td>
+                        <td className="px-4 py-2 border">{row.phong || ''}</td>
+                        {Array.from({ length: 18 }, (_, i) => {
+                          let value = ''
+                          if (i === 17) {
+                            // Tuần 18 hiển thị giá trị ah
+                            value = row.ah || ''
+                          } else {
+                            // Tuần 1-17 hiển thị từ O_to_AG
+                            value = schedule[i] || ''
+                          }
+                          const isX = value === 'x'
+                          return (
+                            <td
+                              key={i}
+                              className={`px-2 py-2 border text-center text-xs ${
+                                isX ? 'x-cell' : ''
+                              }`}
+                            >
+                              {value}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })
+                })()}
               </tbody>
             </table>
           </div>

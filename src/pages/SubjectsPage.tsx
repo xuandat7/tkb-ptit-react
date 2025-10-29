@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Search } from 'lucide-react'
-import { subjectService, majorService, type Subject, type SubjectRequest, type Major } from '../services/api'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Edit, Trash2, Search, Upload } from 'lucide-react'
+import { subjectService, majorService, curriculumService, type Subject, type SubjectRequest, type Major, type CurriculumImportItem } from '../services/api'
 import toast from 'react-hot-toast'
 
 const SubjectsPage = () => {
@@ -10,6 +10,12 @@ const SubjectsPage = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSemester, setSelectedSemester] = useState('')
+  const [importedSubjects, setImportedSubjects] = useState<CurriculumImportItem[]>([])
+  const [showImportPreview, setShowImportPreview] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState<SubjectRequest>({
     subjectCode: '',
@@ -46,9 +52,12 @@ const SubjectsPage = () => {
     try {
       setLoading(true)
       const response = await subjectService.getAll()
-      setSubjects(response.data)
+      // Đảm bảo response.data là mảng
+      const data = Array.isArray(response.data) ? response.data : []
+      setSubjects(data)
     } catch (error) {
       toast.error('Không thể tải danh sách môn học')
+      setSubjects([]) // Set empty array nếu có lỗi
     } finally {
       setLoading(false)
     }
@@ -125,11 +134,123 @@ const SubjectsPage = () => {
     }
   }
 
-  const filteredSubjects = subjects.filter(
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const validTypes = ['.xlsx', '.xls']
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+    if (!validTypes.includes(fileExtension)) {
+      toast.error('Vui lòng chọn file Excel (.xlsx hoặc .xls)')
+      return
+    }
+
+    // Validate semester
+    if (!selectedSemester) {
+      toast.error('Vui lòng chọn học kỳ trước khi import')
+      return
+    }
+
+    try {
+      setImporting(true)
+      const response = await curriculumService.importExcel(file, selectedSemester)
+      
+      if (response.data.success && response.data.data) {
+        setImportedSubjects(response.data.data)
+        setShowImportPreview(true)
+        toast.success(`Đã import thành công ${response.data.data.length} môn học`)
+      } else {
+        toast.error(response.data.message || 'Không thể import file')
+      }
+    } catch (error: any) {
+      console.error('Import error:', error)
+      toast.error(error.response?.data?.message || 'Lỗi khi import file')
+    } finally {
+      setImporting(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleSaveImportedSubjects = async () => {
+    if (importedSubjects.length === 0) {
+      toast.error('Không có dữ liệu để lưu')
+      return
+    }
+
+    try {
+      setSaving(true)
+      let successCount = 0
+      let errorCount = 0
+
+      for (const item of importedSubjects) {
+        try {
+          // Find major by name
+          const major = majors.find(m => m.majorName === item.nganh)
+          if (!major) {
+            console.warn(`Không tìm thấy ngành: ${item.nganh}`)
+            errorCount++
+            continue
+          }
+
+          // Map curriculum item to SubjectRequest
+          const subjectRequest: SubjectRequest = {
+            subjectCode: item.mmh,
+            subjectName: item.tmh,
+            studentsPerClass: item.si_so > 0 && item.so_lop > 0 ? Math.ceil(item.si_so / item.so_lop) : item.si_so || 60,
+            numberOfClasses: item.so_lop || 1,
+            credits: item.tc || 0,
+            theoryHours: item.ly_thuyet || 0,
+            exerciseHours: item.tl_bt || 0,
+            projectHours: item.bt_lon || 0,
+            labHours: item.tn_th || 0,
+            selfStudyHours: item.tu_hoc || 0,
+            department: item.bo_mon || '',
+            examFormat: item.hinh_thuc_thi || '',
+            majorId: major.id,
+            facultyId: major.facultyId,
+          }
+
+          await subjectService.create(subjectRequest)
+          successCount++
+        } catch (error) {
+          console.error(`Error saving subject ${item.mmh}:`, error)
+          errorCount++
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Đã lưu thành công ${successCount} môn học${errorCount > 0 ? ` (${errorCount} lỗi)` : ''}`)
+        setShowImportPreview(false)
+        setImportedSubjects([])
+        fetchSubjects()
+      } else {
+        toast.error(`Không thể lưu môn học nào (${errorCount} lỗi)`)
+      }
+    } catch (error) {
+      toast.error('Có lỗi xảy ra khi lưu')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancelImport = () => {
+    setShowImportPreview(false)
+    setImportedSubjects([])
+    setSelectedSemester('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const filteredSubjects = Array.isArray(subjects) ? subjects.filter(
     (subject) =>
       subject.subjectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       subject.subjectCode.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  ) : []
 
   if (loading) {
     return <div className="text-center py-12">Đang tải...</div>
@@ -142,17 +263,45 @@ const SubjectsPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý Môn học</h1>
           <p className="text-gray-600 mt-2">Quản lý thông tin các môn học</p>
         </div>
-        <button
-          onClick={() => {
-            setEditingSubject(null)
-            resetForm()
-            setShowModal(true)
-          }}
-          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-        >
-          <Plus className="w-5 h-5" />
-          Thêm môn học
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            >
+              <option value="">-- Chọn học kỳ --</option>
+              <option value="1">Học kỳ 1</option>
+              <option value="2">Học kỳ 2</option>
+            </select>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!selectedSemester || importing}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Upload className="w-5 h-5" />
+              {importing ? 'Đang import...' : 'Import file'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileImport}
+              className="hidden"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setEditingSubject(null)
+              resetForm()
+              setShowModal(true)
+            }}
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            <Plus className="w-5 h-5" />
+            Thêm môn học
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -164,7 +313,7 @@ const SubjectsPage = () => {
               placeholder="Tìm kiếm môn học..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -200,6 +349,67 @@ const SubjectsPage = () => {
         </div>
       </div>
 
+      {/* Import Preview Section */}
+      {showImportPreview && importedSubjects.length > 0 && (
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">Xem trước danh sách môn đã import</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Tổng số: <strong>{importedSubjects.length}</strong> môn học
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelImport}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSaveImportedSubjects}
+                disabled={saving}
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {saving ? 'Đang lưu...' : '💾 Lưu vào database'}
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã môn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên môn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngành</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sĩ số</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lớp</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tín chỉ</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bộ môn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hình thức thi</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {importedSubjects.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900">{item.mmh}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.tmh}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.khoa}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.nganh}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.si_so}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.so_lop}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.tc}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.bo_mon || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{item.hinh_thuc_thi || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl my-8">
@@ -213,7 +423,7 @@ const SubjectsPage = () => {
                     required
                     value={formData.subjectCode}
                     onChange={(e) => setFormData({ ...formData, subjectCode: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -223,7 +433,7 @@ const SubjectsPage = () => {
                     required
                     value={formData.subjectName}
                     onChange={(e) => setFormData({ ...formData, subjectName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -236,7 +446,7 @@ const SubjectsPage = () => {
                     min="1"
                     value={formData.studentsPerClass}
                     onChange={(e) => setFormData({ ...formData, studentsPerClass: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -247,7 +457,7 @@ const SubjectsPage = () => {
                     min="1"
                     value={formData.numberOfClasses}
                     onChange={(e) => setFormData({ ...formData, numberOfClasses: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -258,7 +468,7 @@ const SubjectsPage = () => {
                     min="1"
                     value={formData.credits}
                     onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -271,7 +481,7 @@ const SubjectsPage = () => {
                     min="0"
                     value={formData.theoryHours}
                     onChange={(e) => setFormData({ ...formData, theoryHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -282,7 +492,7 @@ const SubjectsPage = () => {
                     min="0"
                     value={formData.labHours}
                     onChange={(e) => setFormData({ ...formData, labHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -293,7 +503,7 @@ const SubjectsPage = () => {
                     min="0"
                     value={formData.exerciseHours}
                     onChange={(e) => setFormData({ ...formData, exerciseHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -304,7 +514,7 @@ const SubjectsPage = () => {
                     min="0"
                     value={formData.selfStudyHours}
                     onChange={(e) => setFormData({ ...formData, selfStudyHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -316,7 +526,7 @@ const SubjectsPage = () => {
                     required
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -326,7 +536,7 @@ const SubjectsPage = () => {
                     required
                     value={formData.examFormat}
                     onChange={(e) => setFormData({ ...formData, examFormat: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -336,7 +546,7 @@ const SubjectsPage = () => {
                   required
                   value={formData.majorId}
                   onChange={(e) => setFormData({ ...formData, majorId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                 >
                   <option value="">Chọn ngành</option>
                   {majors.map((major) => (
@@ -357,7 +567,7 @@ const SubjectsPage = () => {
                 >
                   Hủy
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                <button type="submit" className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
                   {editingSubject ? 'Cập nhật' : 'Tạo mới'}
                 </button>
               </div>

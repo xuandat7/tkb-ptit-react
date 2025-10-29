@@ -107,7 +107,7 @@ const MajorsPage = () => {
             setFormData({ majorName: '', numberOfStudents: 0, classYear: '', facultyId: '' })
             setShowModal(true)
           }}
-          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+          className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
         >
           <Plus className="w-5 h-5" />
           Thêm ngành
@@ -123,7 +123,7 @@ const MajorsPage = () => {
               placeholder="Tìm kiếm ngành..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -179,7 +179,7 @@ const MajorsPage = () => {
                   required
                   value={formData.majorName}
                   onChange={(e) => setFormData({ ...formData, majorName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                 />
               </div>
               <div>
@@ -190,7 +190,7 @@ const MajorsPage = () => {
                   min="1"
                   value={formData.numberOfStudents}
                   onChange={(e) => setFormData({ ...formData, numberOfStudents: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                 />
               </div>
               <div>
@@ -200,7 +200,7 @@ const MajorsPage = () => {
                   required
                   value={formData.classYear}
                   onChange={(e) => setFormData({ ...formData, classYear: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ const MajorsPage = () => {
                   required
                   value={formData.facultyId}
                   onChange={(e) => setFormData({ ...formData, facultyId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                 >
                   <option value="">Chọn khoa</option>
                   {faculties.map((faculty) => (
@@ -232,7 +232,7 @@ const MajorsPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >
                   {editingMajor ? 'Cập nhật' : 'Tạo mới'}
                 </button>

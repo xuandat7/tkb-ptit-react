@@ -227,7 +227,7 @@ const RoomsPage = () => {
             resetForm()
             setShowModal(true)
           }}
-          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+          className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
         >
           <Plus className="w-5 h-5" />
           Thêm phòng học
@@ -245,7 +245,7 @@ const RoomsPage = () => {
               placeholder="Tìm kiếm phòng học..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
 
@@ -256,7 +256,7 @@ const RoomsPage = () => {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">Tất cả</option>
                 <option value="AVAILABLE">Có sẵn</option>
@@ -270,7 +270,7 @@ const RoomsPage = () => {
               <select
                 value={filterBuilding}
                 onChange={(e) => setFilterBuilding(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">Tất cả</option>
                 {uniqueBuildings.map((building) => (
@@ -286,7 +286,7 @@ const RoomsPage = () => {
               <select
                 value={filterFloor}
                 onChange={(e) => setFilterFloor(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">Tất cả</option>
                 {uniqueFloors.map((floor) => (
@@ -302,7 +302,7 @@ const RoomsPage = () => {
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="5">5</option>
                 <option value="10">10</option>
@@ -321,7 +321,7 @@ const RoomsPage = () => {
                 placeholder="VD: 50"
                 value={filterCapacityMin}
                 onChange={(e) => setFilterCapacityMin(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
@@ -331,7 +331,7 @@ const RoomsPage = () => {
                 placeholder="VD: 100"
                 value={filterCapacityMax}
                 onChange={(e) => setFilterCapacityMax(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>
@@ -416,7 +416,7 @@ const RoomsPage = () => {
                     onClick={() => handlePageChange(pageNum)}
                     className={`px-3 py-2 border rounded-lg ${
                       currentPage === pageNum
-                        ? 'bg-purple-600 text-white border-purple-600'
+                        ? 'bg-red-600 text-white border-red-600'
                         : 'border-gray-300 hover:bg-gray-50'
                     }`}
                   >
@@ -450,7 +450,7 @@ const RoomsPage = () => {
                     required
                     value={formData.roomCode}
                     onChange={(e) => setFormData({ ...formData, roomCode: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -460,7 +460,7 @@ const RoomsPage = () => {
                     required
                     value={formData.building}
                     onChange={(e) => setFormData({ ...formData, building: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -473,7 +473,7 @@ const RoomsPage = () => {
                     min="1"
                     value={formData.capacity}
                     onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -483,7 +483,7 @@ const RoomsPage = () => {
                     min="1"
                     value={formData.floor || 1}
                     onChange={(e) => setFormData({ ...formData, floor: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
@@ -494,7 +494,7 @@ const RoomsPage = () => {
                     required
                     value={formData.roomType}
                     onChange={(e) => setFormData({ ...formData, roomType: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   >
                     <option value="CLASSROOM">Phòng học</option>
                     <option value="LAB">Phòng Lab</option>
@@ -508,7 +508,7 @@ const RoomsPage = () => {
                     required
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   >
                     <option value="AVAILABLE">Có sẵn</option>
                     <option value="OCCUPIED">Đang sử dụng</option>
@@ -527,7 +527,7 @@ const RoomsPage = () => {
                 >
                   Hủy
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                <button type="submit" className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
                   {editingRoom ? 'Cập nhật' : 'Tạo mới'}
                 </button>
               </div>
