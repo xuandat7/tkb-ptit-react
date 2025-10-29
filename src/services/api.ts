@@ -81,6 +81,15 @@ export interface Subject {
   facultyName: string | null
 }
 
+export interface SubjectByMajor {
+  subjectCode: string
+  subjectName: string
+  majorCode: string
+  classYear: string
+  numberOfStudents: number
+  studentPerClass: number | null
+}
+
 export interface SubjectRequest {
   subjectCode: string
   subjectName: string
@@ -131,15 +140,6 @@ export const facultyService = {
   delete: (id: string) => api.delete(`/faculties/${id}`),
 }
 
-export const majorService = {
-  getAll: () => api.get<Major[]>('/majors'),
-  getById: (id: string) => api.get<Major>(`/majors/${id}`),
-  getByFaculty: (facultyId: string) => api.get<Major[]>(`/majors/faculty/${facultyId}`),
-  create: (data: MajorRequest) => api.post<Major>('/majors', data),
-  update: (id: string, data: MajorRequest) => api.put<Major>(`/majors/${id}`, data),
-  delete: (id: string) => api.delete(`/majors/${id}`),
-}
-
 export const subjectService = {
   getAll: (page = 1, size = 10, search?: string) => {
     const params = new URLSearchParams({ 
@@ -155,6 +155,21 @@ export const subjectService = {
   create: (data: SubjectRequest) => api.post<ApiResponse<Subject>>('/subjects', data),
   update: (id: number, data: SubjectRequest) => api.put<ApiResponse<Subject>>(`/subjects/${id}`, data),
   delete: (id: number) => api.delete<ApiResponse<void>>(`/subjects/${id}`),
+  getGroupMajors: (classYear: string, programType: string) => {
+    const params = new URLSearchParams({ 
+      classYear: classYear,
+      programType: programType
+    })
+    return api.get<ApiResponse<string[][]>>(`/subjects/group-majors?${params}`)
+  },
+  getByMajors: (classYear: string, programType: string, majorCodes: string[]) => {
+    const params = new URLSearchParams({ 
+      classYear: classYear,
+      programType: programType
+    })
+    majorCodes.forEach(code => params.append('majorCodes', code))
+    return api.get<ApiResponse<SubjectByMajor[]>>(`/subjects/majors?${params}`)
+  },
 }
 
 export const roomService = {

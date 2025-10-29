@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Search, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { subjectService, majorService, type Subject, type SubjectRequest, type Major } from '../services/api'
+import { subjectService, type Subject, type SubjectRequest } from '../services/api'
 import toast from 'react-hot-toast'
 
 const SubjectsPage = () => {
   const [subjects, setSubjects] = useState<Subject[]>([])
-  const [majors, setMajors] = useState<Major[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
@@ -40,17 +39,7 @@ const SubjectsPage = () => {
 
   useEffect(() => {
     fetchSubjects()
-    fetchMajors()
   }, [currentPage, searchTerm])
-
-  const fetchMajors = async () => {
-    try {
-      const response = await majorService.getAll()
-      setMajors(response.data)
-    } catch (error) {
-      console.error('Error fetching majors:', error)
-    }
-  }
 
   const fetchSubjects = async () => {
     try {
@@ -556,20 +545,15 @@ const SubjectsPage = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ngành *</label>
-                <select
+                <label className="block text-sm font-medium text-gray-700 mb-1">Major ID *</label>
+                <input
+                  type="number"
                   required
                   value={formData.majorId}
                   onChange={(e) => setFormData({ ...formData, majorId: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">Chọn ngành</option>
-                  {majors.map((major) => (
-                    <option key={major.id} value={major.id}>
-                      {major.majorName}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Nhập ID ngành"
+                />
               </div>
               <div className="flex gap-4">
                 <button

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Play, Loader, RefreshCw } from 'lucide-react'
+import { subjectService, type SubjectByMajor } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -42,9 +43,8 @@ interface SavedResult {
 }
 
 const TKBPage = () => {
-  const [systemType, setSystemType] = useState('')
-  const [khoas, setKhoas] = useState<string[]>([])
-  const [selectedKhoa, setSelectedKhoa] = useState('')
+  const [systemType, setSystemType] = useState('chinh_quy')
+  const [classYear, setClassYear] = useState('2022') // Default khóa
   const [majorGroups, setMajorGroups] = useState<string[]>([])
   const [selectedMajorGroup, setSelectedMajorGroup] = useState('')
   const [batchRows, setBatchRows] = useState<BatchRow[]>([])
@@ -53,114 +53,99 @@ const TKBPage = () => {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (systemType === '') {
-      loadKhoas()
-    }
-  }, [systemType])
-
-  useEffect(() => {
-    if (selectedKhoa && systemType !== 'chung') {
+    // Load major groups when systemType and classYear change
+    if (systemType && classYear) {
       loadMajorGroups()
     }
-  }, [selectedKhoa, systemType])
-
-  const loadKhoas = async () => {
-    try {
-      // Load from curriculum.json file
-      const response = await fetch('/curriculum.json')
-      const curriculum = await response.json()
-      
-      // Extract unique khoas and convert to string
-      const khoaValues = curriculum.map((item: any) => item.khoa)
-      const uniqueKhoas = Array.from(new Set(khoaValues))
-        .map(k => k?.toString().replace(/\.0$/, '') || '')
-        .filter(Boolean)
-        .sort()
-      
-      setKhoas(uniqueKhoas)
-      toast.success(`Đã tải ${uniqueKhoas.length} khóa học`)
-    } catch (error) {
-      toast.error('Không thể tải danh sách khóa')
-    }
-  }
+  }, [systemType, classYear])
 
   const loadMajorGroups = async () => {
-    if (!selectedKhoa) return
-    
     try {
-      // Load from curriculum.json file
-      const response = await fetch('/curriculum.json')
-      const curriculum = await response.json()
+      setLoading(true)
       
-      // Filter by selectedKhoa and extract unique ngành
-      // Support both "2022" and "2022.0" format
-      const selectedKhoaNormalized = selectedKhoa.includes('.') ? selectedKhoa : `${selectedKhoa}.0`
-      const filteredByKhoa = curriculum.filter(
-        (item: any) => {
-          const itemKhoa = item.khoa?.toString()
-          return itemKhoa === selectedKhoa || 
-                 itemKhoa === selectedKhoaNormalized || 
-                 itemKhoa === selectedKhoa + '.0'
-        }
-      )
+      // Map systemType to programType for API
+      let programType = ''
+      if (systemType === 'chinh_quy') {
+        programType = 'Chính quy'
+      } else if (systemType === 'he_dac_thu') {
+        programType = 'Đặc thù'
+      } else if (systemType === 'chung') {
+        programType = 'Chung'
+      } else {
+        // Default fallback
+        programType = 'Chính quy'
+      }
       
-      // Extract unique majors for this khoa
-      const uniqueMajors = Array.from(
-        new Set(filteredByKhoa.map((item: any) => item.nganh).filter(Boolean))
-      ).sort() as string[]
+      // Call API to get major groups
+      const response = await subjectService.getGroupMajors(classYear, programType)
       
-      setMajorGroups(uniqueMajors)
-      toast.success(`Đã tải ${uniqueMajors.length} ngành`)
+      if (response.data.success) {
+        // Convert array of arrays to string array (join with dash)
+        const groups = response.data.data.map((group: string[]) => group.join('-'))
+        setMajorGroups(groups)
+        toast.success(`Đã tải ${groups.length} nhóm ngành từ API`)
+      } else {
+        toast.error('API trả về lỗi: ' + (response.data.message || 'Không xác định'))
+      }
     } catch (error) {
-      toast.error('Không thể tải danh sách ngành')
+      toast.error('Không thể tải danh sách nhóm ngành từ API')
+      console.error('Error loading major groups:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   const loadSubjectsByMajorGroup = async () => {
-    if (!selectedKhoa || !selectedMajorGroup) {
-      toast.error('Vui lòng chọn khóa và ngành trước')
+    if (!classYear || !selectedMajorGroup || !systemType) {
+      toast.error('Vui lòng chọn đầy đủ thông tin trước')
       return
     }
 
     try {
       setLoading(true)
       
-      // Load from curriculum.json file
-      const response = await fetch('/curriculum.json')
-      const curriculum = await response.json()
+      // Map systemType to programType for API
+      let programType = ''
+      if (systemType === 'chinh_quy') {
+        programType = 'Chính quy'
+      } else if (systemType === 'he_dac_thu') {
+        programType = 'Đặc thù'
+      } else if (systemType === 'chung') {
+        programType = 'Chung'
+      } else {
+        programType = 'Chính quy'
+      }
       
-      // Filter by khoa and nganh
-      const selectedKhoaNormalized = selectedKhoa.includes('.') ? selectedKhoa : `${selectedKhoa}.0`
-      const subjects = curriculum.filter((item: any) => {
-        const itemKhoa = item.khoa?.toString()
-        const matchesKhoa = itemKhoa === selectedKhoa || 
-                           itemKhoa === selectedKhoaNormalized || 
-                           itemKhoa === selectedKhoa + '.0'
-        const matchesNganh = item.nganh === selectedMajorGroup
-        return matchesKhoa && matchesNganh
-      })
+      // Split selected major group back to individual majors
+      const majorCodes = selectedMajorGroup.split('-')
       
-      // Map to batch row format
-      const newRows = subjects.map((item: any) => {
-        const sotiet = (item.ly_thuyet || 0) + (item.tl_bt || 0) + (item.bt_lon || 0) || item.ts_tiet || 0
+      // Call API to get subjects by majors
+      const response = await subjectService.getByMajors(classYear, programType, majorCodes)
+      
+      if (response.data.success) {
+        const subjects = response.data.data
         
-        return {
-          mmh: item.mmh,
-          tmh: item.tmh,
-          sotiet: sotiet,
-          solop: item.so_lop || 0,
-          siso: item.si_so || 0,
-          siso_mot_lop: 60, // Default
-          nganh: item.nganh || '',
-          khoa: (item.khoa || '').toString().replace(/\.0$/, ''),
-          he_dac_thu: item.he_dac_thu || '',
-        }
-      })
-      
-      setBatchRows(newRows)
-      toast.success(`Đã tải ${subjects.length} môn học`)
+        // Map to batch row format
+        const newRows = subjects.map((subject: SubjectByMajor) => ({
+          mmh: subject.subjectCode,
+          tmh: subject.subjectName,
+          sotiet: 0, // Will need to be calculated or provided by API
+          solop: 0, // Will need to be calculated based on numberOfStudents
+          siso: subject.numberOfStudents,
+          siso_mot_lop: subject.studentPerClass || 60, // Default to 60 if null
+          nganh: subject.majorCode,
+          khoa: subject.classYear,
+          he_dac_thu: programType,
+        }))
+        
+        setBatchRows(newRows)
+        toast.success(`Đã tải ${subjects.length} môn học từ API`)
+      } else {
+        toast.error('API trả về lỗi: ' + (response.data.message || 'Không xác định'))
+      }
     } catch (error: any) {
-      toast.error('Không thể tải môn học: ' + error.message)
+      toast.error('Không thể tải danh sách môn học từ API')
+      console.error('Error loading subjects by major:', error)
     } finally {
       setLoading(false)
     }
@@ -303,8 +288,8 @@ const TKBPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Nhập nhiều môn học (bảng)</h2>
         
-        {/* System Type Selection */}
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        {/* System Type and Class Year Selection */}
+        <div className="mb-4 grid grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Loại hệ đào tạo:</label>
             <select
@@ -312,65 +297,55 @@ const TKBPage = () => {
               onChange={(e) => {
                 setSystemType(e.target.value)
                 setBatchRows([])
-                setSelectedKhoa('')
                 setSelectedMajorGroup('')
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="">Hệ thường</option>
+              <option value="chinh_quy">Hệ thường</option>
               <option value="he_dac_thu">Hệ đặc thù</option>
               <option value="chung">Chung</option>
             </select>
           </div>
 
-          {/* Khoa Selection */}
-          {systemType !== 'chung' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Chọn khóa:</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Chọn khóa:</label>
+            <select
+              value={classYear}
+              onChange={(e) => setClassYear(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="2022">Khóa 2022</option>
+              <option value="2023">Khóa 2023</option>
+              <option value="2024">Khóa 2024</option>
+            </select>
+          </div>
+
+          {/* Department/Major Group Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Chọn ngành:</label>
+            <div className="flex gap-2">
               <select
-                value={selectedKhoa}
-                onChange={(e) => setSelectedKhoa(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                value={selectedMajorGroup}
+                onChange={(e) => setSelectedMajorGroup(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                disabled={!majorGroups.length}
               >
-                <option value="">-- Chọn khóa --</option>
-                {khoas.map((khoa) => (
-                  <option key={khoa} value={khoa}>
-                    Khóa {khoa.toString().replace(/\.0$/, '')}
+                <option value="">-- Chọn ngành --</option>
+                {majorGroups.map((group, idx) => (
+                  <option key={idx} value={group}>
+                    {group}
                   </option>
                 ))}
               </select>
+              <button
+                onClick={loadSubjectsByMajorGroup}
+                disabled={!selectedMajorGroup || loading}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                Tải môn học
+              </button>
             </div>
-          )}
-
-          {/* Department/Major Selection */}
-          {systemType !== 'chung' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {systemType === 'he_dac_thu' ? 'Chọn ngành:' : 'Chọn ngành:'}
-              </label>
-              <div className="flex gap-2">
-                <select
-                  value={selectedMajorGroup}
-                  onChange={(e) => setSelectedMajorGroup(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="">-- Chọn ngành --</option>
-                  {majorGroups.map((group, idx) => (
-                    <option key={idx} value={group}>
-                      {group}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={loadSubjectsByMajorGroup}
-                  disabled={!selectedMajorGroup || loading}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                >
-                  Tải môn học
-                </button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Batch Table */}
