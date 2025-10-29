@@ -14,6 +14,15 @@ export interface ApiResponse<T> {
   success: boolean
   message: string
   data: T
+  status?: number
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
 }
 
 // Faculty Types
@@ -49,41 +58,46 @@ export interface MajorRequest {
 
 // Subject Types
 export interface Subject {
-  id: string
+  id: number
   subjectCode: string
   subjectName: string
-  studentsPerClass: number
-  numberOfClasses: number
   credits: number
   theoryHours: number
   exerciseHours: number
   projectHours: number
   labHours: number
   selfStudyHours: number
-  department: string
   examFormat: string
-  majorId: string
-  majorName?: string
+  classYear: string
+  programType: string
+  numberOfStudents: number
+  numberOfClasses: number
+  department: string
+  studentsPerClass: number | null
+  majorId: number
+  majorCode: string
+  majorName: string | null
+  facultyId: string
+  facultyName: string | null
 }
 
 export interface SubjectRequest {
   subjectCode: string
   subjectName: string
-  studentsPerClass: number
-  numberOfClasses: number
   credits: number
   theoryHours: number
   exerciseHours: number
   projectHours: number
   labHours: number
   selfStudyHours: number
-  department: string
   examFormat: string
-  majorId: string
-  facultyId: string
-  majorName?: string
-  numberOfStudents?: number
-  classYear?: string
+  classYear: string
+  programType: string
+  numberOfStudents: number
+  numberOfClasses: number
+  department: string
+  studentsPerClass?: number
+  majorId: number
 }
 
 // Room Types
@@ -127,13 +141,20 @@ export const majorService = {
 }
 
 export const subjectService = {
-  getAll: () => api.get<Subject[]>('/subjects'),
-  getById: (id: string) => api.get<Subject>(`/subjects/${id}`),
-  getByMajor: (majorId: string) => api.get<Subject[]>(`/subjects/major/${majorId}`),
-  search: (name: string) => api.get<Subject[]>(`/subjects/search?name=${name}`),
-  create: (data: SubjectRequest) => api.post<Subject>('/subjects', data),
-  update: (id: string, data: SubjectRequest) => api.put<Subject>(`/subjects/${id}`, data),
-  delete: (id: string) => api.delete(`/subjects/${id}`),
+  getAll: (page = 1, size = 10, search?: string) => {
+    const params = new URLSearchParams({ 
+      page: page.toString(), 
+      size: size.toString() 
+    })
+    if (search) params.append('search', search)
+    return api.get<ApiResponse<PaginatedResponse<Subject>>>(`/subjects?${params}`)
+  },
+  getById: (id: number) => api.get<ApiResponse<Subject>>(`/subjects/${id}`),
+  getByMajor: (majorId: number) => api.get<ApiResponse<Subject[]>>(`/subjects/major/${majorId}`),
+  search: (name: string) => api.get<ApiResponse<Subject[]>>(`/subjects/search?name=${name}`),
+  create: (data: SubjectRequest) => api.post<ApiResponse<Subject>>('/subjects', data),
+  update: (id: number, data: SubjectRequest) => api.put<ApiResponse<Subject>>(`/subjects/${id}`, data),
+  delete: (id: number) => api.delete<ApiResponse<void>>(`/subjects/${id}`),
 }
 
 export const roomService = {

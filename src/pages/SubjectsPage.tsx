@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { subjectService, majorService, type Subject, type SubjectRequest, type Major } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -8,30 +8,40 @@ const SubjectsPage = () => {
   const [majors, setMajors] = useState<Major[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalElements, setTotalElements] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
   const [formData, setFormData] = useState<SubjectRequest>({
     subjectCode: '',
     subjectName: '',
-    studentsPerClass: 0,
-    numberOfClasses: 0,
     credits: 0,
     theoryHours: 0,
     exerciseHours: 0,
     projectHours: 0,
     labHours: 0,
     selfStudyHours: 0,
-    department: '',
     examFormat: '',
-    majorId: '',
-    facultyId: '',
+    classYear: '',
+    programType: '',
+    numberOfStudents: 0,
+    numberOfClasses: 0,
+    department: '',
+    studentsPerClass: 0,
+    majorId: 0,
   })
 
   useEffect(() => {
     fetchSubjects()
     fetchMajors()
-  }, [])
+  }, [currentPage, searchTerm])
 
   const fetchMajors = async () => {
     try {
@@ -45,8 +55,13 @@ const SubjectsPage = () => {
   const fetchSubjects = async () => {
     try {
       setLoading(true)
-      const response = await subjectService.getAll()
-      setSubjects(response.data)
+      const response = await subjectService.getAll(currentPage, pageSize, searchTerm || undefined)
+      
+      if (response.data.success) {
+        setSubjects(response.data.data.items)
+        setTotalElements(response.data.data.totalElements)
+        setTotalPages(response.data.data.totalPages)
+      }
     } catch (error) {
       toast.error('Không thể tải danh sách môn học')
     } finally {
@@ -77,18 +92,20 @@ const SubjectsPage = () => {
     setFormData({
       subjectCode: '',
       subjectName: '',
-      studentsPerClass: 0,
-      numberOfClasses: 0,
       credits: 0,
       theoryHours: 0,
       exerciseHours: 0,
       projectHours: 0,
       labHours: 0,
       selfStudyHours: 0,
-      department: '',
       examFormat: '',
-      majorId: '',
-      facultyId: '',
+      classYear: '',
+      programType: '',
+      numberOfStudents: 0,
+      numberOfClasses: 0,
+      department: '',
+      studentsPerClass: 0,
+      majorId: 0,
     })
   }
 
@@ -97,23 +114,25 @@ const SubjectsPage = () => {
     setFormData({
       subjectCode: subject.subjectCode,
       subjectName: subject.subjectName,
-      studentsPerClass: subject.studentsPerClass,
-      numberOfClasses: subject.numberOfClasses,
       credits: subject.credits,
       theoryHours: subject.theoryHours,
       exerciseHours: subject.exerciseHours,
       projectHours: subject.projectHours,
       labHours: subject.labHours,
       selfStudyHours: subject.selfStudyHours,
-      department: subject.department,
       examFormat: subject.examFormat,
+      classYear: subject.classYear,
+      programType: subject.programType,
+      numberOfStudents: subject.numberOfStudents,
+      numberOfClasses: subject.numberOfClasses,
+      department: subject.department,
+      studentsPerClass: subject.studentsPerClass || 0,
       majorId: subject.majorId,
-      facultyId: '',
     })
     setShowModal(true)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('Bạn có chắc muốn xóa môn học này?')) return
 
     try {
@@ -125,11 +144,19 @@ const SubjectsPage = () => {
     }
   }
 
-  const filteredSubjects = subjects.filter(
-    (subject) =>
-      subject.subjectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subject.subjectCode.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const handleViewDetail = (subject: Subject) => {
+    setSelectedSubject(subject)
+    setShowDetailModal(true)
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    setCurrentPage(1) // Reset về trang 1 khi search
+  }
 
   if (loading) {
     return <div className="text-center py-12">Đang tải...</div>
@@ -163,7 +190,7 @@ const SubjectsPage = () => {
               type="text"
               placeholder="Tìm kiếm môn học..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
@@ -180,13 +207,20 @@ const SubjectsPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSubjects.map((subject) => (
+              {subjects.map((subject) => (
                 <tr key={subject.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm text-gray-900">{subject.subjectCode}</td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{subject.subjectName}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{subject.credits}</td>
                   <td className="px-6 py-4 text-sm font-medium">
-                    <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-4">
+                    <button 
+                      onClick={() => handleViewDetail(subject)} 
+                      className="text-green-600 hover:text-green-900 mr-2"
+                      title="Xem chi tiết"
+                    >
+                      <Eye className="w-4 h-4 inline" />
+                    </button>
+                    <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-2">
                       <Edit className="w-4 h-4 inline" />
                     </button>
                     <button onClick={() => handleDelete(subject.id)} className="text-red-600 hover:text-red-900">
@@ -198,7 +232,152 @@ const SubjectsPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        <div className="flex justify-between items-center mt-6">
+          <div className="text-sm text-gray-700">
+            Hiển thị {subjects.length} trên tổng số {totalElements} môn học
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            
+            {[...Array(Math.min(5, totalPages))].map((_, index) => {
+              const page = currentPage - 2 + index
+              if (page < 1 || page > totalPages) return null
+              
+              return (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-1 border rounded-lg ${
+                    currentPage === page 
+                      ? 'bg-purple-600 text-white border-purple-600' 
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            })}
+            
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Modal Chi tiết môn học */}
+      {showDetailModal && selectedSubject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Chi tiết môn học</h2>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Mã môn học</label>
+                  <p className="text-lg font-semibold text-gray-900">{selectedSubject.subjectCode}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Tên môn học</label>
+                  <p className="text-lg font-semibold text-gray-900">{selectedSubject.subjectName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Số tín chỉ</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.credits}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Khóa học</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.classYear}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Hình thức đào tạo</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.programType}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Bộ môn</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.department}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Hình thức thi</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.examFormat}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Số sinh viên</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.numberOfStudents}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Số lớp</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.numberOfClasses}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Sĩ số/lớp</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.studentsPerClass || 'Chưa xác định'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Giờ lý thuyết</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.theoryHours}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Giờ thực hành</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.labHours}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Giờ bài tập</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.exerciseHours}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Giờ đồ án</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.projectHours}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Giờ tự học</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.selfStudyHours}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Mã ngành</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.majorCode}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Tên ngành</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.majorName || 'Chưa xác định'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Khoa</label>
+                  <p className="text-lg text-gray-900">{selectedSubject.facultyName || selectedSubject.facultyId}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
@@ -227,15 +406,50 @@ const SubjectsPage = () => {
                   />
                 </div>
               </div>
+              
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sĩ số/lớp *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số tín chỉ *</label>
                   <input
                     type="number"
                     required
                     min="1"
-                    value={formData.studentsPerClass}
-                    onChange={(e) => setFormData({ ...formData, studentsPerClass: parseInt(e.target.value) })}
+                    value={formData.credits}
+                    onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Khóa học *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.classYear}
+                    onChange={(e) => setFormData({ ...formData, classYear: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hình thức đào tạo *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.programType}
+                    onChange={(e) => setFormData({ ...formData, programType: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số sinh viên *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={formData.numberOfStudents}
+                    onChange={(e) => setFormData({ ...formData, numberOfStudents: parseInt(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -251,13 +465,12 @@ const SubjectsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số tín chỉ *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sĩ số/lớp</label>
                   <input
                     type="number"
-                    required
                     min="1"
-                    value={formData.credits}
-                    onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) })}
+                    value={formData.studentsPerClass}
+                    onChange={(e) => setFormData({ ...formData, studentsPerClass: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -335,7 +548,7 @@ const SubjectsPage = () => {
                 <select
                   required
                   value={formData.majorId}
-                  onChange={(e) => setFormData({ ...formData, majorId: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, majorId: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Chọn ngành</option>
