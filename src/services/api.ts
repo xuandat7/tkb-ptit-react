@@ -100,6 +100,34 @@ export interface RoomRequest {
   floor?: number
 }
 
+// Curriculum Import Types
+export interface CurriculumImportItem {
+  mmh: string
+  tmh: string
+  khoa: string | number
+  nganh: string
+  si_so: number
+  so_lop: number
+  tc: number
+  ts_tiet?: number
+  ly_thuyet?: number
+  tl_bt?: number
+  bt_lon?: number
+  tn_th?: number
+  tu_hoc?: number
+  bo_mon?: string
+  hinh_thuc_thi?: string
+  ma_cn?: string
+  he_dac_thu?: string | null
+  [key: string]: any
+}
+
+export interface CurriculumImportResponse {
+  success: boolean
+  message: string
+  data: CurriculumImportItem[]
+}
+
 // API Services
 export const subjectService = {
   getAll: (page = 1, size = 10, search?: string) => {
@@ -143,6 +171,19 @@ export const roomService = {
   getByStatus: (status: string) => api.get<ApiResponse<Room[]>>(`/rooms/status/${status}`),
   getByType: (type: string) => api.get<ApiResponse<Room[]>>(`/rooms/type/${type}`),
   getAvailable: (capacity: number) => api.get<ApiResponse<Room[]>>(`/rooms/available?capacity=${capacity}`),
+}
+
+export const curriculumService = {
+  importExcel: (file: File, semester: string) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('semester', semester)
+    return api.post<CurriculumImportResponse>('/curriculum/import-excel', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 }
 
 export default api

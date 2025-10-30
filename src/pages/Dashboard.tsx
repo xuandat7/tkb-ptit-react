@@ -30,7 +30,7 @@ const Dashboard = () => {
   }, [])
 
   const statCards = [
-    { title: 'Môn học', value: stats.subjects, icon: BookOpen, color: 'from-purple-500 to-purple-600' },
+    { title: 'CT Đào tạo', value: stats.subjects, icon: BookOpen, color: 'from-red-500 to-red-600' },
     { title: 'Phòng học', value: stats.rooms, icon: Home, color: 'from-orange-500 to-orange-600' },
   ]
 

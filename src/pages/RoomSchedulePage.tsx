@@ -199,7 +199,7 @@ const RoomSchedulePage = () => {
     grid.push(
       <div key="empty" className="h-12" />,
       ...days.map((day, idx) => (
-        <div key={`header-${idx}`} className="bg-purple-600 text-white p-3 text-center font-semibold">
+        <div key={`header-${idx}`} className="bg-red-600 text-white p-3 text-center font-semibold">
           {day}
         </div>
       ))
@@ -212,7 +212,7 @@ const RoomSchedulePage = () => {
       for (let tietIndex = 0; tietIndex < tiets.length; tietIndex++) {
         const tiet = tiets[tietIndex]
         const tietHeader = tietIndex === 0 ? (
-          <div key={`tiet-${tiet}`} className="bg-purple-600 text-white p-3 text-center font-semibold">
+          <div key={`tiet-${tiet}`} className="bg-red-600 text-white p-3 text-center font-semibold">
             Tiết {tiet}
           </div>
         ) : (
@@ -230,7 +230,7 @@ const RoomSchedulePage = () => {
             <div
               key={`slot-${thu}-${tiet}`}
               className={`p-3 border text-center cursor-pointer transition-all ${
-                hasActivity ? 'bg-white hover:bg-blue-50 border-blue-300' : 'bg-purple-100'
+                hasActivity ? 'bg-white hover:bg-blue-50 border-blue-300' : 'bg-red-100'
               }`}
               onClick={() => hasActivity && setSelectedSlot(timeKey)}
             >
@@ -240,7 +240,7 @@ const RoomSchedulePage = () => {
                   <div className="text-xs text-green-600 font-semibold">{slot.total_available} phòng còn trống</div>
                 </>
               ) : (
-                <div className="text-xs text-purple-600">Không có phòng</div>
+                <div className="text-xs text-red-600">Không có phòng</div>
               )}
             </div>
           )
@@ -251,7 +251,7 @@ const RoomSchedulePage = () => {
     }
 
     return (
-      <div className="grid grid-cols-8 gap-1 border-2 border-purple-200 rounded-lg overflow-hidden">
+      <div className="grid grid-cols-8 gap-1 border-2 border-red-200 rounded-lg overflow-hidden">
         {grid}
       </div>
     )
@@ -275,7 +275,7 @@ const RoomSchedulePage = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Đang tải lịch phòng học...</p>
         </div>
       </div>
@@ -283,7 +283,7 @@ const RoomSchedulePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 to-blue-600">
+    <div className="min-h-screen bg-gradient-to-br from-red-500 to-blue-600">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -392,7 +392,7 @@ const RoomSchedulePage = () => {
         {selectedSlot && activeFilters && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden">
-              <div className="bg-purple-600 text-white p-6 flex justify-between items-center">
+              <div className="bg-red-600 text-white p-6 flex justify-between items-center">
                 <h3 className="text-xl font-bold">Chi tiết phòng học - {selectedSlot}</h3>
                 <button
                   onClick={() => {
