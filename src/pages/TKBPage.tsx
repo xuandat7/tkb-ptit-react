@@ -18,6 +18,22 @@ interface BatchRow {
   student_year?: string
 }
 
+interface MajorCombination {
+  id: string
+  nganh1: string
+  nganh2: string
+  nganh3: string
+  totalSiso: number
+  sisoMotLop: number
+}
+
+interface BatchRowWithCombination extends BatchRow {
+  isGrouped: boolean
+  combinations: MajorCombination[]
+  isHiddenByCombination: boolean
+  hiddenByRowIndex?: number
+}
+
 interface TKBResultRow {
   lop?: string
   ma_mon?: string
@@ -48,7 +64,8 @@ const TKBPage = () => {
   const [classYear, setClassYear] = useState('2022') // Default khóa
   const [majorGroups, setMajorGroups] = useState<string[]>([])
   const [selectedMajorGroup, setSelectedMajorGroup] = useState('')
-  const [batchRows, setBatchRows] = useState<BatchRow[]>([])
+  const [batchRows, setBatchRows] = useState<BatchRowWithCombination[]>([])
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
   const [results, setResults] = useState<TKBResultRow[]>([])
   const [savedResults, setSavedResults] = useState<SavedResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -128,8 +145,8 @@ const TKBPage = () => {
       if (response.data.success) {
         const subjects = response.data.data
         
-        // Map to batch row format
-        const newRows = subjects.map((subject: SubjectByMajor) => ({
+        // Map to batch row format with combination fields
+        const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => ({
           mmh: subject.subjectCode,
           tmh: subject.subjectName,
           sotiet: 0, // Will need to be calculated or provided by API
@@ -139,6 +156,9 @@ const TKBPage = () => {
           nganh: subject.majorCode,
           khoa: subject.classYear,
           he_dac_thu: programType,
+          isGrouped: false,
+          combinations: [],
+          isHiddenByCombination: false,
         }))
         
         setBatchRows(newRows)
@@ -164,6 +184,237 @@ const TKBPage = () => {
     setBatchRows(batchRows.filter((_, i) => i !== index))
   }
 
+  // Helper function to check if a subject has multiple majors
+  const hasMultipleMajors = (subjectCode: string): boolean => {
+    const majors = batchRows.filter((row) => row.mmh === subjectCode)
+    return majors.length > 1
+  }
+
+  // Helper function 2: Toggle major combination
+  const toggleMajorCombination = (rowIndex: number, checked: boolean) => {
+    if (checked) {
+      // Open expanded row and add 1 default combination
+      setExpandedRows((prev) => new Set(prev).add(rowIndex))
+      setBatchRows((prevRows) =>
+        prevRows.map((row, idx) => {
+          if (idx !== rowIndex) return row
+          
+          return {
+            ...row,
+            isGrouped: true,
+            combinations: [
+              {
+                id: `${rowIndex}_${Date.now()}`,
+                nganh1: row.nganh,
+                nganh2: '',
+                nganh3: '',
+                totalSiso: row.siso,
+                sisoMotLop: row.siso_mot_lop,
+              },
+            ],
+          }
+        })
+      )
+    } else {
+      // Close expanded row, clear combinations, show hidden rows
+      setExpandedRows((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(rowIndex)
+        return newSet
+      })
+      setBatchRows((prevRows) =>
+        prevRows.map((row, idx) => {
+          // Update the main row
+          if (idx === rowIndex) {
+            return {
+              ...row,
+              isGrouped: false,
+              combinations: [],
+            }
+          }
+          
+          // Show rows hidden by this row
+          if (row.hiddenByRowIndex === rowIndex) {
+            return {
+              ...row,
+              isHiddenByCombination: false,
+              hiddenByRowIndex: undefined,
+            }
+          }
+          
+          return row
+        })
+      )
+    }
+  }
+
+  // Helper function 3: Add combination
+  const addCombination = (rowIndex: number) => {
+    setBatchRows((prevRows) =>
+      prevRows.map((row, idx) => {
+        if (idx !== rowIndex) return row
+        
+        const newCombination: MajorCombination = {
+          id: `${rowIndex}_${Date.now()}_${Math.random()}`,
+          nganh1: row.nganh,
+          nganh2: '',
+          nganh3: '',
+          totalSiso: row.siso,
+          sisoMotLop: row.siso_mot_lop,
+        }
+        
+        return {
+          ...row,
+          combinations: [...row.combinations, newCombination],
+        }
+      })
+    )
+  }
+
+  // Helper function 4: Remove combination
+  const removeCombination = (rowIndex: number, combinationId: string) => {
+    setBatchRows((prevRows) => {
+      const updatedRows = prevRows.map((row, idx) => {
+        if (idx !== rowIndex) return row
+        
+        return {
+          ...row,
+          combinations: row.combinations.filter((c) => c.id !== combinationId),
+        }
+      })
+      
+      // If no combinations left, uncheck checkbox
+      if (updatedRows[rowIndex].combinations.length === 0) {
+        // Need to call toggleMajorCombination separately after setState
+        setTimeout(() => toggleMajorCombination(rowIndex, false), 0)
+      }
+      
+      return updatedRows
+    })
+  }
+
+  // Helper function 5: Update combination major
+  const updateCombinationMajor = (
+    rowIndex: number,
+    combinationId: string,
+    field: 'nganh2' | 'nganh3',
+    value: string
+  ) => {
+    setBatchRows((prevRows) => {
+      // Create completely new array
+      const newRows = prevRows.map((row, idx) => {
+        if (idx !== rowIndex) return row
+        
+        // Create new row with updated combinations
+        return {
+          ...row,
+          combinations: row.combinations.map((c) => {
+            if (c.id !== combinationId) return c
+            
+            // Create new combination object with updated field
+            const updatedCombo = {
+              ...c,
+              [field]: value,
+            }
+
+            // Recalculate totalSiso
+            const selectedNganhs = [
+              updatedCombo.nganh1,
+              updatedCombo.nganh2,
+              updatedCombo.nganh3,
+            ].filter((n) => n !== '')
+
+            let totalSiso = 0
+            selectedNganhs.forEach((nganh) => {
+              const foundRow = prevRows.find((r) => r.mmh === row.mmh && r.nganh === nganh)
+              if (foundRow) {
+                totalSiso += foundRow.siso
+              }
+            })
+            
+            updatedCombo.totalSiso = totalSiso
+
+            return updatedCombo
+          }),
+        }
+      })
+
+      // Update hidden rows
+      const updatedCombo = newRows[rowIndex].combinations.find((c) => c.id === combinationId)
+      if (updatedCombo) {
+        const selectedNganhs = [
+          updatedCombo.nganh1,
+          updatedCombo.nganh2,
+          updatedCombo.nganh3,
+        ].filter((n) => n !== '')
+        
+        return applyHiddenRows(newRows, rowIndex, selectedNganhs)
+      }
+
+      return newRows
+    })
+  }
+
+  // Helper function 6: Update hidden rows (pure function)
+  const applyHiddenRows = (
+    rows: BatchRowWithCombination[],
+    mainRowIndex: number,
+    selectedNganhs: string[]
+  ): BatchRowWithCombination[] => {
+    const subjectCode = rows[mainRowIndex].mmh
+    const mainNganh = rows[mainRowIndex].nganh
+
+    return rows.map((row, idx) => {
+      if (idx === mainRowIndex) return row // Don't hide main row
+      if (row.mmh !== subjectCode) return row // Only process same subject
+
+      // Hide if this major is in the selected list (except main major)
+      if (selectedNganhs.includes(row.nganh) && row.nganh !== mainNganh) {
+        return {
+          ...row,
+          isHiddenByCombination: true,
+          hiddenByRowIndex: mainRowIndex,
+        }
+      } else if (row.hiddenByRowIndex === mainRowIndex) {
+        // Show again if previously hidden by this row but not in list anymore
+        return {
+          ...row,
+          isHiddenByCombination: false,
+          hiddenByRowIndex: undefined,
+        }
+      }
+
+      return row
+    })
+  }
+
+  // Helper function 7: Update combination class size
+  const updateCombinationClassSize = (
+    rowIndex: number,
+    combinationId: string,
+    value: number
+  ) => {
+    setBatchRows((prevRows) =>
+      prevRows.map((row, idx) => {
+        if (idx !== rowIndex) return row
+        
+        // Create new row with updated combinations
+        return {
+          ...row,
+          combinations: row.combinations.map((c) => {
+            if (c.id !== combinationId) return c
+            
+            // Create new combination object with updated sisoMotLop
+            return {
+              ...c,
+              sisoMotLop: value,
+            }
+          }),
+        }
+      })
+    )
+  }
+
   const generateTKB = async () => {
     if (batchRows.length === 0) {
       toast.error('Vui lòng thêm ít nhất một môn học')
@@ -173,18 +424,52 @@ const TKBPage = () => {
     try {
       setLoading(true)
       
-      const items = batchRows.map((row) => ({
-        ma_mon: row.mmh,
-        ten_mon: row.tmh,
-        sotiet: row.sotiet,
-        solop: Math.ceil(row.siso / row.siso_mot_lop),
-        siso: row.siso_mot_lop,
-        siso_mot_lop: row.siso_mot_lop,
-        nganh: row.nganh,
-        subject_type: row.subject_type,
-        student_year: row.khoa,
-        he_dac_thu: row.he_dac_thu,
-      }))
+      const items: any[] = []
+
+      batchRows.forEach((row) => {
+        // Skip hidden rows
+        if (row.isHiddenByCombination) return
+
+        if (row.isGrouped && row.combinations.length > 0) {
+          // Process combinations
+          row.combinations.forEach((combo) => {
+            const selectedNganhs = [combo.nganh1, combo.nganh2, combo.nganh3].filter(
+              (n) => n !== ''
+            )
+
+            if (selectedNganhs.length > 1) {
+              const solop = Math.ceil(combo.totalSiso / combo.sisoMotLop)
+              items.push({
+                ma_mon: row.mmh,
+                ten_mon: row.tmh,
+                sotiet: row.sotiet,
+                solop: solop,
+                siso: combo.sisoMotLop,
+                siso_mot_lop: combo.sisoMotLop,
+                nganh: selectedNganhs.join('-'), // Join majors with dash
+                subject_type: row.subject_type,
+                student_year: row.khoa,
+                he_dac_thu: row.he_dac_thu,
+              })
+            }
+          })
+        } else {
+          // Non-grouped row - process normally
+          const solop = Math.ceil(row.siso / row.siso_mot_lop)
+          items.push({
+            ma_mon: row.mmh,
+            ten_mon: row.tmh,
+            sotiet: row.sotiet,
+            solop: solop,
+            siso: row.siso_mot_lop,
+            siso_mot_lop: row.siso_mot_lop,
+            nganh: row.nganh,
+            subject_type: row.subject_type,
+            student_year: row.khoa,
+            he_dac_thu: row.he_dac_thu,
+          })
+        }
+      })
 
       const response = await api.post('/tkb/generate-batch', { items })
       
@@ -425,69 +710,222 @@ const TKBPage = () => {
               </thead>
               <tbody>
                 {batchRows.map((row, index) => (
-                  <tr key={index} className="border">
-                    <td className="px-4 py-2 border">
-                      <input
-                        type="text"
-                        value={row.mmh}
-                        readOnly
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    </td>
-                    <td className="px-4 py-2 border">
-                      <textarea
-                        value={row.tmh}
-                        readOnly
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    </td>
-                    <td className="px-4 py-2 border">
-                      <input
-                        type="number"
-                        value={row.siso}
-                        readOnly
-                        className="w-full px-2 py-1 border rounded text-center"
-                      />
-                    </td>
-                    <td className="px-4 py-2 border">
-                      <input
-                        type="number"
-                        value={row.siso_mot_lop}
-                        onChange={(e) => updateBatchRow(index, 'siso_mot_lop', parseInt(e.target.value) || 0)}
-                        className="w-full px-2 py-1 border rounded text-center"
-                      />
-                    </td>
-                    <td className="px-4 py-2 border">
-                      <input
-                        type="text"
-                        value={row.khoa}
-                        readOnly
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    </td>
-                    <td className="px-4 py-2 border">
-                      <input
-                        type="text"
-                        value={row.nganh}
-                        readOnly
-                        className="w-full px-2 py-1 border rounded"
-                      />
-                    </td>
-                    <td className="px-4 py-2 border text-center">
-                      <input type="checkbox" disabled />
-                    </td>
-                    <td className="px-4 py-2 border text-center">
-                      <input type="checkbox" disabled />
-                    </td>
-                    <td className="px-4 py-2 border text-center">
-                      <button
-                        onClick={() => removeBatchRow(index)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                      >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
+                  <>
+                    {/* Main row - only show if not hidden */}
+                    {!row.isHiddenByCombination && (
+                      <tr key={index} className="border">
+                        <td className="px-4 py-2 border">
+                          <input
+                            type="text"
+                            value={row.mmh}
+                            readOnly
+                            className="w-full px-2 py-1 border rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border">
+                          <textarea
+                            value={row.tmh}
+                            readOnly
+                            className="w-full px-2 py-1 border rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border">
+                          <input
+                            type="number"
+                            value={row.siso}
+                            readOnly
+                            className="w-full px-2 py-1 border rounded text-center"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border">
+                          <input
+                            type="number"
+                            value={row.siso_mot_lop}
+                            onChange={(e) =>
+                              updateBatchRow(index, 'siso_mot_lop', parseInt(e.target.value) || 0)
+                            }
+                            className="w-full px-2 py-1 border rounded text-center"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border">
+                          <input
+                            type="text"
+                            value={row.khoa}
+                            readOnly
+                            className="w-full px-2 py-1 border rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border">
+                          <input
+                            type="text"
+                            value={row.nganh}
+                            readOnly
+                            className="w-full px-2 py-1 border rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border text-center">
+                          <input
+                            type="checkbox"
+                            checked={row.isGrouped || false}
+                            disabled={!hasMultipleMajors(row.mmh)}
+                            onChange={(e) => toggleMajorCombination(index, e.target.checked)}
+                            className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={
+                              !hasMultipleMajors(row.mmh)
+                                ? 'Môn này chỉ có 1 ngành, không thể gộp'
+                                : 'Gộp ngành học chung'
+                            }
+                          />
+                        </td>
+                        <td className="px-4 py-2 border text-center">
+                          <input type="checkbox" disabled />
+                        </td>
+                        <td className="px-4 py-2 border text-center">
+                          <button
+                            onClick={() => removeBatchRow(index)}
+                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                          >
+                            Xóa
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Expanded row - show when checkbox is checked */}
+                    {expandedRows.has(index) && row.isGrouped && (
+                      <tr key={`expand-${index}`} className="bg-gray-50">
+                        <td colSpan={9} className="px-4 py-4 border">
+                          <div className="space-y-3">
+                            <h5 className="text-sm font-semibold text-gray-700">
+                              Kết hợp ngành học chung:
+                            </h5>
+
+                            {/* Render each combination */}
+                            {row.combinations.map((combo) => {
+                              // Get all majors for the subject (including hidden ones if already selected)
+                              const allMatchingMajors = batchRows.filter(
+                                (r, idx) => r.mmh === row.mmh && r.nganh !== row.nganh && idx !== index
+                              )
+                              
+                              // For nganh2: show available + already selected nganh2 (if any), exclude nganh3
+                              const availableForNganh2 = allMatchingMajors.filter(
+                                (r) => r.nganh !== combo.nganh3 && (!r.isHiddenByCombination || r.nganh === combo.nganh2)
+                              )
+                              
+                              // For nganh3: show available + already selected nganh3 (if any), exclude nganh2
+                              const availableForNganh3 = allMatchingMajors.filter(
+                                (r) => r.nganh !== combo.nganh2 && (!r.isHiddenByCombination || r.nganh === combo.nganh3)
+                              )
+                              
+                              return (
+                                <div
+                                  key={combo.id}
+                                  className="flex items-center gap-3 p-3 bg-white border rounded"
+                                >
+                                  {/* Ngành 1 - readonly */}
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium">Ngành 1:</label>
+                                    <input
+                                      type="text"
+                                      value={combo.nganh1}
+                                      readOnly
+                                      className="px-2 py-1 text-xs border rounded bg-gray-100 w-24"
+                                    />
+                                  </div>
+
+                                  {/* Ngành 2 - dropdown */}
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium">Ngành 2:</label>
+                                    <select
+                                      value={combo.nganh2 || ''}
+                                      onChange={(e) => updateCombinationMajor(index, combo.id, 'nganh2', e.target.value)}
+                                      className="px-2 py-1 text-xs border rounded w-32"
+                                    >
+                                      <option value="">-- Chọn ngành --</option>
+                                      {availableForNganh2.length === 0 ? (
+                                        <option disabled>Không có ngành khác</option>
+                                      ) : (
+                                        availableForNganh2.map((r) => (
+                                          <option key={r.nganh} value={r.nganh}>
+                                            {r.nganh}
+                                          </option>
+                                        ))
+                                      )}
+                                    </select>
+                                  </div>
+
+                                  {/* Ngành 3 - dropdown */}
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium">Ngành 3:</label>
+                                    <select
+                                      value={combo.nganh3 || ''}
+                                      onChange={(e) => updateCombinationMajor(index, combo.id, 'nganh3', e.target.value)}
+                                      className="px-2 py-1 text-xs border rounded w-32"
+                                    >
+                                      <option value="">-- Chọn ngành --</option>
+                                      {availableForNganh3.length === 0 ? (
+                                        <option disabled>Không có ngành khác</option>
+                                      ) : (
+                                        availableForNganh3.map((r) => (
+                                          <option key={r.nganh} value={r.nganh}>
+                                            {r.nganh}
+                                          </option>
+                                        ))
+                                      )}
+                                    </select>
+                                  </div>
+
+                                  {/* Sĩ số tổng - readonly */}
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium">Sĩ số:</label>
+                                    <input
+                                      type="number"
+                                      value={combo.totalSiso}
+                                      readOnly
+                                      className="px-2 py-1 text-xs border rounded bg-gray-100 w-20 text-center"
+                                    />
+                                  </div>
+
+                                  {/* Sĩ số/lớp - editable */}
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs font-medium">Sĩ số/lớp:</label>
+                                    <input
+                                      type="number"
+                                      value={combo.sisoMotLop}
+                                      onChange={(e) =>
+                                        updateCombinationClassSize(
+                                          index,
+                                          combo.id,
+                                          parseInt(e.target.value) || 0
+                                        )
+                                      }
+                                      className="px-2 py-1 text-xs border rounded w-20 text-center"
+                                    />
+                                  </div>
+
+                                  {/* Delete button */}
+                                  <button
+                                    onClick={() => removeCombination(index, combo.id)}
+                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                                  >
+                                    Xóa
+                                  </button>
+                                </div>
+                              )
+                            })}
+
+                            {/* Add combination button */}
+                            <button
+                              onClick={() => addCombination(index)}
+                              className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                              Thêm kết hợp
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
