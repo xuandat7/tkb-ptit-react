@@ -289,8 +289,8 @@ const TKBPage = () => {
         <h2 className="text-xl font-semibold mb-4">Nhập nhiều môn học (bảng)</h2>
         
         {/* System Type and Class Year Selection */}
-        <div className="mb-4 grid grid-cols-3 gap-4">
-          <div>
+        <div className="mb-6 flex flex-wrap gap-4 items-end">
+          <div className="min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-2">Loại hệ đào tạo:</label>
             <select
               value={systemType}
@@ -307,7 +307,7 @@ const TKBPage = () => {
             </select>
           </div>
 
-          <div>
+          <div className="min-w-[150px]">
             <label className="block text-sm font-medium text-gray-700 mb-2">Chọn khóa:</label>
             <select
               value={classYear}
@@ -320,31 +320,31 @@ const TKBPage = () => {
             </select>
           </div>
 
-          {/* Department/Major Group Selection */}
-          <div>
+          <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-2">Chọn ngành:</label>
-            <div className="flex gap-2">
-              <select
-                value={selectedMajorGroup}
-                onChange={(e) => setSelectedMajorGroup(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                disabled={!majorGroups.length}
-              >
-                <option value="">-- Chọn ngành --</option>
-                {majorGroups.map((group, idx) => (
-                  <option key={idx} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={loadSubjectsByMajorGroup}
-                disabled={!selectedMajorGroup || loading}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-              >
-                Tải môn học
-              </button>
-            </div>
+            <select
+              value={selectedMajorGroup}
+              onChange={(e) => setSelectedMajorGroup(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              disabled={!majorGroups.length}
+            >
+              <option value="">-- Chọn ngành --</option>
+              {majorGroups.map((group, idx) => (
+                <option key={idx} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <button
+              onClick={loadSubjectsByMajorGroup}
+              disabled={!selectedMajorGroup || loading}
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
+            >
+              {loading ? 'Đang tải...' : 'Tải môn học'}
+            </button>
           </div>
         </div>
 

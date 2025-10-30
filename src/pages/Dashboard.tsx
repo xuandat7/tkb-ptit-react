@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
-import { GraduationCap, Users, BookOpen, Home } from 'lucide-react'
-import { facultyService, majorService, subjectService, roomService } from '../services/api'
+import { BookOpen, Home } from 'lucide-react'
+import { subjectService, roomService } from '../services/api'
 import toast from 'react-hot-toast'
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
-    faculties: 0,
-    majors: 0,
     subjects: 0,
     rooms: 0,
   })
@@ -14,17 +12,13 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [facultiesRes, majorsRes, subjectsRes, roomsRes] = await Promise.all([
-          facultyService.getAll(),
-          majorService.getAll(),
+        const [subjectsRes, roomsRes] = await Promise.all([
           subjectService.getAll(),
           roomService.getAll(),
         ])
 
         setStats({
-          faculties: facultiesRes.data.length,
-          majors: majorsRes.data.length,
-          subjects: subjectsRes.data.length,
+          subjects: subjectsRes.data.data?.totalElements || 0,
           rooms: roomsRes.data.data?.length || 0,
         })
       } catch (error) {
@@ -36,8 +30,6 @@ const Dashboard = () => {
   }, [])
 
   const statCards = [
-    { title: 'Khoa', value: stats.faculties, icon: GraduationCap, color: 'from-blue-500 to-blue-600' },
-    { title: 'Ngành', value: stats.majors, icon: Users, color: 'from-green-500 to-green-600' },
     { title: 'Môn học', value: stats.subjects, icon: BookOpen, color: 'from-purple-500 to-purple-600' },
     { title: 'Phòng học', value: stats.rooms, icon: Home, color: 'from-orange-500 to-orange-600' },
   ]
@@ -49,7 +41,7 @@ const Dashboard = () => {
         <p className="text-gray-600 mt-2">Tổng quan hệ thống quản lý thời khóa biểu</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {statCards.map((card) => {
           const Icon = card.icon
           return (

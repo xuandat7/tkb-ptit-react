@@ -1,13 +1,11 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, GraduationCap, BookOpen, Home, Calendar } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Home, Calendar } from 'lucide-react'
 
 const Layout = () => {
   const location = useLocation()
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/faculties', label: 'Khoa', icon: GraduationCap },
-    { path: '/majors', label: 'Ngành', icon: BookOpen },
     { path: '/subjects', label: 'Môn học', icon: BookOpen },
     { path: '/rooms', label: 'Phòng học', icon: Home },
     { path: '/room-schedule', label: 'Lịch phòng', icon: Calendar },

@@ -25,37 +25,6 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
-// Faculty Types
-export interface Faculty {
-  id: string
-  name: string
-  description?: string
-  code?: string
-}
-
-export interface FacultyRequest {
-  name: string
-  description?: string
-  code?: string
-}
-
-// Major Types
-export interface Major {
-  id: string
-  majorName: string
-  numberOfStudents: number
-  classYear: string
-  facultyId: string
-  facultyName?: string
-}
-
-export interface MajorRequest {
-  majorName: string
-  numberOfStudents: number
-  classYear: string
-  facultyId: string
-}
-
 // Subject Types
 export interface Subject {
   id: number
@@ -132,14 +101,6 @@ export interface RoomRequest {
 }
 
 // API Services
-export const facultyService = {
-  getAll: () => api.get<Faculty[]>('/faculties'),
-  getById: (id: string) => api.get<Faculty>(`/faculties/${id}`),
-  create: (data: FacultyRequest) => api.post<Faculty>('/faculties', data),
-  update: (id: string, data: FacultyRequest) => api.put<Faculty>(`/faculties/${id}`, data),
-  delete: (id: string) => api.delete(`/faculties/${id}`),
-}
-
 export const subjectService = {
   getAll: (page = 1, size = 10, search?: string) => {
     const params = new URLSearchParams({ 
