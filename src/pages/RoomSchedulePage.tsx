@@ -70,16 +70,15 @@ const RoomSchedulePage = () => {
       const roomsResponse = await roomService.getAll()
       const mappedRooms = (roomsResponse.data.data || []).map((room: any) => ({
         id: room.id,
-        phong: room.phong || '',
-        day: room.day || 'A1',
+        phong: room.roomCode || room.phong || '',
+        day: room.building || room.day || 'A1',
         capacity: room.capacity || 0,
-        type: room.type || 'GENERAL',
+        type: room.roomType || room.type || 'GENERAL',
         status: room.status || 'AVAILABLE',
       }))
       setAllRooms(mappedRooms)
 
-      // Create empty schedule initially
-      // Backend will update occupied rooms when TKB is saved
+      // Create schedule with rooms categorized by status (OCCUPIED/AVAILABLE)
       createEmptySchedule(mappedRooms)
     } catch (error) {
       toast.error('Không thể tải dữ liệu')
@@ -93,14 +92,18 @@ const RoomSchedulePage = () => {
     const emptySchedule: Record<string, ScheduleSlot> = {}
     const days = [2, 3, 4, 5, 6, 7, 8] // Thứ 2-7, CN
     
+    // Phân loại phòng theo status
+    const occupiedRooms = rooms.filter(room => room.status === 'OCCUPIED')
+    const availableRooms = rooms.filter(room => room.status === 'AVAILABLE')
+    
     for (const day of days) {
       for (let kip = 1; kip <= 4; kip++) {
         const timeKey = `Thứ ${day} - Kíp ${kip}`
         emptySchedule[timeKey] = {
-          total_occupied: 0,
-          total_available: rooms.length,
-          occupied_rooms: [],
-          available_rooms: rooms,
+          total_occupied: occupiedRooms.length,
+          total_available: availableRooms.length,
+          occupied_rooms: occupiedRooms,
+          available_rooms: availableRooms,
         }
       }
     }
