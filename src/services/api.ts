@@ -55,6 +55,11 @@ export interface SubjectByMajor {
   subjectName: string
   majorCode: string
   classYear: string
+  theoryHours: number
+  exerciseHours: number
+  labHours: number
+  projectHours: number
+  selfStudyHours: number
   numberOfStudents: number
   studentPerClass: number | null
 }

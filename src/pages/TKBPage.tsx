@@ -146,20 +146,29 @@ const TKBPage = () => {
         const subjects = response.data.data
         
         // Map to batch row format with combination fields
-        const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => ({
-          mmh: subject.subjectCode,
-          tmh: subject.subjectName,
-          sotiet: 0, // Will need to be calculated or provided by API
-          solop: 0, // Will need to be calculated based on numberOfStudents
-          siso: subject.numberOfStudents,
-          siso_mot_lop: subject.studentPerClass || 60, // Default to 60 if null
-          nganh: subject.majorCode,
-          khoa: subject.classYear,
-          he_dac_thu: programType,
-          isGrouped: false,
-          combinations: [],
-          isHiddenByCombination: false,
-        }))
+        const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => {
+          // Tính số tiết = lý thuyết + bài tập + thực hành
+          const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.labHours || 0)
+          
+          // Tính số lớp dựa trên sĩ số
+          const studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
+          const solop = Math.ceil(subject.numberOfStudents / studentPerClass)
+          
+          return {
+            mmh: subject.subjectCode,
+            tmh: subject.subjectName,
+            sotiet: sotiet, // Tính từ theoryHours + exerciseHours + labHours
+            solop: solop, // Tính từ numberOfStudents / studentPerClass
+            siso: subject.numberOfStudents,
+            siso_mot_lop: studentPerClass,
+            nganh: subject.majorCode,
+            khoa: subject.classYear,
+            he_dac_thu: programType,
+            isGrouped: false,
+            combinations: [],
+            isHiddenByCombination: false,
+          }
+        })
         
         setBatchRows(newRows)
         toast.success(`Đã tải ${subjects.length} môn học từ API`)
@@ -699,6 +708,8 @@ const TKBPage = () => {
                 <tr className="bg-red-600 text-white">
                   <th className="px-4 py-2 border">Mã môn</th>
                   <th className="px-4 py-2 border">Tên môn</th>
+                  <th className="px-4 py-2 border">Số tiết</th>
+                  <th className="px-4 py-2 border">Số lớp</th>
                   <th className="px-4 py-2 border">Sĩ số</th>
                   <th className="px-4 py-2 border">Sĩ số một lớp</th>
                   <th className="px-4 py-2 border">Khóa</th>
@@ -727,6 +738,24 @@ const TKBPage = () => {
                             value={row.tmh}
                             readOnly
                             className="w-full px-2 py-1 border rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border">
+                          <input
+                            type="number"
+                            value={row.sotiet}
+                            onChange={(e) =>
+                              updateBatchRow(index, 'sotiet', parseInt(e.target.value) || 0)
+                            }
+                            className="w-full px-2 py-1 border rounded text-center"
+                          />
+                        </td>
+                        <td className="px-4 py-2 border">
+                          <input
+                            type="number"
+                            value={row.solop}
+                            readOnly
+                            className="w-full px-2 py-1 border rounded text-center bg-gray-100"
                           />
                         </td>
                         <td className="px-4 py-2 border">
@@ -794,7 +823,7 @@ const TKBPage = () => {
                     {/* Expanded row - show when checkbox is checked */}
                     {expandedRows.has(index) && row.isGrouped && (
                       <tr key={`expand-${index}`} className="bg-gray-50">
-                        <td colSpan={9} className="px-4 py-4 border">
+                        <td colSpan={11} className="px-4 py-4 border">
                           <div className="space-y-3">
                             <h5 className="text-sm font-semibold text-gray-700">
                               Kết hợp ngành học chung:
