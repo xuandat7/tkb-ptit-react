@@ -133,6 +133,61 @@ export interface CurriculumImportResponse {
   data: CurriculumImportItem[]
 }
 
+// Schedule Validation Types
+export interface TimeSlot {
+  date: string
+  dayOfWeek: string
+  shift: string
+  startPeriod: string
+  numberOfPeriods: string
+}
+
+export interface ScheduleEntry {
+  subjectCode: string
+  subjectName: string
+  teacherId: string
+  teacherName: string
+  room: string
+  classGroup: string
+  studentCount: number
+  timeSlots: TimeSlot[]
+}
+
+export interface RoomConflict {
+  room: string;
+  timeSlot: TimeSlot;
+  conflictingSchedules: ScheduleEntry[];
+  conflictDescription: string;
+  conflictWeeks?: string[]; // Danh sách các tuần bị xung đột
+}
+
+export interface TeacherConflict {
+  teacherId: string;
+  teacherName: string;
+  timeSlot: TimeSlot;
+  conflictingSchedules: ScheduleEntry[];
+  conflictDescription: string;
+  conflictWeeks?: string[]; // Danh sách các tuần bị xung đột
+}
+
+export interface ConflictResult {
+  roomConflicts: RoomConflict[]
+  teacherConflicts: TeacherConflict[]
+  totalConflicts: number
+}
+
+export interface ScheduleValidationResult {
+  conflictResult: ConflictResult
+  scheduleEntries: ScheduleEntry[]
+  fileName: string
+  totalEntries: number
+  fileSize: number
+  hasConflicts: boolean
+  roomConflictCount: number
+  teacherConflictCount: number
+  formattedFileSize: string
+}
+
 // API Services
 export const subjectService = {
   getAll: (page = 1, size = 10, search?: string) => {
@@ -190,6 +245,33 @@ export const curriculumService = {
         'Content-Type': 'multipart/form-data',
       },
     })
+  },
+}
+
+export const scheduleValidationService = {
+  validateFormat: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<ApiResponse<boolean>>('/schedule-validation/validate-format', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+  analyzeSchedule: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post<ApiResponse<ScheduleValidationResult>>('/schedule-validation/analyze', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+  getConflictDetails: (type: string, room?: string, teacherId?: string) => {
+    const params = new URLSearchParams()
+    if (room) params.append('room', room)
+    if (teacherId) params.append('teacherId', teacherId)
+    return api.get<ApiResponse<any>>(`/schedule-validation/conflicts/${type}?${params}`)
   },
 }
 

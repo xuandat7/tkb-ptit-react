@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Home, Calendar } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Home, Calendar, CheckCircle } from 'lucide-react'
 
 const Layout = () => {
   const location = useLocation()
@@ -9,6 +9,7 @@ const Layout = () => {
     { path: '/rooms', label: 'Phòng học', icon: Home },
     { path: '/room-schedule', label: 'Lịch phòng', icon: Calendar },
     { path: '/tkb', label: 'Thời khóa biểu', icon: LayoutDashboard },
+    { path: '/schedule-validation', label: 'Hậu kiểm TKB', icon: CheckCircle },
   ]
 
   const isActive = (path: string) => location.pathname === path
