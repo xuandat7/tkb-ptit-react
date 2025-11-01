@@ -113,15 +113,15 @@ const ScheduleValidationPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-            <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-red-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
               <h1 className="text-2xl font-bold flex items-center">
                 <CheckCircle className="mr-3" size={28} />
                 Kết quả kiểm tra thời khóa biểu
               </h1>
               <button
                 onClick={handleReset}
-                className="bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-gray-50 flex items-center"
+                className="bg-white text-red-600 px-4 py-2 rounded-md font-medium hover:bg-gray-50 flex items-center"
               >
                 <RefreshCw className="mr-2" size={16} />
                 Kiểm tra file khác
@@ -131,7 +131,7 @@ const ScheduleValidationPage: React.FC = () => {
             <div className="p-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">{result.totalEntries}</div>
+                  <div className="text-3xl font-bold text-red-600">{result.totalEntries}</div>
                   <div className="text-sm text-gray-600">Tổng số lịch học</div>
                 </div>
                 <div className="text-center">
@@ -281,7 +281,7 @@ const ScheduleValidationPage: React.FC = () => {
           <div className="mt-8 text-center space-x-4">
             <button
               onClick={handleReset}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 inline-flex items-center"
+              className="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 inline-flex items-center"
             >
               <Upload className="mr-2" size={20} />
               Kiểm tra file khác
@@ -310,7 +310,7 @@ const ScheduleValidationPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg">
+          <div className="bg-red-600 text-white px-6 py-4 rounded-t-lg">
             <h1 className="text-2xl font-bold flex items-center">
               <CheckCircle className="mr-3" size={28} />
               Hậu kiểm thời khóa biểu
@@ -327,7 +327,7 @@ const ScheduleValidationPage: React.FC = () => {
             )}
 
             {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-4 flex items-center">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 flex items-center">
                 <CheckCircle className="mr-2" size={20} />
                 {success}
               </div>
@@ -338,15 +338,15 @@ const ScheduleValidationPage: React.FC = () => {
               <h5 className="text-lg font-semibold mb-3">Hướng dẫn sử dụng:</h5>
               <ul className="space-y-2">
                 <li className="flex items-center text-gray-700">
-                  <CheckCircle className="text-green-500 mr-3" size={16} />
+                  <CheckCircle className="text-red-500 mr-3" size={16} />
                   Upload file Excel thời khóa biểu (.xlsx)
                 </li>
                 <li className="flex items-center text-gray-700">
-                  <CheckCircle className="text-green-500 mr-3" size={16} />
+                  <CheckCircle className="text-red-500 mr-3" size={16} />
                   Hệ thống sẽ tự động phát hiện xung đột phòng học và giảng viên
                 </li>
                 <li className="flex items-center text-gray-700">
-                  <CheckCircle className="text-green-500 mr-3" size={16} />
+                  <CheckCircle className="text-red-500 mr-3" size={16} />
                   Xem kết quả và download báo cáo chi tiết
                 </li>
               </ul>
@@ -356,15 +356,15 @@ const ScheduleValidationPage: React.FC = () => {
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 isDragOver
-                  ? 'border-green-400 bg-green-50'
-                  : 'border-blue-300 bg-blue-50'
-              } hover:border-blue-400 hover:bg-blue-100`}
+                  ? 'border-red-400 bg-red-50'
+                  : 'border-red-300 bg-red-50'
+              } hover:border-red-400 hover:bg-red-100`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
               <div className="mb-4">
-                <Upload className="mx-auto text-blue-600 mb-3" size={48} />
+                <Upload className="mx-auto text-red-600 mb-3" size={48} />
                 <h5 className="text-xl font-semibold text-gray-700 mb-2">
                   Chọn hoặc kéo thả file Excel vào đây
                 </h5>
@@ -382,7 +382,7 @@ const ScheduleValidationPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 inline-flex items-center"
+                className="bg-red-600 text-white px-6 py-2 rounded-md font-medium hover:bg-red-700 inline-flex items-center"
               >
                 <FileText className="mr-2" size={16} />
                 Chọn file
@@ -390,8 +390,8 @@ const ScheduleValidationPage: React.FC = () => {
             </div>
 
             {selectedFile && (
-              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
-                <div className="flex items-center text-blue-800">
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex items-center text-red-800">
                   <FileText className="mr-3" size={20} />
                   <div>
                     <div className="font-medium">File đã chọn: {selectedFile.name}</div>
@@ -405,7 +405,7 @@ const ScheduleValidationPage: React.FC = () => {
               <button
                 onClick={handleAnalyze}
                 disabled={!selectedFile || isAnalyzing}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center"
+                className="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center"
               >
                 {isAnalyzing ? (
                   <>
@@ -434,18 +434,18 @@ const ScheduleValidationPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
           <div className="p-6">
             <h6 className="text-lg font-semibold mb-4 flex items-center">
-              <AlertTriangle className="mr-2 text-blue-600" size={20} />
+              <AlertTriangle className="mr-2 text-red-600" size={20} />
               Thông tin về tính năng
             </h6>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h6 className="font-medium text-blue-600 mb-2">Phát hiện xung đột phòng:</h6>
+                <h6 className="font-medium text-red-600 mb-2">Phát hiện xung đột phòng:</h6>
                 <p className="text-sm text-gray-600">
                   Kiểm tra các môn học khác nhau sử dụng cùng một phòng tại cùng thời điểm
                 </p>
               </div>
               <div>
-                <h6 className="font-medium text-blue-600 mb-2">Phát hiện xung đột giảng viên:</h6>
+                <h6 className="font-medium text-red-600 mb-2">Phát hiện xung đột giảng viên:</h6>
                 <p className="text-sm text-gray-600">
                   Kiểm tra giảng viên có lịch dạy trùng lặp tại cùng thời điểm
                 </p>
