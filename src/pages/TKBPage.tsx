@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Play, Loader, RefreshCw, Upload } from 'lucide-react'
-import { subjectService, type SubjectByMajor } from '../services/api'
+import { subjectService, roomService, type SubjectByMajor } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -59,18 +59,64 @@ interface SavedResult {
   title: string
 }
 
+interface FailedSubject {
+  subjectName: string
+  major: string
+  note: string
+  totalPeriods: number
+}
+
 const TKBPage = () => {
-  const [systemType, setSystemType] = useState('chinh_quy')
-  const [classYear, setClassYear] = useState('2022') // Default khóa
+  // Load persisted state from localStorage
+  const loadPersistedState = () => {
+    try {
+      const saved = localStorage.getItem('tkbPageState')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        return {
+          systemType: parsed.systemType || 'chinh_quy',
+          classYear: parsed.classYear || '2022',
+          selectedMajorGroup: parsed.selectedMajorGroup || '',
+          batchRows: parsed.batchRows || [],
+          results: parsed.results || [],
+          savedResults: parsed.savedResults || [],
+          failedSubjects: parsed.failedSubjects || [],
+        }
+      }
+    } catch (error) {
+      console.error('Error loading persisted state:', error)
+    }
+    return null
+  }
+
+  const persistedState = loadPersistedState()
+
+  const [systemType, setSystemType] = useState(persistedState?.systemType || 'chinh_quy')
+  const [classYear, setClassYear] = useState(persistedState?.classYear || '2022')
   const [majorGroups, setMajorGroups] = useState<string[]>([])
-  const [selectedMajorGroup, setSelectedMajorGroup] = useState('')
-  const [batchRows, setBatchRows] = useState<BatchRowWithCombination[]>([])
+  const [selectedMajorGroup, setSelectedMajorGroup] = useState(persistedState?.selectedMajorGroup || '')
+  const [batchRows, setBatchRows] = useState<BatchRowWithCombination[]>(persistedState?.batchRows || [])
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
-  const [results, setResults] = useState<TKBResultRow[]>([])
-  const [savedResults, setSavedResults] = useState<SavedResult[]>([])
+  const [results, setResults] = useState<TKBResultRow[]>(persistedState?.results || [])
+  const [savedResults, setSavedResults] = useState<SavedResult[]>(persistedState?.savedResults || [])
+  const [failedSubjects, setFailedSubjects] = useState<FailedSubject[]>(persistedState?.failedSubjects || [])
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    const stateToSave = {
+      systemType,
+      classYear,
+      selectedMajorGroup,
+      batchRows,
+      results,
+      savedResults,
+      failedSubjects,
+    }
+    localStorage.setItem('tkbPageState', JSON.stringify(stateToSave))
+  }, [systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
 
   useEffect(() => {
     // Load major groups when systemType and classYear change
@@ -147,8 +193,8 @@ const TKBPage = () => {
         
         // Map to batch row format with combination fields
         const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => {
-          // Tính số tiết = lý thuyết + bài tập + thực hành
-          const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.labHours || 0)
+          // Tính số tiết = lý thuyết + bài tập + bài tập lớn (projectHours)
+          const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.projectHours || 0)
           
           // Tính số lớp dựa trên sĩ số
           const studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
@@ -484,8 +530,36 @@ const TKBPage = () => {
       
       if (response.data?.items && response.data.items.length > 0) {
         const allRows = response.data.items.flatMap((item: any) => item.rows || [])
+        
+        // Phát hiện các môn không sinh được TKB
+        const failed = response.data.items
+          .filter((item: any) => (!item.rows || item.rows.length === 0) && item.note)
+          .map((item: any) => ({
+            subjectName: item.input.ten_mon || item.input.ma_mon,
+            major: item.input.nganh,
+            note: item.note,
+            totalPeriods: item.input.sotiet || 0,
+          }))
+        
+        setFailedSubjects(failed)
         setResults(allRows)
-        toast.success('Tạo thời khóa biểu thành công!')
+        
+        if (failed.length > 0) {
+          toast(
+            `⚠️ Đã sinh ${allRows.length} lớp thành công. ${failed.length} môn không sinh được TKB.`,
+            { 
+              duration: 5000,
+              icon: '⚠️',
+              style: {
+                background: '#FEF3C7',
+                color: '#92400E',
+                border: '1px solid #FCD34D',
+              }
+            }
+          )
+        } else {
+          toast.success(`Tạo thời khóa biểu thành công! ${allRows.length} lớp`)
+        }
       } else {
         toast.error('Không có dữ liệu trả về')
       }
@@ -555,31 +629,87 @@ const TKBPage = () => {
       return
     }
 
-    const timestamp = new Date().toLocaleString('vi-VN')
-    const resultId = Date.now()
-    
-    const savedResult: SavedResult = {
-      id: resultId,
-      timestamp: timestamp,
-      department: selectedMajorGroup || 'Không xác định',
-      data: results,
-      title: `${selectedMajorGroup} - ${timestamp}`,
-    }
-
-    setSavedResults([...savedResults, savedResult])
-    toast.success('Đã thêm TKB vào kết quả!')
-    
-    // Call API to update occupied rooms
     try {
-      await api.post('/rooms/save-results', {})
-      console.log('Occupied rooms updated')
-    } catch (error) {
-      console.error('Error updating occupied rooms:', error)
+      setLoading(true)
+      
+      // Transform TKBResultRow to backend Schedule format
+      const schedules = results.map((row) => {
+        // Create week fields from O_to_AG array and ah
+        const weekFields: any = {}
+        for (let i = 0; i < 17; i++) {
+          weekFields[`week${i + 1}`] = row.O_to_AG?.[i] || ''
+        }
+        weekFields.week18 = row.ah || ''
+        
+        return {
+          classNumber: parseInt(row.lop || '1') || 1,
+          subjectId: row.ma_mon || '',
+          subjectName: row.ten_mon || '',
+          studentYear: row.khoa || row.student_year || '',
+          major: row.nganh || '',
+          specialSystem: row.he_dac_thu || '',
+          dayOfWeek: parseInt(row.thu || '0') || 0,
+          sessionNumber: parseInt(row.kip || '0') || 0,
+          startPeriod: parseInt(row.tiet_bd || '0') || 0,
+          periodLength: parseInt(row.l || '0') || 0,
+          roomNumber: row.phong || null,
+          ...weekFields
+        }
+      })
+      
+      // Call API to save batch schedules - send ARRAY, not object
+      const response = await api.post('/schedules/save-batch', schedules)
+      
+      if (response.data) {
+        toast.success('Đã lưu TKB vào database thành công!')
+        
+        // Lấy danh sách các phòng đã được sử dụng (loại bỏ null và duplicate)
+        const usedRooms = [...new Set(
+          results
+            .map(row => row.phong)
+            .filter(room => room !== null && room !== undefined && room !== '')
+        )] as string[]
+        
+        // Update trạng thái phòng thành OCCUPIED
+        if (usedRooms.length > 0) {
+          try {
+            const roomUpdateResponse = await roomService.updateStatusByRoomCodes(usedRooms, 'OCCUPIED')
+            if (roomUpdateResponse.data.success) {
+              toast.success(
+                `Đã cập nhật trạng thái ${usedRooms.length} phòng thành OCCUPIED`,
+                { duration: 3000 }
+              )
+            }
+          } catch (roomError: any) {
+            console.error('Error updating room status:', roomError)
+            toast.error('Lưu TKB thành công nhưng không thể cập nhật trạng thái phòng')
+          }
+        }
+        
+        // Add to local saved results for display
+        const timestamp = new Date().toLocaleString('vi-VN')
+        const resultId = Date.now()
+        
+        const savedResult: SavedResult = {
+          id: resultId,
+          timestamp: timestamp,
+          department: selectedMajorGroup || 'Không xác định',
+          data: results,
+          title: `${selectedMajorGroup} - ${timestamp}`,
+        }
+
+        setSavedResults([...savedResults, savedResult])
+        
+        // Trigger room schedule update event
+        window.dispatchEvent(new Event('roomScheduleUpdate'))
+        localStorage.setItem('roomScheduleNeedsReload', Date.now().toString())
+      }
+    } catch (error: any) {
+      console.error('Error saving schedules:', error)
+      toast.error(error.response?.data?.message || 'Không thể lưu TKB vào database')
+    } finally {
+      setLoading(false)
     }
-    
-    // Trigger room schedule update event
-    window.dispatchEvent(new Event('roomScheduleUpdate'))
-    localStorage.setItem('roomScheduleNeedsReload', Date.now().toString())
   }
 
   const viewResult = (id: number) => {
@@ -601,6 +731,25 @@ const TKBPage = () => {
     if (confirm('Bạn có chắc muốn xóa tất cả kết quả đã lưu?')) {
       setSavedResults([])
       toast.success('Đã xóa tất cả kết quả')
+    }
+  }
+
+  const clearAllData = () => {
+    if (confirm('Bạn có chắc muốn xóa toàn bộ dữ liệu và bắt đầu lại từ đầu?')) {
+      // Clear all state
+      setSystemType('chinh_quy')
+      setClassYear('2022')
+      setSelectedMajorGroup('')
+      setBatchRows([])
+      setExpandedRows(new Set())
+      setResults([])
+      setSavedResults([])
+      setFailedSubjects([])
+      
+      // Clear localStorage
+      localStorage.removeItem('tkbPageState')
+      
+      toast.success('Đã xóa toàn bộ dữ liệu')
     }
   }
 
@@ -628,11 +777,18 @@ const TKBPage = () => {
             className="hidden"
           />
           <button
+            onClick={clearAllData}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <RefreshCw className="w-5 h-5" />
+            Làm mới
+          </button>
+          <button
             onClick={resetTKB}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <RefreshCw className="w-5 h-5" />
-            Reset
+            Reset API
           </button>
         </div>
       </div>
@@ -980,9 +1136,19 @@ const TKBPage = () => {
             <h2 className="text-xl font-semibold">Kết quả Thời khóa biểu</h2>
             <button
               onClick={saveToResults}
-              className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+              disabled={loading}
+              className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              💾 Thêm vào kết quả
+              {loading ? (
+                <>
+                  <Loader className="w-5 h-5 animate-spin" />
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  💾 Thêm vào kết quả
+                </>
+              )}
             </button>
           </div>
           <div className="overflow-x-auto">
@@ -1061,6 +1227,41 @@ const TKBPage = () => {
                 })()}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Failed Subjects */}
+      {failedSubjects.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-yellow-800">
+              ⚠️ Các môn không sinh được TKB ({failedSubjects.length})
+            </h3>
+            <button
+              onClick={() => setFailedSubjects([])}
+              className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700"
+            >
+              Đóng
+            </button>
+          </div>
+          <div className="space-y-3">
+            {failedSubjects.map((item, idx) => (
+              <div key={idx} className="bg-white border border-yellow-100 rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900 text-lg">{item.subjectName}</div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      <span className="font-medium">Ngành:</span> {item.major} | 
+                      <span className="font-medium ml-2">Số tiết:</span> {item.totalPeriods}
+                    </div>
+                    <div className="text-sm text-red-600 mt-2 font-medium">
+                      {item.note}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -176,6 +176,8 @@ export const roomService = {
   getByStatus: (status: string) => api.get<ApiResponse<Room[]>>(`/rooms/status/${status}`),
   getByType: (type: string) => api.get<ApiResponse<Room[]>>(`/rooms/type/${type}`),
   getAvailable: (capacity: number) => api.get<ApiResponse<Room[]>>(`/rooms/available?capacity=${capacity}`),
+  updateStatusByRoomCodes: (roomCodes: string[], status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE') => 
+    api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomCodes, status }),
 }
 
 export const curriculumService = {
