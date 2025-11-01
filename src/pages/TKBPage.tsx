@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Play, Loader, RefreshCw, Upload } from 'lucide-react'
-import { subjectService, roomService, type SubjectByMajor } from '../services/api'
+import { subjectService, roomService, tkbService, type SubjectByMajor } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -583,45 +583,6 @@ const TKBPage = () => {
     }
   }
 
-  // const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const file = e.target.files?.[0]
-  //   if (!file) return
-
-  //   // Validate file type
-  //   const validTypes = ['.xlsx', '.xls']
-  //   const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
-  //   if (!validTypes.includes(fileExtension)) {
-  //     toast.error('Vui lòng chọn file Excel (.xlsx hoặc .xls)')
-  //     return
-  //   }
-
-  //   try {
-  //     setImporting(true)
-  //     // Import với học kỳ mặc định (có thể điều chỉnh)
-  //     const response = await curriculumService.importExcel(file, '1')
-      
-  //     if (response.data.success) {
-  //       toast.success(response.data.message || 'Import thành công!')
-  //       // Reload dữ liệu
-  //       await loadKhoas()
-  //       // Reset selections
-  //       setSelectedKhoa('')
-  //       setSelectedMajorGroup('')
-  //       setBatchRows([])
-  //     } else {
-  //       toast.error(response.data.message || 'Import thất bại')
-  //     }
-  //   } catch (error: any) {
-  //     console.error('Import error:', error)
-  //     toast.error(error.response?.data?.message || 'Lỗi khi import file')
-  //   } finally {
-  //     setImporting(false)
-  //     // Reset file input
-  //     if (fileInputRef.current) {
-  //       fileInputRef.current.value = ''
-  //     }
-  //   }
-  // }
 
   const saveToResults = async () => {
     if (results.length === 0) {
@@ -686,6 +647,15 @@ const TKBPage = () => {
           }
         }
         
+        // Lưu kết quả vào room results
+        try {
+          await roomService.saveResults()
+          console.log('Room results saved successfully')
+        } catch (saveError: any) {
+          console.error('Error saving room results:', saveError)
+          // Không hiển thị error toast vì đây là secondary action
+        }
+        
         // Add to local saved results for display
         const timestamp = new Date().toLocaleString('vi-VN')
         const resultId = Date.now()
@@ -734,8 +704,17 @@ const TKBPage = () => {
     }
   }
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     if (confirm('Bạn có chắc muốn xóa toàn bộ dữ liệu và bắt đầu lại từ đầu?')) {
+      try {
+        // Reset last slot index
+        await tkbService.resetLastSlotIdx()
+        console.log('Last slot index reset successfully')
+      } catch (error: any) {
+        console.error('Error resetting last slot index:', error)
+        // Tiếp tục xóa dữ liệu local dù API fail
+      }
+      
       // Clear all state
       setSystemType('chinh_quy')
       setClassYear('2022')

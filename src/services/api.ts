@@ -233,6 +233,8 @@ export const roomService = {
   getAvailable: (capacity: number) => api.get<ApiResponse<Room[]>>(`/rooms/available?capacity=${capacity}`),
   updateStatusByRoomCodes: (roomCodes: string[], status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE') => 
     api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomCodes, status }),
+  saveResults: () => 
+    api.post<ApiResponse<any>>('/rooms/save-results'),
 }
 
 export const curriculumService = {
@@ -273,6 +275,10 @@ export const scheduleValidationService = {
     if (teacherId) params.append('teacherId', teacherId)
     return api.get<ApiResponse<any>>(`/schedule-validation/conflicts/${type}?${params}`)
   },
+}
+
+export const tkbService = {
+  resetLastSlotIdx: () => api.post<ApiResponse<any>>('/tkb/reset-last-slot-idx'),
 }
 
 export default api
