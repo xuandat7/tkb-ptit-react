@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Play, Loader, RefreshCw, Upload } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Play, Loader, RefreshCw, Upload, HelpCircle } from 'lucide-react'
 import { subjectService, roomService, tkbService, type SubjectByMajor } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
@@ -774,6 +775,13 @@ const TKBPage = () => {
           <p className="text-gray-600 mt-2">Quản lý và tạo thời khóa biểu tự động</p>
         </div>
         <div className="flex gap-3">
+          <Link
+            to="/tkb-guide"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <HelpCircle className="w-5 h-5" />
+            Hướng dẫn
+          </Link>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
