@@ -68,6 +68,7 @@ const RoomSchedulePage = () => {
       
       // Load rooms from Spring Boot
       const roomsResponse = await roomService.getAll()
+      console.log('🏢 Sample raw room from API:', (roomsResponse.data.data || [])[0])
       const mappedRooms = (roomsResponse.data.data || []).map((room: any) => ({
         id: room.id,
         phong: room.roomCode || room.phong || '',
@@ -76,10 +77,42 @@ const RoomSchedulePage = () => {
         type: room.roomType || room.type || 'GENERAL',
         status: room.status || 'AVAILABLE',
       }))
+      console.log('🏫 Sample mapped room:', mappedRooms[0])
       setAllRooms(mappedRooms)
 
-      // Create schedule with rooms categorized by status (OCCUPIED/AVAILABLE)
-      createEmptySchedule(mappedRooms)
+      // Load actual schedules from database to determine room occupancy by time slot
+      let schedulesByRoom: Record<string, any[]> = {}
+      try {
+        const schedulesResponse = await fetch('http://localhost:8080/api/schedules')
+        if (schedulesResponse.ok) {
+          const schedulesData = await schedulesResponse.json()
+          console.log('📊 Total schedules loaded:', schedulesData?.length || 0)
+          console.log('📋 Sample schedule:', schedulesData?.[0])
+          
+          // Handle both array and wrapped response
+          const schedules = Array.isArray(schedulesData) ? schedulesData : (schedulesData.data || [])
+          
+          // Group schedules by room number
+          schedulesByRoom = schedules.reduce((acc: any, schedule: any) => {
+            const roomNumber = schedule.roomNumber
+            if (roomNumber) {
+              if (!acc[roomNumber]) {
+                acc[roomNumber] = []
+              }
+              acc[roomNumber].push(schedule)
+            }
+            return acc
+          }, {})
+          
+          console.log('🏢 Schedules grouped by room:', Object.keys(schedulesByRoom).length, 'rooms')
+          console.log('📍 Sample room schedules:', Object.entries(schedulesByRoom).slice(0, 2))
+        }
+      } catch (error) {
+        console.error('Error loading schedules:', error)
+      }
+
+      // Create schedule with actual occupancy data
+      createScheduleWithOccupancy(mappedRooms, schedulesByRoom)
     } catch (error) {
       toast.error('Không thể tải dữ liệu')
       createEmptySchedule([])
@@ -92,7 +125,7 @@ const RoomSchedulePage = () => {
     const emptySchedule: Record<string, ScheduleSlot> = {}
     const days = [2, 3, 4, 5, 6, 7, 8] // Thứ 2-7, CN
     
-    // Phân loại phòng theo status
+    // Phân loại phòng theo status (fallback when no schedule data)
     const occupiedRooms = rooms.filter(room => room.status === 'OCCUPIED')
     const availableRooms = rooms.filter(room => room.status === 'AVAILABLE')
     
@@ -108,6 +141,78 @@ const RoomSchedulePage = () => {
       }
     }
     setSchedule(emptySchedule)
+  }
+
+  const createScheduleWithOccupancy = (rooms: Room[], schedulesByRoom: Record<string, any[]>) => {
+    const newSchedule: Record<string, ScheduleSlot> = {}
+    const days = [2, 3, 4, 5, 6, 7, 8] // Thứ 2-7, CN
+
+    console.log('🏫 Total rooms:', rooms.length)
+    console.log('📚 Schedules by room keys:', Object.keys(schedulesByRoom))
+    console.log('🔑 Sample room codes:', rooms.slice(0, 5).map(r => r.phong))
+
+    // Create a map to match rooms with schedules
+    // Handle both formats: "604-A2" and "604"
+    const roomMatchMap = new Map<string, Room>()
+    for (const room of rooms) {
+      // Try matching with full code and building
+      const fullKey = `${room.phong}-${room.day}`
+      roomMatchMap.set(fullKey, room)
+      // Also allow matching by room code only
+      roomMatchMap.set(room.phong, room)
+    }
+
+    let totalOccupiedSlots = 0
+
+    for (const day of days) {
+      for (let kip = 1; kip <= 4; kip++) {
+        const timeKey = `Thứ ${day} - Kíp ${kip}`
+        
+        // Check which rooms are occupied at this specific time slot
+        const occupied: Room[] = []
+        const available: Room[] = []
+
+        for (const room of rooms) {
+          // Check all possible room keys for this room
+          const possibleKeys = [
+            room.phong,
+            `${room.phong}-${room.day}`,
+          ]
+          
+          let isOccupied = false
+          for (const key of possibleKeys) {
+            const roomSchedules = schedulesByRoom[key] || []
+            if (roomSchedules.some((schedule: any) => 
+              schedule.dayOfWeek === day && schedule.sessionNumber === kip
+            )) {
+              isOccupied = true
+              break
+            }
+          }
+
+          if (isOccupied) {
+            occupied.push(room)
+          } else {
+            available.push(room)
+          }
+        }
+
+        if (occupied.length > 0) {
+          totalOccupiedSlots++
+          console.log(`✅ ${timeKey}: ${occupied.length} phòng bận`, occupied.map(r => r.phong))
+        }
+
+        newSchedule[timeKey] = {
+          total_occupied: occupied.length,
+          total_available: available.length,
+          occupied_rooms: occupied,
+          available_rooms: available,
+        }
+      }
+    }
+
+    console.log(`📊 Summary: ${totalOccupiedSlots} time slots have occupied rooms`)
+    setSchedule(newSchedule)
   }
 
   // Get unique buildings from all rooms
