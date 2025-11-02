@@ -14,7 +14,7 @@ const SubjectsPage = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(10)
+  const [pageSize] = useState(12)
   const [totalElements, setTotalElements] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedSemester, setSelectedSemester] = useState('')
