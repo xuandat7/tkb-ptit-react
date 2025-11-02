@@ -242,7 +242,7 @@ export const curriculumService = {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('semester', semester)
-    return api.post<CurriculumImportResponse>('/curriculum/import-excel', formData, {
+    return api.post<CurriculumImportResponse>('/subjects/upload-excel', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

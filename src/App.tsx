@@ -6,6 +6,7 @@ import RoomsPage from './pages/RoomsPage'
 import TKBPage from './pages/TKBPage'
 import RoomSchedulePage from './pages/RoomSchedulePage'
 import ScheduleValidationPage from './pages/ScheduleValidationPage'
+import SavedSchedulesPage from './pages/SavedSchedulesPage'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="room-schedule" element={<RoomSchedulePage />} />
         <Route path="tkb" element={<TKBPage />} />
         <Route path="schedule-validation" element={<ScheduleValidationPage />} />
+        <Route path="saved-schedules" element={<SavedSchedulesPage />} />
       </Route>
     </Routes>
   )

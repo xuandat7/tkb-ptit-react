@@ -149,13 +149,16 @@ const TKBPage = () => {
         // Convert array of arrays to string array (join with dash)
         const groups = response.data.data.map((group: string[]) => group.join('-'))
         setMajorGroups(groups)
-        toast.success(`Đã tải ${groups.length} nhóm ngành từ API`)
+        // Removed toast notification - this is background data loading
       } else {
-        toast.error('API trả về lỗi: ' + (response.data.message || 'Không xác định'))
+        console.error('API returned error:', response.data.message)
       }
     } catch (error) {
-      toast.error('Không thể tải danh sách nhóm ngành từ API')
       console.error('Error loading major groups:', error)
+      // Only show error toast if it's a network error
+      if (error && typeof error === 'object' && 'message' in error) {
+        toast.error('Không thể tải danh sách nhóm ngành')
+      }
     } finally {
       setLoading(false)
     }
@@ -530,6 +533,7 @@ const TKBPage = () => {
       
       if (response.data?.items && response.data.items.length > 0) {
         const allRows = response.data.items.flatMap((item: any) => item.rows || [])
+        const totalClasses = response.data.totalClasses || response.data.items.filter((item: any) => item.rows && item.rows.length > 0).length
         
         // Phát hiện các môn không sinh được TKB
         const failed = response.data.items
@@ -546,7 +550,7 @@ const TKBPage = () => {
         
         if (failed.length > 0) {
           toast(
-            `⚠️ Đã sinh ${allRows.length} lớp thành công. ${failed.length} môn không sinh được TKB.`,
+            `⚠️ Đã sinh ${totalClasses} lớp thành công (${allRows.length} dòng). ${failed.length} môn không sinh được TKB.`,
             { 
               duration: 5000,
               icon: '⚠️',
@@ -558,7 +562,7 @@ const TKBPage = () => {
             }
           )
         } else {
-          toast.success(`Tạo thời khóa biểu thành công! ${allRows.length} lớp`)
+          toast.success(`Tạo thời khóa biểu thành công! ${totalClasses} lớp (${allRows.length} dòng)`)
         }
       } else {
         toast.error('Không có dữ liệu trả về')
@@ -570,19 +574,6 @@ const TKBPage = () => {
       setLoading(false)
     }
   }
-
-  const resetTKB = async () => {
-    if (!confirm('Bạn có chắc muốn reset thời khóa biểu? Tất cả dữ liệu sẽ bị xóa.')) return
-
-    try {
-      await api.post('/rooms/reset')
-      toast.success('Đã reset thời khóa biểu')
-      setResults([])
-    } catch (error) {
-      toast.error('Không thể reset thời khóa biểu')
-    }
-  }
-
 
   const saveToResults = async () => {
     if (results.length === 0) {
@@ -622,8 +613,6 @@ const TKBPage = () => {
       const response = await api.post('/schedules/save-batch', schedules)
       
       if (response.data) {
-        toast.success('Đã lưu TKB vào database thành công!')
-        
         // Lấy danh sách các phòng đã được sử dụng (loại bỏ null và duplicate)
         const usedRooms = [...new Set(
           results
@@ -631,21 +620,23 @@ const TKBPage = () => {
             .filter(room => room !== null && room !== undefined && room !== '')
         )] as string[]
         
+        let successMessage = 'Đã lưu TKB vào database thành công!'
+        
         // Update trạng thái phòng thành OCCUPIED
         if (usedRooms.length > 0) {
           try {
             const roomUpdateResponse = await roomService.updateStatusByRoomCodes(usedRooms, 'OCCUPIED')
             if (roomUpdateResponse.data.success) {
-              toast.success(
-                `Đã cập nhật trạng thái ${usedRooms.length} phòng thành OCCUPIED`,
-                { duration: 3000 }
-              )
+              successMessage += ` (Cập nhật ${usedRooms.length} phòng)`
             }
           } catch (roomError: any) {
             console.error('Error updating room status:', roomError)
-            toast.error('Lưu TKB thành công nhưng không thể cập nhật trạng thái phòng')
+            successMessage += ' (Lưu ý: Không thể cập nhật trạng thái phòng)'
           }
         }
+        
+        // Show single toast with all information
+        toast.success(successMessage, { duration: 4000 })
         
         // Lưu kết quả vào room results
         try {
@@ -732,6 +723,49 @@ const TKBPage = () => {
     }
   }
 
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.name.match(/\.(xlsx|xls)$/)) {
+      toast.error('Vui lòng chọn file Excel (.xlsx hoặc .xls)')
+      return
+    }
+
+    try {
+      setImporting(true)
+      
+      // Create FormData to upload file
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // Upload file to backend
+      const response = await api.post('/tkb/import-data', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      if (response.data) {
+        toast.success('Đã import dữ liệu lịch mẫu thành công!')
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }
+    } catch (error: any) {
+      console.error('Error importing file:', error)
+      toast.error(error.response?.data?.message || 'Không thể import file. Vui lòng thử lại!')
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -746,13 +780,13 @@ const TKBPage = () => {
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload className="w-5 h-5" />
-            {importing ? 'Đang import...' : 'Import Excel'}
+            {importing ? 'Đang import...' : 'Import Data lịch mẫu'}
           </button>
           <input
             ref={fileInputRef}
             type="file"
             accept=".xlsx,.xls"
-            
+            onChange={handleFileImport}
             className="hidden"
           />
           <button
@@ -761,13 +795,6 @@ const TKBPage = () => {
           >
             <RefreshCw className="w-5 h-5" />
             Làm mới
-          </button>
-          <button
-            onClick={resetTKB}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <RefreshCw className="w-5 h-5" />
-            Reset API
           </button>
         </div>
       </div>
@@ -869,11 +896,9 @@ const TKBPage = () => {
                           />
                         </td>
                         <td className="px-4 py-2 border">
-                          <textarea
-                            value={row.tmh}
-                            readOnly
-                            className="w-full px-2 py-1 border rounded"
-                          />
+                          <div className="w-full px-2 py-1 border rounded bg-white whitespace-normal break-words min-h-[2.5rem]">
+                            {row.tmh}
+                          </div>
                         </td>
                         <td className="px-4 py-2 border">
                           <input
@@ -1131,23 +1156,23 @@ const TKBPage = () => {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-xs border-collapse table-fixed" style={{ fontSize: '0.7rem' }}>
               <thead>
                 <tr className="bg-red-50">
-                  <th className="px-4 py-2 border">Lớp</th>
-                  <th className="px-4 py-2 border">Mã môn</th>
-                  <th className="px-4 py-2 border">Tên môn</th>
-                  <th className="px-4 py-2 border">Khóa</th>
-                  <th className="px-4 py-2 border">Ngành</th>
-                  <th className="px-4 py-2 border">Hệ đặc thù</th>
-                  <th className="px-4 py-2 border">Thứ</th>
-                  <th className="px-4 py-2 border">Kíp</th>
-                  <th className="px-4 py-2 border">Tiết BD</th>
-                  <th className="px-4 py-2 border">L</th>
-                  <th className="px-4 py-2 border">Mã phòng</th>
+                  <th className="px-1 py-1 border w-[3%]">Lớp</th>
+                  <th className="px-1 py-1 border w-[5%]">Mã môn</th>
+                  <th className="px-1 py-1 border w-[16%]">Tên môn</th>
+                  <th className="px-1 py-1 border w-[3%]">Khóa</th>
+                  <th className="px-1 py-1 border w-[3%]">Ngành</th>
+                  <th className="px-1 py-1 border w-[6%]">Hệ đặc thù</th>
+                  <th className="px-1 py-1 border w-[3%]">Thứ</th>
+                  <th className="px-1 py-1 border w-[3%]">Kíp</th>
+                  <th className="px-1 py-1 border w-[3%]">T.BĐ</th>
+                  <th className="px-1 py-1 border w-[2%]">L</th>
+                  <th className="px-1 py-1 border w-[4%]">Phòng</th>
                   {Array.from({ length: 18 }, (_, i) => (
-                    <th key={i} className="px-2 py-2 border text-center">
-                      Tuần {i + 1}
+                    <th key={i} className="px-0.5 py-1 border text-center w-[2.5%]">
+                      {i === 17 ? '' : `T${i + 1}`}
                     </th>
                   ))}
                 </tr>
@@ -1168,17 +1193,17 @@ const TKBPage = () => {
                     
                     return (
                       <tr key={idx} className={`hover:bg-gray-100 ${rowClass}`}>
-                        <td className="px-4 py-2 border text-center">{row.lop || ''}</td>
-                        <td className="px-4 py-2 border">{row.ma_mon || ''}</td>
-                        <td className="px-4 py-2 border">{row.ten_mon || ''}</td>
-                        <td className="px-4 py-2 border text-center">{row.khoa || row.student_year || ''}</td>
-                        <td className="px-4 py-2 border">{row.nganh || ''}</td>
-                        <td className="px-4 py-2 border">{row.he_dac_thu || ''}</td>
-                        <td className="px-4 py-2 border text-center">{row.thu || ''}</td>
-                        <td className="px-4 py-2 border text-center">{row.kip || ''}</td>
-                        <td className="px-4 py-2 border text-center">{row.tiet_bd || ''}</td>
-                        <td className="px-4 py-2 border text-center">{row.l || ''}</td>
-                        <td className="px-4 py-2 border">{row.phong || ''}</td>
+                        <td className="px-1 py-1 border text-center">{row.lop || ''}</td>
+                        <td className="px-1 py-1 border whitespace-normal break-words">{row.ma_mon || ''}</td>
+                        <td className="px-1 py-1 border whitespace-normal break-words">{row.ten_mon || ''}</td>
+                        <td className="px-1 py-1 border text-center">{row.khoa || row.student_year || ''}</td>
+                        <td className="px-1 py-1 border">{row.nganh || ''}</td>
+                        <td className="px-1 py-1 border">{row.he_dac_thu || ''}</td>
+                        <td className="px-1 py-1 border text-center">{row.thu || ''}</td>
+                        <td className="px-1 py-1 border text-center">{row.kip || ''}</td>
+                        <td className="px-1 py-1 border text-center">{row.tiet_bd || ''}</td>
+                        <td className="px-1 py-1 border text-center">{row.l || ''}</td>
+                        <td className="px-1 py-1 border">{row.phong || ''}</td>
                         {Array.from({ length: 18 }, (_, i) => {
                           let value = ''
                           if (i === 17) {
@@ -1192,7 +1217,7 @@ const TKBPage = () => {
                           return (
                             <td
                               key={i}
-                              className={`px-2 py-2 border text-center text-xs ${
+                              className={`px-0.5 py-1 border text-center ${
                                 isX ? 'x-cell' : ''
                               }`}
                             >
