@@ -533,6 +533,7 @@ const TKBPage = () => {
       
       if (response.data?.items && response.data.items.length > 0) {
         const allRows = response.data.items.flatMap((item: any) => item.rows || [])
+        const totalClasses = response.data.totalClasses || response.data.items.filter((item: any) => item.rows && item.rows.length > 0).length
         
         // Phát hiện các môn không sinh được TKB
         const failed = response.data.items
@@ -549,7 +550,7 @@ const TKBPage = () => {
         
         if (failed.length > 0) {
           toast(
-            `⚠️ Đã sinh ${allRows.length} lớp thành công. ${failed.length} môn không sinh được TKB.`,
+            `⚠️ Đã sinh ${totalClasses} lớp thành công (${allRows.length} dòng). ${failed.length} môn không sinh được TKB.`,
             { 
               duration: 5000,
               icon: '⚠️',
@@ -561,7 +562,7 @@ const TKBPage = () => {
             }
           )
         } else {
-          toast.success(`Tạo thời khóa biểu thành công! ${allRows.length} lớp`)
+          toast.success(`Tạo thời khóa biểu thành công! ${totalClasses} lớp (${allRows.length} dòng)`)
         }
       } else {
         toast.error('Không có dữ liệu trả về')
@@ -722,6 +723,49 @@ const TKBPage = () => {
     }
   }
 
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.name.match(/\.(xlsx|xls)$/)) {
+      toast.error('Vui lòng chọn file Excel (.xlsx hoặc .xls)')
+      return
+    }
+
+    try {
+      setImporting(true)
+      
+      // Create FormData to upload file
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // Upload file to backend
+      const response = await api.post('/tkb/import-data', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      if (response.data) {
+        toast.success('Đã import dữ liệu lịch mẫu thành công!')
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }
+    } catch (error: any) {
+      console.error('Error importing file:', error)
+      toast.error(error.response?.data?.message || 'Không thể import file. Vui lòng thử lại!')
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -742,7 +786,7 @@ const TKBPage = () => {
             ref={fileInputRef}
             type="file"
             accept=".xlsx,.xls"
-            
+            onChange={handleFileImport}
             className="hidden"
           />
           <button
