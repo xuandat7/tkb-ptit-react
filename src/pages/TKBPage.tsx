@@ -149,13 +149,16 @@ const TKBPage = () => {
         // Convert array of arrays to string array (join with dash)
         const groups = response.data.data.map((group: string[]) => group.join('-'))
         setMajorGroups(groups)
-        toast.success(`Đã tải ${groups.length} nhóm ngành từ API`)
+        // Removed toast notification - this is background data loading
       } else {
-        toast.error('API trả về lỗi: ' + (response.data.message || 'Không xác định'))
+        console.error('API returned error:', response.data.message)
       }
     } catch (error) {
-      toast.error('Không thể tải danh sách nhóm ngành từ API')
       console.error('Error loading major groups:', error)
+      // Only show error toast if it's a network error
+      if (error && typeof error === 'object' && 'message' in error) {
+        toast.error('Không thể tải danh sách nhóm ngành')
+      }
     } finally {
       setLoading(false)
     }
@@ -571,19 +574,6 @@ const TKBPage = () => {
     }
   }
 
-  const resetTKB = async () => {
-    if (!confirm('Bạn có chắc muốn reset thời khóa biểu? Tất cả dữ liệu sẽ bị xóa.')) return
-
-    try {
-      await api.post('/rooms/reset')
-      toast.success('Đã reset thời khóa biểu')
-      setResults([])
-    } catch (error) {
-      toast.error('Không thể reset thời khóa biểu')
-    }
-  }
-
-
   const saveToResults = async () => {
     if (results.length === 0) {
       toast.error('Không có dữ liệu TKB để lưu')
@@ -622,8 +612,6 @@ const TKBPage = () => {
       const response = await api.post('/schedules/save-batch', schedules)
       
       if (response.data) {
-        toast.success('Đã lưu TKB vào database thành công!')
-        
         // Lấy danh sách các phòng đã được sử dụng (loại bỏ null và duplicate)
         const usedRooms = [...new Set(
           results
@@ -631,21 +619,23 @@ const TKBPage = () => {
             .filter(room => room !== null && room !== undefined && room !== '')
         )] as string[]
         
+        let successMessage = 'Đã lưu TKB vào database thành công!'
+        
         // Update trạng thái phòng thành OCCUPIED
         if (usedRooms.length > 0) {
           try {
             const roomUpdateResponse = await roomService.updateStatusByRoomCodes(usedRooms, 'OCCUPIED')
             if (roomUpdateResponse.data.success) {
-              toast.success(
-                `Đã cập nhật trạng thái ${usedRooms.length} phòng thành OCCUPIED`,
-                { duration: 3000 }
-              )
+              successMessage += ` (Cập nhật ${usedRooms.length} phòng)`
             }
           } catch (roomError: any) {
             console.error('Error updating room status:', roomError)
-            toast.error('Lưu TKB thành công nhưng không thể cập nhật trạng thái phòng')
+            successMessage += ' (Lưu ý: Không thể cập nhật trạng thái phòng)'
           }
         }
+        
+        // Show single toast with all information
+        toast.success(successMessage, { duration: 4000 })
         
         // Lưu kết quả vào room results
         try {
@@ -746,7 +736,7 @@ const TKBPage = () => {
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload className="w-5 h-5" />
-            {importing ? 'Đang import...' : 'Import Excel'}
+            {importing ? 'Đang import...' : 'Import Data lịch mẫu'}
           </button>
           <input
             ref={fileInputRef}
@@ -761,13 +751,6 @@ const TKBPage = () => {
           >
             <RefreshCw className="w-5 h-5" />
             Làm mới
-          </button>
-          <button
-            onClick={resetTKB}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <RefreshCw className="w-5 h-5" />
-            Reset API
           </button>
         </div>
       </div>
