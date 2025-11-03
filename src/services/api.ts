@@ -206,7 +206,7 @@ export interface ScheduleValidationResult {
 
 // API Services
 export const subjectService = {
-  getAll: (page = 1, size = 10, search?: string) => {
+  getAll: (page = 1, size = 12, search?: string) => {
     const params = new URLSearchParams({ 
       page: page.toString(), 
       size: size.toString() 

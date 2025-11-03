@@ -166,6 +166,57 @@ const TKBPage = () => {
   }
 
   const loadSubjectsByMajorGroup = async () => {
+    // For "Chung" system type, we don't need classYear or selectedMajorGroup
+    if (systemType === 'chung') {
+      try {
+        setLoading(true)
+        
+        // Call API to get all common subjects
+        const response = await subjectService.getByMajors('', 'Chung', [])
+        
+        if (response.data.success) {
+          const subjects = response.data.data
+          
+          // Map to batch row format with combination fields
+          const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => {
+            // Tính số tiết = lý thuyết + bài tập + bài tập lớn (projectHours)
+            const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.projectHours || 0)
+            
+            // Tính số lớp dựa trên sĩ số
+            const studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
+            const solop = Math.ceil(subject.numberOfStudents / studentPerClass)
+            
+            return {
+              mmh: subject.subjectCode,
+              tmh: subject.subjectName,
+              sotiet: sotiet, // Tính từ theoryHours + exerciseHours + labHours
+              solop: solop, // Tính từ numberOfStudents / studentPerClass
+              siso: subject.numberOfStudents,
+              siso_mot_lop: studentPerClass,
+              nganh: subject.majorCode || 'CHUNG',
+              khoa: subject.classYear || 'CHUNG',
+              he_dac_thu: 'Chung',
+              isGrouped: false,
+              combinations: [],
+              isHiddenByCombination: false,
+            }
+          })
+          
+          setBatchRows(newRows)
+          toast.success(`Đã tải ${subjects.length} môn học chung từ API`)
+        } else {
+          toast.error('API trả về lỗi: ' + (response.data.message || 'Không xác định'))
+        }
+      } catch (error: any) {
+        toast.error('Không thể tải danh sách môn học chung từ API')
+        console.error('Error loading common subjects:', error)
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
+    // Original logic for other system types
     if (!classYear || !selectedMajorGroup || !systemType) {
       toast.error('Vui lòng chọn đầy đủ thông tin trước')
       return
@@ -819,7 +870,10 @@ const TKBPage = () => {
               onChange={(e) => {
                 setSystemType(e.target.value)
                 setBatchRows([])
-                setSelectedMajorGroup('')
+                // Reset selectedMajorGroup when changing to/from "chung"
+                if (e.target.value === 'chung' || systemType === 'chung') {
+                  setSelectedMajorGroup('')
+                }
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
@@ -834,7 +888,10 @@ const TKBPage = () => {
             <select
               value={classYear}
               onChange={(e) => setClassYear(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              disabled={systemType === 'chung'}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                systemType === 'chung' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              }`}
             >
               <option value="2022">Khóa 2022</option>
               <option value="2023">Khóa 2023</option>
@@ -847,8 +904,10 @@ const TKBPage = () => {
             <select
               value={selectedMajorGroup}
               onChange={(e) => setSelectedMajorGroup(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              disabled={!majorGroups.length}
+              disabled={systemType === 'chung' || !majorGroups.length}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
+                systemType === 'chung' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              }`}
             >
               <option value="">-- Chọn ngành --</option>
               {majorGroups.map((group, idx) => (
@@ -862,7 +921,7 @@ const TKBPage = () => {
           <div>
             <button
               onClick={loadSubjectsByMajorGroup}
-              disabled={!selectedMajorGroup || loading}
+              disabled={systemType === 'chung' ? loading : (!selectedMajorGroup || loading)}
               className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 whitespace-nowrap"
             >
               {loading ? 'Đang tải...' : 'Tải môn học'}
