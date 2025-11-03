@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ChevronLeft } from 'lucide-react'
-import { roomService } from '../services/api'
+import { roomService, API_BASE_URL } from '../services/api'
 import toast from 'react-hot-toast'
+
 
 interface Room {
   id: number
@@ -83,7 +84,7 @@ const RoomSchedulePage = () => {
       // Load actual schedules from database to determine room occupancy by time slot
       let schedulesByRoom: Record<string, any[]> = {}
       try {
-        const schedulesResponse = await fetch('http://localhost:8080/api/schedules')
+        const schedulesResponse = await fetch(`${API_BASE_URL}/schedules`)
         if (schedulesResponse.ok) {
           const schedulesData = await schedulesResponse.json()
           console.log('📊 Total schedules loaded:', schedulesData?.length || 0)

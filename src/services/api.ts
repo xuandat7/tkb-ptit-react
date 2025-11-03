@@ -1,6 +1,22 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8080/api'
+// Tự động detect API URL: sử dụng biến môi trường hoặc tự động detect
+const getApiBaseUrl = () => {
+  // Ưu tiên biến môi trường Vite (VITE_API_BASE_URL)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL
+  }
+  
+  // Nếu đang development (localhost)
+  if (import.meta.env.DEV || window.location.hostname === 'localhost') {
+    return 'http://localhost:8080/api'
+  }
+  
+  // Production: sử dụng cùng origin với frontend (relative path)
+  return '/api'
+}
+
+export const API_BASE_URL = getApiBaseUrl()
 
 const api = axios.create({
   baseURL: API_BASE_URL,
