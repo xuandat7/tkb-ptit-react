@@ -276,21 +276,19 @@ const RoomSchedulePage = () => {
   const stats = useMemo(() => {
     const totalRooms = allRooms.length
     const occupiedSet = new Set<string>()
-    let totalAvailableSlots = 0
 
+    // Đếm số phòng unique đã được sử dụng (có lịch trong tuần)
     Object.values(filteredSchedule).forEach(slot => {
       slot.occupied_rooms?.forEach(room => {
         if (room.phong) occupiedSet.add(room.phong)
       })
-      if (slot.total_available) {
-        totalAvailableSlots += slot.total_available
-      }
     })
 
     const totalOccupied = occupiedSet.size
-    const avgAvailable = Math.round(totalAvailableSlots / Math.max(Object.keys(filteredSchedule).length, 1))
+    // Phòng còn trống = Tổng phòng - Phòng đã dùng
+    const totalAvailable = totalRooms - totalOccupied
 
-    return { totalRooms, totalOccupied, totalAvailable: avgAvailable }
+    return { totalRooms, totalOccupied, totalAvailable }
   }, [allRooms, filteredSchedule])
 
   const renderSchedule = () => {
@@ -301,14 +299,14 @@ const RoomSchedulePage = () => {
       4: [10, 11, 12],
     }
 
-    const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN']
+    const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
     const grid = []
 
     // Header row
     grid.push(
-      <div key="empty" className="h-12" />,
+      <div key="empty" className="h-8" />,
       ...days.map((day, idx) => (
-        <div key={`header-${idx}`} className="bg-red-600 text-white p-3 text-center font-semibold">
+        <div key={`header-${idx}`} className="bg-red-600 text-white p-2 text-center font-semibold text-xs">
           {day}
         </div>
       ))
@@ -321,7 +319,7 @@ const RoomSchedulePage = () => {
       for (let tietIndex = 0; tietIndex < tiets.length; tietIndex++) {
         const tiet = tiets[tietIndex]
         const tietHeader = tietIndex === 0 ? (
-          <div key={`tiet-${tiet}`} className="bg-red-600 text-white p-3 text-center font-semibold">
+          <div key={`tiet-${tiet}`} className="bg-red-600 text-white p-2 text-center font-semibold text-xs">
             Tiết {tiet}
           </div>
         ) : (
@@ -338,18 +336,18 @@ const RoomSchedulePage = () => {
           slots.push(
             <div
               key={`slot-${thu}-${tiet}`}
-              className={`p-3 border text-center cursor-pointer transition-all ${
+              className={`p-2 border text-center cursor-pointer transition-all ${
                 hasActivity ? 'bg-white hover:bg-blue-50 border-blue-300' : 'bg-red-100'
               }`}
               onClick={() => hasActivity && setSelectedSlot(timeKey)}
             >
               {hasActivity ? (
                 <>
-                  <div className="text-xs text-red-600 font-semibold">{slot.total_occupied} phòng đã dùng</div>
-                  <div className="text-xs text-green-600 font-semibold">{slot.total_available} phòng còn trống</div>
+                  <div className="text-xs text-red-600 font-semibold leading-tight">{slot.total_occupied} đã dùng</div>
+                  <div className="text-xs text-green-600 font-semibold leading-tight">{slot.total_available} trống</div>
                 </>
               ) : (
-                <div className="text-xs text-red-600">Không có phòng</div>
+                <div className="text-xs text-red-600 leading-tight">Không có</div>
               )}
             </div>
           )
@@ -360,7 +358,7 @@ const RoomSchedulePage = () => {
     }
 
     return (
-      <div className="grid grid-cols-8 gap-1 border-2 border-red-200 rounded-lg overflow-hidden">
+      <div className="grid grid-cols-8 gap-0 bg-red-200 rounded-lg overflow-hidden p-0">
         {grid}
       </div>
     )
@@ -392,109 +390,111 @@ const RoomSchedulePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-500 to-blue-600">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">📅 Lịch Phòng Học</h1>
-              <p className="text-gray-600">Xem trạng thái phòng học theo từng tiết trong tuần</p>
+    <div className="fixed inset-y-0 left-64 right-0 bg-gradient-to-br from-red-500 to-blue-600 overflow-hidden flex flex-col">
+      <div className="flex-1 w-full p-2 flex flex-col gap-1.5 overflow-hidden">
+        {/* Header - Compact with Filters inline */}
+        <div className="bg-white rounded-lg shadow-lg p-2 flex-shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: Title */}
+            <div className="flex-shrink-0">
+              <h1 className="text-lg font-bold text-gray-900">Lịch Phòng Học</h1>
             </div>
-            <div className="flex gap-3">
+
+            {/* Center: Filters */}
+            <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5">Tòa nhà</label>
+                <select
+                  value={filterBuilding}
+                  onChange={(e) => setFilterBuilding(e.target.value)}
+                  className="w-full px-1.5 py-1 text-xs border border-gray-300 rounded"
+                >
+                  <option value="">Tất cả</option>
+                  {uniqueBuildings.map((building) => (
+                    <option key={building} value={building}>
+                      Tòa {building}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex-1">
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5">Sĩ số</label>
+                <select
+                  value={filterCapacity}
+                  onChange={(e) => setFilterCapacity(e.target.value)}
+                  className="w-full px-1.5 py-1 text-xs border border-gray-300 rounded"
+                >
+                  <option value="">Tất cả</option>
+                  <option value="0-30">≤ 30</option>
+                  <option value="31-50">31-50</option>
+                  <option value="51-80">51-80</option>
+                  <option value="81-100">81-100</option>
+                  <option value="100+">&gt; 100</option>
+                </select>
+              </div>
+
+              <div className="flex-1">
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5">Trạng thái</label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full px-1.5 py-1 text-xs border border-gray-300 rounded"
+                >
+                  <option value="">Tất cả</option>
+                  <option value="occupied">Đã sử dụng</option>
+                  <option value="available">Còn trống</option>
+                </select>
+              </div>
+
+              <div className="flex-shrink-0">
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 invisible">Làm mới</label>
+                <button
+                  onClick={() => {
+                    setFilterBuilding('')
+                    setFilterCapacity('')
+                    setFilterStatus('')
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 whitespace-nowrap"
+                >
+                  🔄 Làm mới
+                </button>
+              </div>
+            </div>
+
+            {/* Right: Stats and Back button */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Stats - Inline */}
+              <div className="flex gap-1.5">
+                <div className="bg-blue-50 px-2 py-0.5 rounded text-center">
+                  <div className="text-sm font-bold text-blue-600 leading-tight">{stats.totalRooms}</div>
+                  <div className="text-[9px] text-gray-600 leading-tight">Tổng</div>
+                </div>
+                <div className="bg-red-50 px-2 py-0.5 rounded text-center">
+                  <div className="text-sm font-bold text-red-600 leading-tight">{stats.totalOccupied}</div>
+                  <div className="text-[9px] text-gray-600 leading-tight">Đã dùng</div>
+                </div>
+                <div className="bg-green-50 px-2 py-0.5 rounded text-center">
+                  <div className="text-sm font-bold text-green-600 leading-tight">{stats.totalAvailable}</div>
+                  <div className="text-[9px] text-gray-600 leading-tight">Trống</div>
+                </div>
+              </div>
               <button
                 onClick={() => window.history.back()}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                className="flex items-center gap-1 px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-3 h-3" />
                 Quay lại
               </button>
             </div>
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-blue-600">{stats.totalRooms}</div>
-              <div className="text-sm text-gray-600 mt-1">Tổng phòng học</div>
-            </div>
-            <div className="bg-red-50 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-red-600">{stats.totalOccupied}</div>
-              <div className="text-sm text-gray-600 mt-1">Phòng đã sử dụng</div>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-green-600">{stats.totalAvailable}</div>
-              <div className="text-sm text-gray-600 mt-1">Phòng còn trống</div>
-            </div>
-          </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tòa nhà</label>
-              <select
-                value={filterBuilding}
-                onChange={(e) => setFilterBuilding(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Tất cả tòa nhà</option>
-                {uniqueBuildings.map((building) => (
-                  <option key={building} value={building}>
-                    Tòa {building}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Sĩ số</label>
-              <select
-                value={filterCapacity}
-                onChange={(e) => setFilterCapacity(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Tất cả sĩ số</option>
-                <option value="0-30">≤ 30</option>
-                <option value="31-50">31-50</option>
-                <option value="51-80">51-80</option>
-                <option value="81-100">81-100</option>
-                <option value="100+">&gt; 100</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Trạng thái</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Tất cả</option>
-                <option value="occupied">Đã sử dụng</option>
-                <option value="available">Còn trống</option>
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setFilterBuilding('')
-                  setFilterCapacity('')
-                  setFilterStatus('')
-                }}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-              >
-                🔄 Làm mới
-              </button>
-            </div>
+        {/* Schedule Grid - Compact */}
+        <div className="bg-white rounded-lg shadow-lg p-3 flex-1 overflow-hidden">
+          <div className="h-full overflow-hidden">
+            {renderSchedule()}
           </div>
-        </div>
-
-        {/* Schedule Grid */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          {renderSchedule()}
         </div>
 
         {/* Room Details Modal */}
