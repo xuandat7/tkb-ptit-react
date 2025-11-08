@@ -240,8 +240,16 @@ const TKBPage = () => {
       // Split selected major group back to individual majors
       const majorCodes = selectedMajorGroup.split('-')
       
+      // Ensure standalone majors (E-*) are treated as single entities
+      const processedMajorCodes = majorCodes.filter((code: string) => code.trim() !== '').map((code: string) => {
+        if (isStandaloneMajor(code)) {
+          return code; // Keep standalone majors as is
+        }
+        return code; // Default behavior for other codes
+      });
+
       // Call API to get subjects by majors
-      const response = await subjectService.getByMajors(classYear, programType, majorCodes)
+      const response = await subjectService.getByMajors(classYear, programType, [processedMajorCodes.join('-')])
       
       if (response.data.success) {
         const subjects = response.data.data
@@ -294,10 +302,22 @@ const TKBPage = () => {
     setBatchRows(batchRows.filter((_, i) => i !== index))
   }
 
-  // Helper function to check if a subject has multiple majors
+  // Helper function to check if a major code should be treated as standalone
+  const isStandaloneMajor = (majorCode: string): boolean => {
+    return majorCode.startsWith('E-');
+  }
+
+  // Helper function to check if a subject has multiple compatible majors for grouping
   const hasMultipleMajors = (subjectCode: string): boolean => {
-    const majors = batchRows.filter((row) => row.mmh === subjectCode)
-    return majors.length > 1
+    const rows = batchRows.filter((row) => row.mmh === subjectCode);
+    if (rows.length <= 1) return false;
+
+    // If any major in the subject's rows is a standalone major (E-*), 
+    // don't allow grouping
+    const hasStandaloneMajor = rows.some(row => isStandaloneMajor(row.nganh));
+    if (hasStandaloneMajor) return false;
+
+    return rows.length > 1;
   }
 
   // Helper function 2: Toggle major combination
