@@ -267,49 +267,51 @@ const SubjectsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản lý Môn học</h1>
-          <p className="text-gray-600 mt-2">Quản lý thông tin các môn học</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-            >
-              <option value="">-- Chọn học kỳ --</option>
-              <option value="1">Học kỳ 1</option>
-              <option value="2">Học kỳ 2</option>
-            </select>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!selectedSemester || importing}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Upload className="w-5 h-5" />
-              {importing ? 'Đang import...' : 'Import file'}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileImport}
-              className="hidden"
-            />
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Quản lý Môn học</h1>
+            <p className="text-red-100 text-lg">Quản lý thông tin các môn học</p>
           </div>
-          <button
-            onClick={() => {
-              setEditingSubject(null)
-              resetForm()
-              setShowModal(true)
-            }}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-          >
-            <Plus className="w-5 h-5" />
-            Thêm môn học
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                className="px-3 py-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg focus:ring-2 focus:ring-white/50 focus:outline-none"
+              >
+                <option value="" className="text-gray-900">Chọn học kỳ</option>
+                <option value="1" className="text-gray-900">Học kỳ 1</option>
+                <option value="2" className="text-gray-900">Học kỳ 2</option>
+              </select>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!selectedSemester || importing}
+                className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white transition-colors"
+              >
+                <Upload className="w-5 h-5" />
+                {importing ? 'Đang import...' : 'Import file'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileImport}
+                className="hidden"
+              />
+            </div>
+            <button
+              onClick={() => {
+                setEditingSubject(null)
+                resetForm()
+                setShowModal(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Thêm môn học
+            </button>
+          </div>
         </div>
       </div>
 
@@ -321,40 +323,40 @@ const SubjectsPage = () => {
               type="text"
               placeholder="Tìm kiếm môn học..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}h-full w-full overflow-hidden
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="w-full border-collapse">
+            <thead className="bg-red-600">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã môn</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên môn</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngành</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã CN</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sĩ số</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lớp</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tín chỉ</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiết LT</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã CN</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tổng tiết LT</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white">
               {subjects.map((subject) => (
-                <tr key={subject.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 text-sm text-gray-900">{subject.subjectCode}</td>
-                  <td className="px-4 py-4 text-sm font-medium text-gray-900">{subject.subjectName}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{subject.classYear}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{subject.majorCode}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{subject.programType}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{subject.numberOfStudents}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{subject.numberOfClasses}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{subject.credits}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500">{subject.theoryHours}</td>
+                <tr key={subject.id} className="hover:bg-red-50 border-b border-gray-200">
+                  <td className="px-4 py-4 text-sm text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
+                  <td className="px-4 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.classYear}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.programType}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.numberOfStudents}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.numberOfClasses}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.credits}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.theoryHours}</td>
                   <td className="px-4 py-4 text-sm font-medium">
                     <button 
                       onClick={() => handleViewDetail(subject)} 
@@ -385,7 +387,7 @@ const SubjectsPage = () => {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage <= 1}
-              className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -400,8 +402,8 @@ const SubjectsPage = () => {
                   onClick={() => handlePageChange(page)}
                   className={`px-3 py-1 border rounded-lg ${
                     currentPage === page 
-                      ? 'bg-purple-600 text-white border-purple-600' 
-                      : 'border-gray-300 hover:bg-gray-50'
+                      ? 'bg-red-600 text-white border-red-600' 
+                      : 'border-red-300 hover:bg-red-50 text-red-600'
                   }`}
                 >
                   {page}
@@ -412,7 +414,7 @@ const SubjectsPage = () => {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage >= totalPages}
-              className="px-3 py-1 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -549,31 +551,31 @@ const SubjectsPage = () => {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
+            <table className="w-full border-collapse">
+              <thead className="bg-red-600">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã môn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên môn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khóa</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngành</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sĩ số</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lớp</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tín chỉ</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bộ môn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hình thức thi</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Bộ môn</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Hình thức thi</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white">
                 {importedSubjects.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">{item.mmh}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.tmh}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.khoa}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.nganh}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.si_so}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.so_lop}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.tc}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.bo_mon || '-'}</td>
+                  <tr key={index} className="hover:bg-red-50 border-b border-gray-200">
+                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">{item.mmh}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{item.tmh}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.khoa}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.nganh}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.si_so}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.so_lop}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.tc}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.bo_mon || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{item.hinh_thuc_thi || '-'}</td>
                   </tr>
                 ))}

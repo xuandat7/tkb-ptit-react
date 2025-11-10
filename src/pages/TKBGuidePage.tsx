@@ -207,7 +207,7 @@ const TKBGuidePage = () => {
     {
       icon: FileText,
       title: 'Xem lại kết quả đã lưu',
-      content: 'Bạn có thể xem lại các TKB đã lưu trong section "📚 Kết quả TKB đã lưu". Nhấp "Xem" để tải lại TKB đó.',
+      content: 'Bạn có thể xem lại các TKB đã lưu trong section "Kết quả TKB đã lưu". Nhấp "Xem" để tải lại TKB đó.',
     },
   ]
 
