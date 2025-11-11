@@ -29,8 +29,8 @@ const TKBGuidePage = () => {
         'Hệ thống sẽ tự động upload và xử lý file',
         'Chờ thông báo thành công trước khi tiếp tục',
       ],
-      color: 'bg-green-50 border-green-200 text-green-800',
-      iconColor: 'text-green-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 2,
@@ -43,8 +43,8 @@ const TKBGuidePage = () => {
         '• Hệ đặc thù: Cho các môn học hệ đặc thù',
         '• Chung: Cho các môn học chung',
       ],
-      color: 'bg-blue-50 border-blue-200 text-blue-800',
-      iconColor: 'text-blue-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 3,
@@ -58,8 +58,8 @@ const TKBGuidePage = () => {
         '• Khóa 2024',
         'Hệ thống sẽ tự động tải danh sách nhóm ngành sau khi chọn.',
       ],
-      color: 'bg-purple-50 border-purple-200 text-purple-800',
-      iconColor: 'text-purple-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 4,
@@ -72,8 +72,8 @@ const TKBGuidePage = () => {
         '• Hoặc nhiều ngành kết hợp (VD: AT-CN-KH)',
         'Danh sách nhóm ngành được tải tự động dựa trên hệ đào tạo và khóa học đã chọn.',
       ],
-      color: 'bg-orange-50 border-orange-200 text-orange-800',
-      iconColor: 'text-orange-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 5,
@@ -90,8 +90,8 @@ const TKBGuidePage = () => {
         '  - Sĩ số, Sĩ số một lớp',
         '  - Khóa, Ngành',
       ],
-      color: 'bg-indigo-50 border-indigo-200 text-indigo-800',
-      iconColor: 'text-indigo-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 6,
@@ -111,8 +111,8 @@ const TKBGuidePage = () => {
         'Nhấp "Thêm kết hợp" nếu muốn tạo nhiều tổ hợp ngành cho cùng 1 môn',
         'Các dòng của ngành được gộp sẽ tự động ẩn đi',
       ],
-      color: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-      iconColor: 'text-yellow-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 7,
@@ -125,8 +125,8 @@ const TKBGuidePage = () => {
         'Số lớp: Tự động tính từ (Sĩ số / Sĩ số một lớp), không thể chỉnh sửa',
         'Các trường khác (Mã môn, Tên môn, Khóa, Ngành): Readonly',
       ],
-      color: 'bg-gray-50 border-gray-200 text-gray-800',
-      iconColor: 'text-gray-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 8,
@@ -161,8 +161,8 @@ const TKBGuidePage = () => {
         '  - Tên môn, Ngành, Số tiết',
         '  - Lý do không sinh được (Note)',
       ],
-      color: 'bg-teal-50 border-teal-200 text-teal-800',
-      iconColor: 'text-teal-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
     {
       number: 10,
@@ -178,8 +178,8 @@ const TKBGuidePage = () => {
         'Thông báo thành công sẽ hiển thị số phòng đã cập nhật',
         'Kết quả đã lưu sẽ xuất hiện trong section "📚 Kết quả TKB đã lưu"',
       ],
-      color: 'bg-green-50 border-green-200 text-green-800',
-      iconColor: 'text-green-600',
+      color: 'bg-red-50 border-red-200 text-red-800',
+      iconColor: 'text-red-600',
     },
   ]
 
@@ -237,7 +237,7 @@ const TKBGuidePage = () => {
       </div>
 
       {/* Steps */}
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {steps.map((step) => {
           const Icon = step.icon
           return (

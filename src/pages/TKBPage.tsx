@@ -940,7 +940,6 @@ const TKBPage = () => {
                   <th className="px-4 py-2 border">Mã môn</th>
                   <th className="px-4 py-2 border">Tên môn</th>
                   <th className="px-4 py-2 border">Số tiết</th>
-                  <th className="px-4 py-2 border">Số lớp</th>
                   <th className="px-4 py-2 border">Sĩ số</th>
                   <th className="px-4 py-2 border">Sĩ số một lớp</th>
                   <th className="px-4 py-2 border">Khóa</th>
@@ -977,14 +976,6 @@ const TKBPage = () => {
                               updateBatchRow(index, 'sotiet', parseInt(e.target.value) || 0)
                             }
                             className="w-full px-2 py-1 border rounded text-center"
-                          />
-                        </td>
-                        <td className="px-4 py-2 border">
-                          <input
-                            type="number"
-                            value={row.solop}
-                            readOnly
-                            className="w-full px-2 py-1 border rounded text-center bg-gray-100"
                           />
                         </td>
                         <td className="px-4 py-2 border">

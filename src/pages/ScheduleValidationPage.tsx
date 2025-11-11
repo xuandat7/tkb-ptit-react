@@ -307,148 +307,153 @@ const ScheduleValidationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="bg-red-600 text-white px-6 py-4 rounded-t-lg">
-            <h1 className="text-2xl font-bold flex items-center">
-              <CheckCircle className="mr-3" size={28} />
-              Hậu kiểm thời khóa biểu
-            </h1>
-          </div>
-          
-          <div className="p-6">
-            {/* Alert messages */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 flex items-center">
-                <AlertTriangle className="mr-2" size={20} />
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 flex items-center">
-                <CheckCircle className="mr-2" size={20} />
-                {success}
-              </div>
-            )}
-
-            {/* Instructions */}
-            <div className="mb-6">
-              <h5 className="text-lg font-semibold mb-3">Hướng dẫn sử dụng:</h5>
-              <ul className="space-y-2">
-                <li className="flex items-center text-gray-700">
-                  <CheckCircle className="text-red-500 mr-3" size={16} />
-                  Upload file Excel thời khóa biểu (.xlsx)
-                </li>
-                <li className="flex items-center text-gray-700">
-                  <CheckCircle className="text-red-500 mr-3" size={16} />
-                  Hệ thống sẽ tự động phát hiện xung đột phòng học và giảng viên
-                </li>
-                <li className="flex items-center text-gray-700">
-                  <CheckCircle className="text-red-500 mr-3" size={16} />
-                  Xem kết quả và download báo cáo chi tiết
-                </li>
-              </ul>
+    <div className="flex flex-col bg-gray-50" style={{ height: 'calc(100vh - 4rem)' }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+          {/* Upload section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-full">
+            <div className="bg-red-600 text-white px-6 py-4 rounded-t-lg flex-shrink-0">
+              <h1 className="text-2xl font-bold flex items-center">
+                <CheckCircle className="mr-3" size={28} />
+                Hậu kiểm thời khóa biểu
+              </h1>
             </div>
-
-            {/* Upload form */}
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragOver
-                  ? 'border-red-400 bg-red-50'
-                  : 'border-red-300 bg-red-50'
-              } hover:border-red-400 hover:bg-red-100`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="mb-4">
-                <Upload className="mx-auto text-red-600 mb-3" size={48} />
-                <h5 className="text-xl font-semibold text-gray-700 mb-2">
-                  Chọn hoặc kéo thả file Excel vào đây
-                </h5>
-                <p className="text-gray-500">Hỗ trợ file .xlsx (tối đa 10MB)</p>
-              </div>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-red-600 text-white px-6 py-2 rounded-md font-medium hover:bg-red-700 inline-flex items-center"
-              >
-                <FileText className="mr-2" size={16} />
-                Chọn file
-              </button>
-            </div>
-
-            {selectedFile && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
-                <div className="flex items-center text-red-800">
-                  <FileText className="mr-3" size={20} />
-                  <div>
-                    <div className="font-medium">File đã chọn: {selectedFile.name}</div>
-                    <div className="text-sm">Kích thước: {formatFileSize(selectedFile.size)}</div>
-                  </div>
+            
+            <div className="p-6 flex-1 min-h-0 flex flex-col">
+              {/* Alert messages */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 flex items-center flex-shrink-0">
+                  <AlertTriangle className="mr-2" size={20} />
+                  {error}
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="text-center mt-6 space-x-4">
-              <button
-                onClick={handleAnalyze}
-                disabled={!selectedFile || isAnalyzing}
-                className="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Đang kiểm tra...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2" size={20} />
-                    Kiểm tra xung đột
-                  </>
+              {success && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4 flex items-center flex-shrink-0">
+                  <CheckCircle className="mr-2" size={20} />
+                  {success}
+                </div>
+              )}
+
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {/* Instructions */}
+                <div className="mb-6">
+                  <h5 className="text-lg font-semibold mb-3">Hướng dẫn sử dụng:</h5>
+                  <ul className="space-y-2">
+                    <li className="flex items-center text-gray-700">
+                      <CheckCircle className="text-red-500 mr-3" size={16} />
+                      Upload file Excel thời khóa biểu (.xlsx)
+                    </li>
+                    <li className="flex items-center text-gray-700">
+                      <CheckCircle className="text-red-500 mr-3" size={16} />
+                      Hệ thống sẽ tự động phát hiện xung đột phòng học và giảng viên
+                    </li>
+                    <li className="flex items-center text-gray-700">
+                      <CheckCircle className="text-red-500 mr-3" size={16} />
+                      Xem kết quả và download báo cáo chi tiết
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Upload form */}
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    isDragOver
+                      ? 'border-red-400 bg-red-50'
+                      : 'border-red-300 bg-red-50'
+                  } hover:border-red-400 hover:bg-red-100`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <div className="mb-4">
+                    <Upload className="mx-auto text-red-600 mb-3" size={48} />
+                    <h5 className="text-xl font-semibold text-gray-700 mb-2">
+                      Chọn hoặc kéo thả file Excel vào đây
+                    </h5>
+                    <p className="text-gray-500">Hỗ trợ file .xlsx (tối đa 10MB)</p>
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-red-600 text-white px-6 py-2 rounded-md font-medium hover:bg-red-700 inline-flex items-center"
+                  >
+                    <FileText className="mr-2" size={16} />
+                    Chọn file
+                  </button>
+                </div>
+
+                {selectedFile && (
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+                    <div className="flex items-center text-red-800">
+                      <FileText className="mr-3" size={20} />
+                      <div>
+                        <div className="font-medium">File đã chọn: {selectedFile.name}</div>
+                        <div className="text-sm">Kích thước: {formatFileSize(selectedFile.size)}</div>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </button>
-              <button
-                onClick={handleReset}
-                className="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700 inline-flex items-center"
-              >
-                <RefreshCw className="mr-2" size={20} />
-                Làm mới
-              </button>
+              </div>
+
+              <div className="text-center mt-6 space-x-4 flex-shrink-0">
+                <button
+                  onClick={handleAnalyze}
+                  disabled={!selectedFile || isAnalyzing}
+                  className="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Đang kiểm tra...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2" size={20} />
+                      Kiểm tra xung đột
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700 inline-flex items-center"
+                >
+                  <RefreshCw className="mr-2" size={20} />
+                  Làm mới
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Info section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
-          <div className="p-6">
-            <h6 className="text-lg font-semibold mb-4 flex items-center">
-              <AlertTriangle className="mr-2 text-red-600" size={20} />
-              Thông tin về tính năng
-            </h6>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h6 className="font-medium text-red-600 mb-2">Phát hiện xung đột phòng:</h6>
-                <p className="text-sm text-gray-600">
-                  Kiểm tra các môn học khác nhau sử dụng cùng một phòng tại cùng thời điểm
-                </p>
-              </div>
-              <div>
-                <h6 className="font-medium text-red-600 mb-2">Phát hiện xung đột giảng viên:</h6>
-                <p className="text-sm text-gray-600">
-                  Kiểm tra giảng viên có lịch dạy trùng lặp tại cùng thời điểm
-                </p>
+          {/* Info section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-full">
+            <div className="p-6 flex-1 min-h-0 overflow-y-auto">
+              <h6 className="text-lg font-semibold mb-4 flex items-center">
+                <AlertTriangle className="mr-2 text-red-600" size={20} />
+                Thông tin về tính năng
+              </h6>
+              <div className="space-y-6">
+                <div>
+                  <h6 className="font-medium text-red-600 mb-2">Phát hiện xung đột phòng:</h6>
+                  <p className="text-sm text-gray-600">
+                    Kiểm tra các môn học khác nhau sử dụng cùng một phòng tại cùng thời điểm
+                  </p>
+                </div>
+                <div>
+                  <h6 className="font-medium text-red-600 mb-2">Phát hiện xung đột giảng viên:</h6>
+                  <p className="text-sm text-gray-600">
+                    Kiểm tra giảng viên có lịch dạy trùng lặp tại cùng thời điểm
+                  </p>
+                </div>
               </div>
             </div>
           </div>
