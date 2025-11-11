@@ -237,19 +237,22 @@ const TKBPage = () => {
         programType = 'Chính quy'
       }
       
-      // Split selected major group back to individual majors
-      const majorCodes = selectedMajorGroup.split('-')
+      // Process selected major group to handle E-* majors correctly
+      let majorCodes: string[] = []
       
-      // Ensure standalone majors (E-*) are treated as single entities
-      const processedMajorCodes = majorCodes.filter((code: string) => code.trim() !== '').map((code: string) => {
-        if (isStandaloneMajor(code)) {
-          return code; // Keep standalone majors as is
-        }
-        return code; // Default behavior for other codes
-      });
+      if (selectedMajorGroup.startsWith('E-')) {
+        // If it's an E-* major, keep it as a single major
+        majorCodes = [selectedMajorGroup]
+      } else {
+        // For other majors like AT-CN-KH, split into individual majors
+        majorCodes = selectedMajorGroup.split('-')
+      }
+      
+      // Filter out empty codes
+      const processedMajorCodes = majorCodes.filter((code: string) => code.trim() !== '')
 
       // Call API to get subjects by majors
-      const response = await subjectService.getByMajors(classYear, programType, [processedMajorCodes.join('-')])
+      const response = await subjectService.getByMajors(classYear, programType, processedMajorCodes)
       
       if (response.data.success) {
         const subjects = response.data.data
