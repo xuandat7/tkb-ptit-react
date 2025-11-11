@@ -207,7 +207,7 @@ const TKBGuidePage = () => {
     {
       icon: FileText,
       title: 'Xem lại kết quả đã lưu',
-      content: 'Bạn có thể xem lại các TKB đã lưu trong section "📚 Kết quả TKB đã lưu". Nhấp "Xem" để tải lại TKB đó.',
+      content: 'Bạn có thể xem lại các TKB đã lưu trong section "Kết quả TKB đã lưu". Nhấp "Xem" để tải lại TKB đó.',
     },
   ]
 
@@ -215,7 +215,7 @@ const TKBGuidePage = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
-        <h1 className="text-4xl font-bold mb-2">📖 Hướng dẫn Sinh Thời khóa biểu</h1>
+        <h1 className="text-4xl font-bold mb-2">Hướng dẫn Sinh Thời khóa biểu</h1>
         <p className="text-red-100 text-lg">
           Hướng dẫn chi tiết từng bước để tạo thời khóa biểu tự động trong hệ thống
         </p>

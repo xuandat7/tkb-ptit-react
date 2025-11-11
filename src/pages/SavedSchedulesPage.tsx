@@ -251,83 +251,82 @@ const SavedSchedulesPage: React.FC = () => {
   const groupedSchedules = groupSchedulesByClass(filteredSchedules)
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">Thời Khóa Biểu Đã Lưu</h1>
+    <div className="space-y-2">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-2 shadow-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-lg font-bold mb-0.5 ml-2">Thời Khóa Biểu Đã Lưu</h2>
+            <p className="text-red-100 text-xs ml-2">Xem và quản lý các thời khóa biểu đã được lưu trong hệ thống</p>
+          </div>
           <button
             onClick={exportToExcel}
             disabled={groupedSchedules.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white text-xs"
           >
             📊 Xuất Excel
           </button>
         </div>
+      </div>
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input
-              type="text"
-              placeholder="Mã môn..."
-              className="px-4 py-2 border rounded"
-              value={filter.subjectId}
-              onChange={(e) => setFilter({ ...filter, subjectId: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="Ngành..."
-              className="px-4 py-2 border rounded"
-              value={filter.major}
-              onChange={(e) => setFilter({ ...filter, major: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="Khóa..."
-              className="px-4 py-2 border rounded"
-              value={filter.studentYear}
-              onChange={(e) => setFilter({ ...filter, studentYear: e.target.value })}
-            />
-            <button
-              onClick={() => setFilter({ subjectId: '', major: '', studentYear: '' })}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-            >
-              Reset Bộ Lọc
-            </button>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-4 mb-4">
+      <div className="bg-white rounded-lg shadow-md p-1.5">
+        {/* Filters and Actions in one row */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <input
+            type="text"
+            placeholder="Mã môn..."
+            className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-24"
+            value={filter.subjectId}
+            onChange={(e) => setFilter({ ...filter, subjectId: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Ngành..."
+            className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-24"
+            value={filter.major}
+            onChange={(e) => setFilter({ ...filter, major: e.target.value })}
+          />
+          <input
+            type="text"
+            placeholder="Khóa..."
+            className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-24"
+            value={filter.studentYear}
+            onChange={(e) => setFilter({ ...filter, studentYear: e.target.value })}
+          />
+          <button
+            onClick={() => setFilter({ subjectId: '', major: '', studentYear: '' })}
+            className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors text-xs whitespace-nowrap"
+          >
+            Reset
+          </button>
           <button
             onClick={loadSchedules}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"
             disabled={loading}
           >
-            {loading ? 'Đang tải...' : 'Tải lại'}
+            {loading ? '...' : '🔄'}
           </button>
           <button
             onClick={handleDeleteByMajor}
-            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+            className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"
             disabled={schedules.length === 0}
           >
-            Xóa theo ngành
+            Xóa ngành
           </button>
           <button
             onClick={handleDeleteAll}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"
             disabled={schedules.length === 0}
           >
             Xóa Tất Cả
           </button>
-          <span className="px-4 py-2 bg-gray-100 rounded">
-            Tổng: {filteredSchedules.length} lịch học
+          <span className="px-2 py-1 bg-gray-100 rounded text-xs whitespace-nowrap">
+            Tổng: {filteredSchedules.length}
           </span>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+      <div className="bg-white rounded-lg shadow overflow-auto" style={{ maxHeight: 'calc(100vh - 150px)' }}>
         <table className="min-w-full text-xs border-collapse" style={{ fontSize: '0.65rem' }}>
           <thead className="sticky top-0 bg-red-50">
             <tr className="bg-red-50">

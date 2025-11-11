@@ -216,27 +216,29 @@ const RoomsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản lý Phòng học</h1>
-          <p className="text-gray-600 mt-2">Quản lý thông tin các phòng học</p>
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Quản lý Phòng học</h1>
+            <p className="text-red-100 text-lg">Quản lý thông tin các phòng học</p>
+          </div>
+          <button
+            onClick={() => {
+              setEditingRoom(null)
+              resetForm()
+              setShowModal(true)
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Thêm phòng học
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setEditingRoom(null)
-            resetForm()
-            setShowModal(true)
-          }}
-          className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          <Plus className="w-5 h-5" />
-          Thêm phòng học
-        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
         {/* Search and Filters */}
-        <div className="space-y-4 mb-6">
+        <div className="space-y-3 mb-6">
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -249,14 +251,14 @@ const RoomsPage = () => {
             />
           </div>
 
-          {/* Filter Row 1 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+          {/* All Filters in One Row */}
+          <div className="flex items-end gap-2 flex-wrap">
+            <div className="flex-1 min-w-[120px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Trạng thái</label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">Tất cả</option>
                 <option value="AVAILABLE">Có sẵn</option>
@@ -265,12 +267,12 @@ const RoomsPage = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tòa nhà</label>
+            <div className="flex-1 min-w-[120px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Tòa nhà</label>
               <select
                 value={filterBuilding}
                 onChange={(e) => setFilterBuilding(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">Tất cả</option>
                 {uniqueBuildings.map((building) => (
@@ -281,12 +283,12 @@ const RoomsPage = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tầng</label>
+            <div className="flex-1 min-w-[100px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Tầng</label>
               <select
                 value={filterFloor}
                 onChange={(e) => setFilterFloor(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="ALL">Tất cả</option>
                 {uniqueFloors.map((floor) => (
@@ -297,12 +299,34 @@ const RoomsPage = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng mục/trang</label>
+            <div className="flex-1 min-w-[100px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Sức chứa tối thiểu</label>
+              <input
+                type="number"
+                placeholder="VD: 50"
+                value={filterCapacityMin}
+                onChange={(e) => setFilterCapacityMin(e.target.value)}
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <div className="flex-1 min-w-[100px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Sức chứa tối đa</label>
+              <input
+                type="number"
+                placeholder="VD: 100"
+                value={filterCapacityMax}
+                onChange={(e) => setFilterCapacityMax(e.target.value)}
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <div className="flex-1 min-w-[120px]">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Số lượng mục/trang</label>
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="5">5</option>
                 <option value="10">10</option>
@@ -310,60 +334,36 @@ const RoomsPage = () => {
                 <option value="50">50</option>
               </select>
             </div>
-          </div>
 
-          {/* Filter Row 2 - Capacity */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sức chứa tối thiểu</label>
-              <input
-                type="number"
-                placeholder="VD: 50"
-                value={filterCapacityMin}
-                onChange={(e) => setFilterCapacityMin(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
+            {/* Results count */}
+            <div className="text-xs text-gray-600 whitespace-nowrap px-2 py-1.5">
+              Hiển thị {paginatedRooms.length} / {filteredRooms.length} kết quả
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sức chứa tối đa</label>
-              <input
-                type="number"
-                placeholder="VD: 100"
-                value={filterCapacityMax}
-                onChange={(e) => setFilterCapacityMax(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-          </div>
-
-          {/* Results count */}
-          <div className="text-sm text-gray-600">
-            Hiển thị {paginatedRooms.length} / {filteredRooms.length} kết quả
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <table className="w-full border-collapse">
+            <thead className="bg-red-600">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã phòng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tòa nhà</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tầng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sức chứa</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tầng</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Sức chứa</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Trạng thái</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white">
               {paginatedRooms.map((room) => (
-                <tr key={room.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{room.roomCode}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{room.building}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{room.floor || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{room.capacity} người</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{getRoomTypeText(room.roomType)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={room.id} className="hover:bg-red-50 border-b border-gray-200">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.building}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.floor || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.capacity} người</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{getRoomTypeText(room.roomType)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(room.status)}`}>
                       {room.status === 'AVAILABLE' ? 'Có sẵn' : room.status === 'OCCUPIED' ? 'Đang sử dụng' : 'Bảo trì'}
                     </span>
@@ -392,7 +392,7 @@ const RoomsPage = () => {
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 py-2 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -417,7 +417,7 @@ const RoomsPage = () => {
                     className={`px-3 py-2 border rounded-lg ${
                       currentPage === pageNum
                         ? 'bg-red-600 text-white border-red-600'
-                        : 'border-gray-300 hover:bg-gray-50'
+                        : 'border-red-300 hover:bg-red-50 text-red-600'
                     }`}
                   >
                     {pageNum}
@@ -428,7 +428,7 @@ const RoomsPage = () => {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="px-3 py-2 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
