@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, Loader, RefreshCw, Upload, HelpCircle } from 'lucide-react'
-import { subjectService, roomService, tkbService, type SubjectByMajor } from '../services/api'
+import { Play, Loader, Upload, HelpCircle, FileText, ArrowRight } from 'lucide-react'
+import { subjectService, roomService, type SubjectByMajor } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import ImportFileModal from '../components/ImportFileModal'
 
 interface BatchRow {
   mmh: string
@@ -103,7 +104,7 @@ const TKBPage = () => {
   const [failedSubjects, setFailedSubjects] = useState<FailedSubject[]>(persistedState?.failedSubjects || [])
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showImportModal, setShowImportModal] = useState(false)
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
@@ -183,7 +184,11 @@ const TKBPage = () => {
             const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.projectHours || 0)
             
             // Tính số lớp dựa trên sĩ số
-            const studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
+            let studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
+            // Nếu sĩ số nhỏ hơn 1 lớp thì lấy giá trị đó làm giá trị sĩ số 1 lớp luôn
+            if (subject.numberOfStudents > 0 && subject.numberOfStudents < studentPerClass) {
+              studentPerClass = subject.numberOfStudents
+            }
             const solop = Math.ceil(subject.numberOfStudents / studentPerClass)
             
             return {
@@ -263,7 +268,11 @@ const TKBPage = () => {
           const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.projectHours || 0)
           
           // Tính số lớp dựa trên sĩ số
-          const studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
+          let studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
+          // Nếu sĩ số nhỏ hơn 1 lớp thì lấy giá trị đó làm giá trị sĩ số 1 lớp luôn
+          if (subject.numberOfStudents > 0 && subject.numberOfStudents < studentPerClass) {
+            studentPerClass = subject.numberOfStudents
+          }
           const solop = Math.ceil(subject.numberOfStudents / studentPerClass)
           
           return {
@@ -770,72 +779,27 @@ const TKBPage = () => {
     }
   }
 
-  const clearAllData = async () => {
-    if (confirm('Bạn có chắc muốn xóa toàn bộ dữ liệu và bắt đầu lại từ đầu?')) {
-      try {
-        // Reset last slot index
-        await tkbService.resetLastSlotIdx()
-        console.log('Last slot index reset successfully')
-      } catch (error: any) {
-        console.error('Error resetting last slot index:', error)
-        // Tiếp tục xóa dữ liệu local dù API fail
-      }
-      
-      // Clear all state
-      setSystemType('chinh_quy')
-      setClassYear('2022')
-      setSelectedMajorGroup('')
-      setBatchRows([])
-      setExpandedRows(new Set())
-      setResults([])
-      setSavedResults([])
-      setFailedSubjects([])
-      
-      // Clear localStorage
-      localStorage.removeItem('tkbPageState')
-      
-      toast.success('Đã xóa toàn bộ dữ liệu')
-    }
-  }
-
-  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    if (!file.name.match(/\.(xlsx|xls)$/)) {
-      toast.error('Vui lòng chọn file Excel (.xlsx hoặc .xls)')
-      return
-    }
-
+  const handleFileImportConfirm = async (file: File) => {
     try {
       setImporting(true)
       
-      // Create FormData to upload file
-      const formData = new FormData()
-      formData.append('file', file)
-
-      // Upload file to backend
-      const response = await api.post('/tkb/import-data', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-
-      if (response.data) {
-        toast.success('Đã import dữ liệu lịch mẫu thành công!')
-        // Reset file input
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ''
-        }
-      }
+      // Tạm thời chỉ hiển thị thông báo
+      toast.success(`Đã chọn file: ${file.name}. Chức năng import sẽ được tích hợp API sau.`)
+      
+      // TODO: Ghép API sau
+      // const formData = new FormData()
+      // formData.append('file', file)
+      // const response = await api.post('/tkb/import-data', formData, {
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data',
+      //   },
+      // })
+      // if (response.data) {
+      //   toast.success('Đã import dữ liệu lịch mẫu thành công!')
+      // }
     } catch (error: any) {
       console.error('Error importing file:', error)
       toast.error(error.response?.data?.message || 'Không thể import file. Vui lòng thử lại!')
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
     } finally {
       setImporting(false)
     }
@@ -858,26 +822,12 @@ const TKBPage = () => {
               Hướng dẫn
             </Link>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setShowImportModal(true)}
               disabled={importing}
               className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white transition-colors"
             >
               <Upload className="w-5 h-5" />
               {importing ? 'Đang import...' : 'Import Data lịch mẫu'}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileImport}
-              className="hidden"
-            />
-            <button
-              onClick={clearAllData}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
-            >
-              <RefreshCw className="w-5 h-5" />
-              Làm mới
             </button>
           </div>
         </div>
@@ -1221,22 +1171,32 @@ const TKBPage = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Kết quả Thời khóa biểu</h2>
-            <button
-              onClick={saveToResults}
-              disabled={loading}
-              className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader className="w-5 h-5 animate-spin" />
-                  Đang lưu...
-                </>
-              ) : (
-                <>
-                  💾 Thêm vào kết quả
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={saveToResults}
+                disabled={loading}
+                className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    Thêm vào kết quả
+                  </>
+                )}
+              </button>
+              <Link
+                to="/saved-schedules"
+                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FileText className="w-5 h-5" />
+                Xem TKB đã lưu
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse table-fixed" style={{ fontSize: '0.7rem' }}>
@@ -1396,6 +1356,17 @@ const TKBPage = () => {
           </div>
         </div>
       )}
+
+      {/* Import File Modal */}
+      <ImportFileModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onConfirm={handleFileImportConfirm}
+        title="Import Data lịch mẫu"
+        accept=".xlsx,.xls"
+        maxSizeMB={10}
+        sampleFileName="lich_mau.xlsx"
+      />
     </div>
   )
 }

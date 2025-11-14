@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Upload, FileText, AlertTriangle, CheckCircle, UserCheck, Home, Download, RefreshCw } from 'lucide-react';
-import { scheduleValidationService, type ScheduleValidationResult, type TimeSlot, type ScheduleEntry, type RoomConflict, type TeacherConflict, type ConflictResult } from '../services/api';
+import { scheduleValidationService, type ScheduleValidationResult, type ScheduleEntry, type RoomConflict, type TeacherConflict } from '../services/api';
 
 const ScheduleValidationPage: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -97,6 +97,21 @@ const ScheduleValidationPage: React.FC = () => {
     setSuccess('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownloadSample = () => {
+    try {
+      const link = document.createElement('a');
+      link.href = '/template_CTDT.xlsx';
+      link.download = 'template_CTDT.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setSuccess('Đã tải file mẫu thành công!');
+    } catch (error) {
+      console.error('Error downloading sample file:', error);
+      setError('Không thể tải file mẫu. Vui lòng thử lại!');
     }
   };
 
@@ -407,6 +422,13 @@ const ScheduleValidationPage: React.FC = () => {
 
               <div className="text-center mt-6 space-x-4 flex-shrink-0">
                 <button
+                  onClick={handleDownloadSample}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 inline-flex items-center"
+                >
+                  <Download className="mr-2" size={20} />
+                  Tải file mẫu
+                </button>
+                <button
                   onClick={handleAnalyze}
                   disabled={!selectedFile || isAnalyzing}
                   className="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed inline-flex items-center"
@@ -422,13 +444,6 @@ const ScheduleValidationPage: React.FC = () => {
                       Kiểm tra xung đột
                     </>
                   )}
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700 inline-flex items-center"
-                >
-                  <RefreshCw className="mr-2" size={20} />
-                  Làm mới
                 </button>
               </div>
             </div>

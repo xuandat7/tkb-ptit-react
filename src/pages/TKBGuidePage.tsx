@@ -170,7 +170,7 @@ const TKBGuidePage = () => {
       icon: Save,
       description: 'Sau khi đã kiểm tra và hài lòng với kết quả, lưu TKB vào database.',
       details: [
-        'Nhấp vào nút "💾 Thêm vào kết quả" màu xanh lá',
+        'Nhấp vào nút "Thêm vào kết quả" màu xanh lá',
         'Hệ thống sẽ thực hiện các bước sau:',
         '  1. Lưu tất cả lịch học vào database (bảng Schedule)',
         '  2. Cập nhật trạng thái các phòng đã sử dụng thành "OCCUPIED"',

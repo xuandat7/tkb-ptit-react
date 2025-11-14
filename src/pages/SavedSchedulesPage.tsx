@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import api from '../services/api'
 
@@ -261,9 +261,10 @@ const SavedSchedulesPage: React.FC = () => {
           <button
             onClick={exportToExcel}
             disabled={groupedSchedules.length === 0}
-            className="flex items-center gap-1.5 px-2 py-1 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white text-xs"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 border-2 border-green-400 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-green-500 disabled:hover:to-green-600 disabled:hover:shadow-lg font-bold text-base transform hover:scale-105"
           >
-            📊 Xuất Excel
+            <FileSpreadsheet className="w-5 h-5" />
+            Xuất Excel
           </button>
         </div>
       </div>
@@ -292,19 +293,6 @@ const SavedSchedulesPage: React.FC = () => {
             value={filter.studentYear}
             onChange={(e) => setFilter({ ...filter, studentYear: e.target.value })}
           />
-          <button
-            onClick={() => setFilter({ subjectId: '', major: '', studentYear: '' })}
-            className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors text-xs whitespace-nowrap"
-          >
-            Reset
-          </button>
-          <button
-            onClick={loadSchedules}
-            className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"
-            disabled={loading}
-          >
-            {loading ? '...' : '🔄'}
-          </button>
           <button
             onClick={handleDeleteByMajor}
             className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"

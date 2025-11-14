@@ -64,6 +64,7 @@ export interface Subject {
   majorName: string | null
   facultyId: string
   facultyName: string | null
+  semester?: string | number
 }
 
 export interface SubjectByMajor {

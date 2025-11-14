@@ -452,17 +452,6 @@ const RoomSchedulePage = () => {
               </select>
 
               <button
-                onClick={() => {
-                  setFilterBuilding('')
-                  setFilterCapacity('')
-                  setFilterStatus('')
-                }}
-                className="px-3 py-1.5 text-sm bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
-              >
-                🔄 Làm mới
-              </button>
-              
-              <button
                 onClick={() => window.history.back()}
                 className="px-3 py-1.5 text-sm bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
               >
@@ -475,7 +464,7 @@ const RoomSchedulePage = () => {
       </div>
 
       {/* Schedule Grid */}
-      <div className="bg-gradient-to-br from-red-500 to-blue-600 rounded-lg p-0.5 flex-1 min-h-0" style={{ overflow: 'visible' }}>
+      <div className="flex-1 min-h-0" style={{ overflow: 'visible' }}>
         <div className="h-full w-full" style={{ overflow: 'visible' }}>
           {renderSchedule()}
         </div>
@@ -483,28 +472,28 @@ const RoomSchedulePage = () => {
 
       {/* Room Details Modal */}
       {selectedSlot && activeFilters && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-4xl overflow-hidden">
-              <div className="bg-red-600 text-white p-6 flex justify-between items-center">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
+            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col my-8">
+              <div className="bg-red-600 text-white p-6 flex justify-between items-center flex-shrink-0">
                 <h3 className="text-xl font-bold">Chi tiết phòng học - {selectedSlot}</h3>
                 <button
                   onClick={() => {
                     setSelectedSlot(null)
                     setActiveFilters(null)
                   }}
-                  className="text-white hover:text-gray-200"
+                  className="text-white hover:text-gray-200 text-2xl font-bold leading-none"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="p-6 overflow-hidden">
-                <div className="grid grid-cols-2 gap-6">
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="text-lg font-semibold mb-4 text-red-600 border-b-2 border-red-600 pb-2">
                       Phòng đã sử dụng ({activeFilters.occupied_rooms.length})
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                       {activeFilters.occupied_rooms.length === 0 ? (
                         <p className="text-gray-500 italic">Không có phòng nào được sử dụng</p>
                       ) : (
@@ -524,7 +513,7 @@ const RoomSchedulePage = () => {
                     <h4 className="text-lg font-semibold mb-4 text-green-600 border-b-2 border-green-600 pb-2">
                       Phòng còn trống ({activeFilters.available_rooms.length})
                     </h4>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                       {activeFilters.available_rooms.length === 0 ? (
                         <p className="text-gray-500 italic">Không có phòng trống</p>
                       ) : (

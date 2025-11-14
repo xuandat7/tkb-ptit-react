@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, Eye, ChevronLeft, ChevronRight, X, Upload } from 'lucide-react'
 import { subjectService, curriculumService, type Subject, type SubjectRequest, type CurriculumImportItem } from '../services/api'
 import toast from 'react-hot-toast'
+import ImportFileModal from '../components/ImportFileModal'
 
 const SubjectsPage = () => {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -11,6 +12,11 @@ const SubjectsPage = () => {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [searchInput, setSearchInput] = useState('') // Input value for search field
+  const [filterSemester, setFilterSemester] = useState('')
+  const [filterClassYear, setFilterClassYear] = useState('')
+  const [filterMajor, setFilterMajor] = useState('')
+  const [filterProgramType, setFilterProgramType] = useState('')
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -22,6 +28,7 @@ const SubjectsPage = () => {
   const [showImportPreview, setShowImportPreview] = useState(false)
   const [importing, setImporting] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState<SubjectRequest>({
@@ -43,9 +50,19 @@ const SubjectsPage = () => {
     majorId: 0,
   })
 
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput)
+      setCurrentPage(1) // Reset to first page when search changes
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
   useEffect(() => {
     fetchSubjects()
-  }, [currentPage, searchTerm])
+  }, [currentPage, searchTerm, filterSemester, filterClassYear, filterMajor, filterProgramType])
 
   const fetchSubjects = async () => {
     try {
@@ -53,8 +70,40 @@ const SubjectsPage = () => {
       const response = await subjectService.getAll(currentPage, pageSize, searchTerm || undefined)
       
       if (response.data.success) {
-        setSubjects(response.data.data.items)
-        setTotalElements(response.data.data.totalElements)
+        let filteredSubjects = response.data.data.items
+        
+        // Filter by semester if selected
+        if (filterSemester) {
+          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
+            const subjectSemester = subject.semester?.toString() || ''
+            return subjectSemester === filterSemester
+          })
+        }
+        
+        // Filter by classYear if selected
+        if (filterClassYear) {
+          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
+            return subject.classYear === filterClassYear
+          })
+        }
+        
+        // Filter by majorCode if selected
+        if (filterMajor) {
+          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
+            return subject.majorCode === filterMajor
+          })
+        }
+        
+        // Filter by programType if selected
+        if (filterProgramType) {
+          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
+            return subject.programType === filterProgramType
+          })
+        }
+        
+        setSubjects(filteredSubjects)
+        const hasFilters = filterSemester || filterClassYear || filterMajor || filterProgramType
+        setTotalElements(hasFilters ? filteredSubjects.length : response.data.data.totalElements)
         setTotalPages(response.data.data.totalPages)
       }
     } catch (error) {
@@ -140,44 +189,32 @@ const SubjectsPage = () => {
     }
   }
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    const validTypes = ['.xlsx', '.xls']
-    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
-    if (!validTypes.includes(fileExtension)) {
-      toast.error('Vui lòng chọn file Excel (.xlsx hoặc .xls)')
-      return
-    }
-
-    // Validate semester
-    if (!selectedSemester) {
+  const handleFileImportConfirm = async (file: File, semester?: string) => {
+    if (!semester) {
       toast.error('Vui lòng chọn học kỳ trước khi import')
       return
     }
 
     try {
       setImporting(true)
-      const response = await curriculumService.importExcel(file, selectedSemester)
       
-      if (response.data.success && response.data.data) {
-        setImportedSubjects(response.data.data)
-        setShowImportPreview(true)
-        toast.success(`Đã import thành công ${response.data.data.length} môn học`)
-      } else {
-        toast.error(response.data.message || 'Không thể import file')
-      }
+      // Tạm thời chỉ hiển thị thông báo
+      toast.success(`Đã chọn file: ${file.name} cho học kỳ ${semester}. Chức năng import sẽ được tích hợp API sau.`)
+      
+      // TODO: Ghép API sau
+      // const response = await curriculumService.importExcel(file, semester)
+      // if (response.data.success && response.data.data) {
+      //   setImportedSubjects(response.data.data)
+      //   setShowImportPreview(true)
+      //   toast.success(`Đã import thành công ${response.data.data.length} môn học`)
+      // } else {
+      //   toast.error(response.data.message || 'Không thể import file')
+      // }
     } catch (error: any) {
       console.error('Import error:', error)
       toast.error(error.response?.data?.message || 'Lỗi khi import file')
     } finally {
       setImporting(false)
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
     }
   }
 
@@ -255,11 +292,27 @@ const SubjectsPage = () => {
     setCurrentPage(page)
   }
 
-  const filteredSubjects = Array.isArray(subjects) ? subjects.filter(
-    (subject) =>
-      subject.subjectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subject.subjectCode.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : []
+  // Get unique values for filters
+  const allSubjectsForFilters = useMemo(() => {
+    // We need to fetch all subjects to get unique values, but for now use current subjects
+    // In a real app, you might want to fetch all subjects once or get unique values from API
+    return subjects
+  }, [subjects])
+
+  const uniqueClassYears = useMemo(() => {
+    const years = allSubjectsForFilters.map(s => s.classYear).filter(Boolean)
+    return Array.from(new Set(years)).sort()
+  }, [allSubjectsForFilters])
+
+  const uniqueMajors = useMemo(() => {
+    const majors = allSubjectsForFilters.map(s => s.majorCode).filter(Boolean)
+    return Array.from(new Set(majors)).sort()
+  }, [allSubjectsForFilters])
+
+  const uniqueProgramTypes = useMemo(() => {
+    const types = allSubjectsForFilters.map(s => s.programType).filter(Boolean)
+    return Array.from(new Set(types)).sort()
+  }, [allSubjectsForFilters])
 
   if (loading) {
     return <div className="text-center py-12">Đang tải...</div>
@@ -274,32 +327,14 @@ const SubjectsPage = () => {
             <p className="text-red-100 text-lg">Quản lý thông tin các môn học</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(e.target.value)}
-                className="px-3 py-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg focus:ring-2 focus:ring-white/50 focus:outline-none"
-              >
-                <option value="" className="text-gray-900">Chọn học kỳ</option>
-                <option value="1" className="text-gray-900">Học kỳ 1</option>
-                <option value="2" className="text-gray-900">Học kỳ 2</option>
-              </select>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!selectedSemester || importing}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white transition-colors"
-              >
-                <Upload className="w-5 h-5" />
-                {importing ? 'Đang import...' : 'Import file'}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileImport}
-                className="hidden"
-              />
-            </div>
+            <button
+              onClick={() => setShowImportModal(true)}
+              disabled={importing}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white transition-colors"
+            >
+              <Upload className="w-5 h-5" />
+              {importing ? 'Đang import...' : 'Import môn học'}
+            </button>
             <button
               onClick={() => {
                 setEditingSubject(null)
@@ -316,17 +351,56 @@ const SubjectsPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
+          <div className="flex-1 relative min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Tìm kiếm môn học..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}h-full w-full overflow-hidden
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
+          <select
+            value={filterSemester}
+            onChange={(e) => setFilterSemester(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          >
+            <option value="">Tất cả học kỳ</option>
+            <option value="1">Học kỳ 1</option>
+            <option value="2">Học kỳ 2</option>
+          </select>
+          <select
+            value={filterClassYear}
+            onChange={(e) => setFilterClassYear(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          >
+            <option value="">Tất cả khóa</option>
+            {uniqueClassYears.map(year => (
+              <option key={year} value={year}>Khóa {year}</option>
+            ))}
+          </select>
+          <select
+            value={filterMajor}
+            onChange={(e) => setFilterMajor(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          >
+            <option value="">Tất cả ngành</option>
+            {uniqueMajors.map(major => (
+              <option key={major} value={major}>{major}</option>
+            ))}
+          </select>
+          <select
+            value={filterProgramType}
+            onChange={(e) => setFilterProgramType(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          >
+            <option value="">Tất cả hệ đào tạo</option>
+            {uniqueProgramTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
         </div>
 
         <div className="overflow-x-auto">
@@ -336,8 +410,9 @@ const SubjectsPage = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã CN</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Hệ đào tạo</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
@@ -351,6 +426,9 @@ const SubjectsPage = () => {
                   <td className="px-4 py-4 text-sm text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
                   <td className="px-4 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.classYear}</td>
+                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">
+                    {subject.semester ? `Học kỳ ${subject.semester}` : '-'}
+                  </td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.programType}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.numberOfStudents}</td>
@@ -779,6 +857,20 @@ const SubjectsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Import File Modal */}
+      <ImportFileModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onConfirm={handleFileImportConfirm}
+        title="Import File Môn học"
+        accept=".xlsx,.xls"
+        maxSizeMB={10}
+        sampleFileName="mon_hoc_mau.xlsx"
+        showSemesterSelect={true}
+        semester={selectedSemester}
+        onSemesterChange={setSelectedSemester}
+      />
     </div>
   )
 }
