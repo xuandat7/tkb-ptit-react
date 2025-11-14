@@ -1365,7 +1365,7 @@ const TKBPage = () => {
         title="Import Data lịch mẫu"
         accept=".xlsx,.xls"
         maxSizeMB={10}
-        sampleFileName="lich_mau.xlsx"
+        sampleFileName="mau_data_lich_hoc.xlsx"
       />
     </div>
   )

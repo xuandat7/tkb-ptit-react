@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, Eye, ChevronLeft, ChevronRight, X, Upload } from 'lucide-react'
-import { subjectService, curriculumService, type Subject, type SubjectRequest, type CurriculumImportItem } from '../services/api'
+import { subjectService, curriculumService, majorService, type Subject, type SubjectRequest, type Major } from '../services/api'
 import toast from 'react-hot-toast'
 import ImportFileModal from '../components/ImportFileModal'
 
@@ -18,18 +18,19 @@ const SubjectsPage = () => {
   const [filterMajor, setFilterMajor] = useState('')
   const [filterProgramType, setFilterProgramType] = useState('')
   
+  // Dropdown data from API
+  const [programTypes, setProgramTypes] = useState<string[]>([])
+  const [classYears, setClassYears] = useState<string[]>([])
+  const [majors, setMajors] = useState<Major[]>([])
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(12)
   const [totalElements, setTotalElements] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedSemester, setSelectedSemester] = useState('')
-  const [importedSubjects, setImportedSubjects] = useState<CurriculumImportItem[]>([])
-  const [showImportPreview, setShowImportPreview] = useState(false)
   const [importing, setImporting] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState<SubjectRequest>({
     subjectCode: '',
@@ -60,50 +61,54 @@ const SubjectsPage = () => {
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  // Fetch filter data on mount
+  useEffect(() => {
+    fetchFilterData()
+  }, [])
+
   useEffect(() => {
     fetchSubjects()
   }, [currentPage, searchTerm, filterSemester, filterClassYear, filterMajor, filterProgramType])
 
+  const fetchFilterData = async () => {
+    try {
+      // Fetch program types, class years, and majors in parallel
+      const [programTypesRes, classYearsRes, majorsRes] = await Promise.all([
+        subjectService.getAllProgramTypes(),
+        subjectService.getAllClassYears(),
+        majorService.getAll()
+      ])
+
+      if (programTypesRes.data.success) {
+        setProgramTypes(programTypesRes.data.data)
+      }
+      if (classYearsRes.data.success) {
+        setClassYears(classYearsRes.data.data)
+      }
+      if (majorsRes.data.success) {
+        setMajors(majorsRes.data.data)
+      }
+    } catch (error) {
+      console.error('Không thể tải dữ liệu filter:', error)
+    }
+  }
+
   const fetchSubjects = async () => {
     try {
       setLoading(true)
-      const response = await subjectService.getAll(currentPage, pageSize, searchTerm || undefined)
+      const response = await subjectService.getAll(
+        currentPage, 
+        pageSize, 
+        searchTerm || undefined,
+        filterSemester || undefined,
+        filterClassYear || undefined,
+        filterMajor || undefined,
+        filterProgramType || undefined
+      )
       
       if (response.data.success) {
-        let filteredSubjects = response.data.data.items
-        
-        // Filter by semester if selected
-        if (filterSemester) {
-          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
-            const subjectSemester = subject.semester?.toString() || ''
-            return subjectSemester === filterSemester
-          })
-        }
-        
-        // Filter by classYear if selected
-        if (filterClassYear) {
-          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
-            return subject.classYear === filterClassYear
-          })
-        }
-        
-        // Filter by majorCode if selected
-        if (filterMajor) {
-          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
-            return subject.majorCode === filterMajor
-          })
-        }
-        
-        // Filter by programType if selected
-        if (filterProgramType) {
-          filteredSubjects = filteredSubjects.filter((subject: Subject) => {
-            return subject.programType === filterProgramType
-          })
-        }
-        
-        setSubjects(filteredSubjects)
-        const hasFilters = filterSemester || filterClassYear || filterMajor || filterProgramType
-        setTotalElements(hasFilters ? filteredSubjects.length : response.data.data.totalElements)
+        setSubjects(response.data.data.items)
+        setTotalElements(response.data.data.totalElements)
         setTotalPages(response.data.data.totalPages)
       }
     } catch (error) {
@@ -119,10 +124,10 @@ const SubjectsPage = () => {
     try {
       if (editingSubject) {
         await subjectService.update(editingSubject.id, formData)
-        toast.success('Cập nhật môn học thành công')
+        toast.success('Cập nhật môn học thành công', { duration: 5000 })
       } else {
         await subjectService.create(formData)
-        toast.success('Tạo môn học thành công')
+        toast.success('Tạo môn học thành công', { duration: 5000 })
       }
       setShowModal(false)
       setEditingSubject(null)
@@ -182,7 +187,7 @@ const SubjectsPage = () => {
 
     try {
       await subjectService.delete(id)
-      toast.success('Xóa môn học thành công')
+      toast.success('Xóa môn học thành công', { duration: 5000 })
       fetchSubjects()
     } catch (error) {
       toast.error('Không thể xóa môn học')
@@ -198,88 +203,27 @@ const SubjectsPage = () => {
     try {
       setImporting(true)
       
-      // Tạm thời chỉ hiển thị thông báo
-      toast.success(`Đã chọn file: ${file.name} cho học kỳ ${semester}. Chức năng import sẽ được tích hợp API sau.`)
+      // Gọi API upload Excel
+      const response = await curriculumService.importExcel(file, semester)
       
-      // TODO: Ghép API sau
-      // const response = await curriculumService.importExcel(file, semester)
-      // if (response.data.success && response.data.data) {
-      //   setImportedSubjects(response.data.data)
-      //   setShowImportPreview(true)
-      //   toast.success(`Đã import thành công ${response.data.data.length} môn học`)
-      // } else {
-      //   toast.error(response.data.message || 'Không thể import file')
-      // }
+      if (response.data.success && response.data.data !== undefined) {
+        const count = response.data.data
+        toast.success(`Đã thêm thành công ${count} môn học từ file ${file.name}`, { duration: 5000 })
+        
+        // Reload danh sách môn học
+        fetchSubjects()
+        
+        // Đóng modal
+        setShowImportModal(false)
+      } else {
+        toast.error(response.data.message || 'Không thể import file')
+      }
     } catch (error: any) {
       console.error('Import error:', error)
-      toast.error(error.response?.data?.message || 'Lỗi khi import file')
+      const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi import file'
+      toast.error(errorMessage)
     } finally {
       setImporting(false)
-    }
-  }
-
-  const handleSaveImportedSubjects = async () => {
-    if (importedSubjects.length === 0) {
-      toast.error('Không có dữ liệu để lưu')
-      return
-    }
-
-    try {
-      setSaving(true)
-      let successCount = 0
-      let errorCount = 0
-
-      for (const item of importedSubjects) {
-        try {
-          // Map curriculum item to SubjectRequest
-          const subjectRequest: SubjectRequest = {
-            subjectCode: item.mmh,
-            subjectName: item.tmh,
-            studentsPerClass: item.si_so > 0 && item.so_lop > 0 ? Math.ceil(item.si_so / item.so_lop) : item.si_so || 60,
-            numberOfClasses: item.so_lop || 1,
-            credits: item.tc || 0,
-            theoryHours: item.ly_thuyet || 0,
-            exerciseHours: item.tl_bt || 0,
-            projectHours: item.bt_lon || 0,
-            labHours: item.tn_th || 0,
-            selfStudyHours: item.tu_hoc || 0,
-            department: item.bo_mon || '',
-            examFormat: item.hinh_thuc_thi || '',
-            classYear: item.khoa?.toString() || '',
-            programType: 'Chính quy',
-            numberOfStudents: item.si_so || 0,
-            majorId: 1, // Default major ID, sẽ cần update sau
-          }
-
-          await subjectService.create(subjectRequest)
-          successCount++
-        } catch (error) {
-          console.error(`Error saving subject ${item.mmh}:`, error)
-          errorCount++
-        }
-      }
-
-      if (successCount > 0) {
-        toast.success(`Đã lưu thành công ${successCount} môn học${errorCount > 0 ? ` (${errorCount} lỗi)` : ''}`)
-        setShowImportPreview(false)
-        setImportedSubjects([])
-        fetchSubjects()
-      } else {
-        toast.error(`Không thể lưu môn học nào (${errorCount} lỗi)`)
-      }
-    } catch (error) {
-      toast.error('Có lỗi xảy ra khi lưu')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCancelImport = () => {
-    setShowImportPreview(false)
-    setImportedSubjects([])
-    setSelectedSemester('')
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
     }
   }
 
@@ -292,27 +236,12 @@ const SubjectsPage = () => {
     setCurrentPage(page)
   }
 
-  // Get unique values for filters
-  const allSubjectsForFilters = useMemo(() => {
-    // We need to fetch all subjects to get unique values, but for now use current subjects
-    // In a real app, you might want to fetch all subjects once or get unique values from API
-    return subjects
-  }, [subjects])
-
-  const uniqueClassYears = useMemo(() => {
-    const years = allSubjectsForFilters.map(s => s.classYear).filter(Boolean)
-    return Array.from(new Set(years)).sort()
-  }, [allSubjectsForFilters])
-
+  // Get unique majors for filter - using data from API
   const uniqueMajors = useMemo(() => {
-    const majors = allSubjectsForFilters.map(s => s.majorCode).filter(Boolean)
-    return Array.from(new Set(majors)).sort()
-  }, [allSubjectsForFilters])
-
-  const uniqueProgramTypes = useMemo(() => {
-    const types = allSubjectsForFilters.map(s => s.programType).filter(Boolean)
-    return Array.from(new Set(types)).sort()
-  }, [allSubjectsForFilters])
+    // Get unique major codes from majors API
+    const uniqueCodes = Array.from(new Set(majors.map(m => m.majorCode))).sort()
+    return uniqueCodes
+  }, [majors])
 
   if (loading) {
     return <div className="text-center py-12">Đang tải...</div>
@@ -351,7 +280,7 @@ const SubjectsPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center gap-4 mb-6 flex-wrap">
+        <div className="flex items-center gap-4 mb-4 flex-wrap">
           <div className="flex-1 relative min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -365,26 +294,32 @@ const SubjectsPage = () => {
           <select
             value={filterSemester}
             onChange={(e) => setFilterSemester(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterSemester ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
           >
             <option value="">Tất cả học kỳ</option>
-            <option value="1">Học kỳ 1</option>
-            <option value="2">Học kỳ 2</option>
+            <option value="Học kỳ 1">Học kỳ 1</option>
+            <option value="Học kỳ 2">Học kỳ 2</option>
           </select>
           <select
             value={filterClassYear}
             onChange={(e) => setFilterClassYear(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterClassYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
           >
             <option value="">Tất cả khóa</option>
-            {uniqueClassYears.map(year => (
+            {classYears.map(year => (
               <option key={year} value={year}>Khóa {year}</option>
             ))}
           </select>
           <select
             value={filterMajor}
             onChange={(e) => setFilterMajor(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterMajor ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
           >
             <option value="">Tất cả ngành</option>
             {uniqueMajors.map(major => (
@@ -394,14 +329,94 @@ const SubjectsPage = () => {
           <select
             value={filterProgramType}
             onChange={(e) => setFilterProgramType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
           >
             <option value="">Tất cả hệ đào tạo</option>
-            {uniqueProgramTypes.map(type => (
+            {programTypes.map(type => (
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
         </div>
+
+        {/* Active Filters Display */}
+        {(filterSemester || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <span className="text-sm font-medium text-gray-600">Đang lọc:</span>
+            {filterSemester && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                <span>Học kỳ: {filterSemester}</span>
+                <button
+                  onClick={() => setFilterSemester('')}
+                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterClassYear && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                <span>Khóa: {filterClassYear}</span>
+                <button
+                  onClick={() => setFilterClassYear('')}
+                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterMajor && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                <span>Ngành: {filterMajor}</span>
+                <button
+                  onClick={() => setFilterMajor('')}
+                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterProgramType && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                <span>Hệ: {filterProgramType}</span>
+                <button
+                  onClick={() => setFilterProgramType('')}
+                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {searchTerm && (
+              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                <span>Tìm kiếm: "{searchTerm}"</span>
+                <button
+                  onClick={() => {
+                    setSearchInput('')
+                    setSearchTerm('')
+                  }}
+                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setFilterSemester('')
+                setFilterClassYear('')
+                setFilterMajor('')
+                setFilterProgramType('')
+                setSearchInput('')
+                setSearchTerm('')
+              }}
+              className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium underline"
+            >
+              Xóa tất cả
+            </button>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -427,7 +442,7 @@ const SubjectsPage = () => {
                   <td className="px-4 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.classYear}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">
-                    {subject.semester ? `Học kỳ ${subject.semester}` : '-'}
+                    {subject.semester ? `${subject.semester}` : '-'}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.programType}</td>
@@ -598,67 +613,6 @@ const SubjectsPage = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import Preview Section */}
-      {showImportPreview && importedSubjects.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-xl font-semibold">Xem trước danh sách môn đã import</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Tổng số: <strong>{importedSubjects.length}</strong> môn học
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleCancelImport}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleSaveImportedSubjects}
-                disabled={saving}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                {saving ? 'Đang lưu...' : '💾 Lưu vào database'}
-              </button>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead className="bg-red-600">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Bộ môn</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Hình thức thi</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {importedSubjects.map((item, index) => (
-                  <tr key={index} className="hover:bg-red-50 border-b border-gray-200">
-                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">{item.mmh}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{item.tmh}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.khoa}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.nganh}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.si_so}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.so_lop}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.tc}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{item.bo_mon || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{item.hinh_thuc_thi || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       )}
@@ -866,10 +820,11 @@ const SubjectsPage = () => {
         title="Import File Môn học"
         accept=".xlsx,.xls"
         maxSizeMB={10}
-        sampleFileName="mon_hoc_mau.xlsx"
+        sampleFileName="mau_ct_dao_tao.xlsx"
         showSemesterSelect={true}
         semester={selectedSemester}
         onSemesterChange={setSelectedSemester}
+        isLoading={importing}
       />
     </div>
   )

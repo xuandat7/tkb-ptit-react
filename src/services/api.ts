@@ -100,6 +100,19 @@ export interface SubjectRequest {
   majorId: number
 }
 
+// Major Types
+export interface Major {
+  id: number
+  majorCode: string
+  majorName: string
+  numberOfStudents: number
+  classYear: string
+  facultyId: string
+  facultyName: string
+  subjectIds?: string[]
+  subjectNames?: string[]
+}
+
 // Room Types
 export interface Room {
   id: number
@@ -207,12 +220,28 @@ export interface ScheduleValidationResult {
 
 // API Services
 export const subjectService = {
-  getAll: (page = 1, size = 12, search?: string) => {
+  getAll: (
+    page = 1, 
+    size = 12, 
+    search?: string,
+    semester?: string,
+    classYear?: string,
+    majorCode?: string,
+    programType?: string,
+    sortBy = 'id',
+    sortDir = 'asc'
+  ) => {
     const params = new URLSearchParams({ 
-      page: page.toString(), 
-      size: size.toString() 
+      page: (page - 1).toString(), // Backend uses 0-based index
+      size: size.toString(),
+      sortBy: sortBy,
+      sortDir: sortDir
     })
     if (search) params.append('search', search)
+    if (semester) params.append('semester', semester)
+    if (classYear) params.append('classYear', classYear)
+    if (majorCode) params.append('majorCode', majorCode)
+    if (programType) params.append('programType', programType)
     return api.get<ApiResponse<PaginatedResponse<Subject>>>(`/subjects?${params}`)
   },
   getById: (id: number) => api.get<ApiResponse<Subject>>(`/subjects/${id}`),
@@ -236,6 +265,13 @@ export const subjectService = {
     majorCodes.forEach(code => params.append('majorCodes', code))
     return api.get<ApiResponse<SubjectByMajor[]>>(`/subjects/majors?${params}`)
   },
+  getAllProgramTypes: () => api.get<ApiResponse<string[]>>('/subjects/program-types'),
+  getAllClassYears: () => api.get<ApiResponse<string[]>>('/subjects/class-years'),
+  deleteBySemester: (semester: string) => api.delete<ApiResponse<number>>(`/subjects/semester/${semester}`),
+}
+
+export const majorService = {
+  getAll: () => api.get<ApiResponse<Major[]>>('/majors'),
 }
 
 export const roomService = {
@@ -259,7 +295,7 @@ export const curriculumService = {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('semester', semester)
-    return api.post<CurriculumImportResponse>('/subjects/upload-excel', formData, {
+    return api.post<ApiResponse<number>>('/subjects/upload-excel', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

@@ -14,6 +14,7 @@ interface ImportFileModalProps {
   showSemesterSelect?: boolean
   semester?: string
   onSemesterChange?: (semester: string) => void
+  isLoading?: boolean
 }
 
 const ImportFileModal: React.FC<ImportFileModalProps> = ({
@@ -28,6 +29,7 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
   showSemesterSelect = false,
   semester = '',
   onSemesterChange,
+  isLoading = false,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -92,11 +94,11 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
       return
     }
 
-    // Tải file template_CTDT.xlsx từ public folder
+    // Tải file mẫu từ public/template/file folder
     try {
       const link = document.createElement('a')
-      link.href = '/template_CTDT.xlsx'
-      link.download = sampleFileName || 'template_CTDT.xlsx'
+      link.href = `/template/file/${sampleFileName}`
+      link.download = sampleFileName
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -114,13 +116,8 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
         return
       }
       onConfirm(selectedFile, showSemesterSelect ? localSemester : undefined)
-      // Reset after confirm
-      setSelectedFile(null)
-      setLocalSemester('')
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-      onClose()
+      // Không reset và đóng modal ngay - để parent component xử lý sau khi upload xong
+      // Modal sẽ hiển thị trạng thái loading trong lúc upload
     }
   }
 
@@ -143,6 +140,13 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setLocalSemester(semester)
+    } else {
+      // Reset khi modal đóng
+      setSelectedFile(null)
+      setLocalSemester('')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }, [isOpen, semester])
 
@@ -182,8 +186,8 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="">-- Chọn học kỳ --</option>
-                <option value="1">Học kỳ 1</option>
-                <option value="2">Học kỳ 2</option>
+                <option value="Học kỳ 1">Học kỳ 1</option>
+                <option value="Học kỳ 2">Học kỳ 2</option>
               </select>
             </div>
           )}
@@ -257,17 +261,31 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
         <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
           <button
             onClick={handleClose}
-            className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+            disabled={isLoading}
+            className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Hủy
           </button>
           {selectedFile && (
             <button
               onClick={handleConfirm}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              disabled={isLoading}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle className="w-5 h-5" />
-              Lưu / Xác nhận
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Lưu / Xác nhận
+                </>
+              )}
             </button>
           )}
         </div>

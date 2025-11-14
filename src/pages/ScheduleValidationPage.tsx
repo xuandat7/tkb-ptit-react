@@ -103,8 +103,8 @@ const ScheduleValidationPage: React.FC = () => {
   const handleDownloadSample = () => {
     try {
       const link = document.createElement('a');
-      link.href = '/template_CTDT.xlsx';
-      link.download = 'template_CTDT.xlsx';
+      link.href = '/template/file/mau_hau_kiem_tkb.xlsx';
+      link.download = 'mau_hau_kiem_tkb.xlsx';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
