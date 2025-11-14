@@ -50,6 +50,13 @@ const SubjectsPage = () => {
     studentsPerClass: 0,
     majorId: 0,
   })
+  const [isCommonSubject, setIsCommonSubject] = useState(false)
+  const [selectedMajors, setSelectedMajors] = useState<Major[]>([])
+  const [majorSearchInput, setMajorSearchInput] = useState('')
+  const [showMajorDropdown, setShowMajorDropdown] = useState(false)
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([])
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+  const [idsToDelete, setIdsToDelete] = useState<number[]>([])
 
   // Debounce search term
   useEffect(() => {
@@ -85,11 +92,28 @@ const SubjectsPage = () => {
       if (classYearsRes.data.success) {
         setClassYears(classYearsRes.data.data)
       }
-      if (majorsRes.data.success) {
+      if (majorsRes.data.success && majorsRes.data.data.length > 0) {
         setMajors(majorsRes.data.data)
+      } else {
+        // Sample data nếu API không trả về
+        const sampleMajors: Major[] = [
+          { id: 1, majorCode: 'CNTT', majorName: 'Công nghệ thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+          { id: 2, majorCode: 'ATTT', majorName: 'An toàn thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+          { id: 3, majorCode: 'BC', majorName: 'Báo chí', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+          { id: 4, majorCode: 'TT', majorName: 'Truyền thông', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+        ]
+        setMajors(sampleMajors)
       }
     } catch (error) {
       console.error('Không thể tải dữ liệu filter:', error)
+      // Sample data khi có lỗi
+      const sampleMajors: Major[] = [
+        { id: 1, majorCode: 'CNTT', majorName: 'Công nghệ thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+        { id: 2, majorCode: 'ATTT', majorName: 'An toàn thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+        { id: 3, majorCode: 'BC', majorName: 'Báo chí', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+        { id: 4, majorCode: 'TT', majorName: 'Truyền thông', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
+      ]
+      setMajors(sampleMajors)
     }
   }
 
@@ -121,12 +145,53 @@ const SubjectsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validation
+    if (!formData.subjectCode.trim()) {
+      toast.error('Vui lòng nhập mã môn')
+      return
+    }
+    if (!formData.subjectName.trim()) {
+      toast.error('Vui lòng nhập tên môn')
+      return
+    }
+    if (!formData.credits || formData.credits <= 0) {
+      toast.error('Vui lòng nhập số tín chỉ hợp lệ')
+      return
+    }
+    if (!formData.classYear.trim()) {
+      toast.error('Vui lòng nhập khóa học')
+      return
+    }
+    if (!formData.numberOfStudents || formData.numberOfStudents <= 0) {
+      toast.error('Vui lòng nhập số sinh viên hợp lệ')
+      return
+    }
+    if (!formData.theoryHours || formData.theoryHours < 0) {
+      toast.error('Vui lòng nhập giờ lý thuyết')
+      return
+    }
+    if (!formData.exerciseHours || formData.exerciseHours < 0) {
+      toast.error('Vui lòng nhập giờ bài tập')
+      return
+    }
+    if (selectedMajors.length === 0 && !isCommonSubject) {
+      toast.error('Vui lòng chọn ít nhất một ngành hoặc đánh dấu môn chung')
+      return
+    }
+    
     try {
+      // Tạm thời lấy majorId đầu tiên nếu có, hoặc 0 nếu là môn chung
+      const submitData = {
+        ...formData,
+        majorId: selectedMajors.length > 0 ? selectedMajors[0].id : 0,
+      }
+      
       if (editingSubject) {
-        await subjectService.update(editingSubject.id, formData)
+        await subjectService.update(editingSubject.id, submitData)
         toast.success('Cập nhật môn học thành công', { duration: 5000 })
       } else {
-        await subjectService.create(formData)
+        await subjectService.create(submitData)
         toast.success('Tạo môn học thành công', { duration: 5000 })
       }
       setShowModal(false)
@@ -154,9 +219,13 @@ const SubjectsPage = () => {
       numberOfStudents: 0,
       numberOfClasses: 0,
       department: '',
-      studentsPerClass: 0,
+      studentsPerClass: undefined,
       majorId: 0,
     })
+    setIsCommonSubject(false)
+    setSelectedMajors([])
+    setMajorSearchInput('')
+    setShowMajorDropdown(false)
   }
 
   const handleEdit = (subject: Subject) => {
@@ -179,18 +248,83 @@ const SubjectsPage = () => {
       studentsPerClass: subject.studentsPerClass || 0,
       majorId: subject.majorId,
     })
+    // Tìm major từ majorId
+    const major = majors.find(m => m.id === subject.majorId)
+    if (major) {
+      setSelectedMajors([major])
+    } else {
+      setSelectedMajors([])
+    }
+    setIsCommonSubject(false)
+    setMajorSearchInput('')
+    setShowMajorDropdown(false)
     setShowModal(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc muốn xóa môn học này?')) return
+  // Filter majors based on search input - show all when focused, filter when typing
+  const filteredMajors = useMemo(() => {
+    if (!majorSearchInput.trim()) return majors.slice(0, 10) // Show first 10 when no search
+    const searchLower = majorSearchInput.toLowerCase()
+    return majors.filter(major => 
+      major.majorName?.toLowerCase().includes(searchLower) ||
+      major.majorCode.toLowerCase().includes(searchLower)
+    ).slice(0, 10) // Limit to 10 results
+  }, [majors, majorSearchInput])
 
+  // Add major to selected list
+  const handleAddMajor = (major: Major) => {
+    if (!selectedMajors.find(m => m.id === major.id)) {
+      setSelectedMajors([...selectedMajors, major])
+    }
+    setMajorSearchInput('')
+    setShowMajorDropdown(false)
+  }
+
+  // Remove major from selected list
+  const handleRemoveMajor = (majorId: number) => {
+    setSelectedMajors(selectedMajors.filter(m => m.id !== majorId))
+  }
+
+  const handleDelete = async (ids: number[]) => {
     try {
-      await subjectService.delete(id)
-      toast.success('Xóa môn học thành công', { duration: 5000 })
+      // Xóa từng môn một
+      await Promise.all(ids.map(id => subjectService.delete(id)))
+      toast.success(`Đã xóa ${ids.length} môn học thành công`, { duration: 5000 })
+      setSelectedSubjectIds([])
       fetchSubjects()
     } catch (error) {
       toast.error('Không thể xóa môn học')
+    }
+  }
+
+  const handleDeleteClick = (id?: number) => {
+    const ids = id ? [id] : selectedSubjectIds
+    if (ids.length === 0) return
+    
+    setIdsToDelete(ids)
+    setShowDeleteConfirmModal(true)
+  }
+
+  const confirmDelete = () => {
+    handleDelete(idsToDelete)
+    setShowDeleteConfirmModal(false)
+    setSelectedSubjectIds([])
+    setIdsToDelete([])
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedSubjectIds(subjects.map(s => s.id))
+    } else {
+      setSelectedSubjectIds([])
+    }
+  }
+
+  const handleSelectSubject = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedSubjectIds([...selectedSubjectIds, id])
+    } else {
+      setSelectedSubjectIds(selectedSubjectIds.filter(sId => sId !== id))
     }
   }
 
@@ -326,94 +460,109 @@ const SubjectsPage = () => {
               <option key={major} value={major}>{major}</option>
             ))}
           </select>
-          <select
-            value={filterProgramType}
-            onChange={(e) => setFilterProgramType(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
-          >
-            <option value="">Tất cả hệ đào tạo</option>
-            {programTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Active Filters Display */}
-        {(filterSemester || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
-          <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className="text-sm font-medium text-gray-600">Đang lọc:</span>
-            {filterSemester && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                <span>Học kỳ: {filterSemester}</span>
-                <button
-                  onClick={() => setFilterSemester('')}
-                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {filterClassYear && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                <span>Khóa: {filterClassYear}</span>
-                <button
-                  onClick={() => setFilterClassYear('')}
-                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {filterMajor && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                <span>Ngành: {filterMajor}</span>
-                <button
-                  onClick={() => setFilterMajor('')}
-                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {filterProgramType && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                <span>Hệ: {filterProgramType}</span>
-                <button
-                  onClick={() => setFilterProgramType('')}
-                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {searchTerm && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
-                <span>Tìm kiếm: "{searchTerm}"</span>
+          <div className="relative">
+            {(filterSemester || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
+              <div className="absolute -top-8 left-0 w-full flex items-center gap-1 flex-wrap text-xs z-10">
+                {filterSemester && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>HK: {filterSemester}</span>
+                    <button
+                      onClick={() => setFilterSemester('')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+                {filterClassYear && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>Khóa: {filterClassYear}</span>
+                    <button
+                      onClick={() => setFilterClassYear('')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+                {filterMajor && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>Ngành: {filterMajor}</span>
+                    <button
+                      onClick={() => setFilterMajor('')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+                {filterProgramType && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>Hệ: {filterProgramType}</span>
+                    <button
+                      onClick={() => setFilterProgramType('')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+                {searchTerm && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>"{searchTerm}"</span>
+                    <button
+                      onClick={() => {
+                        setSearchInput('')
+                        setSearchTerm('')
+                      }}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
                 <button
                   onClick={() => {
+                    setFilterSemester('')
+                    setFilterClassYear('')
+                    setFilterMajor('')
+                    setFilterProgramType('')
                     setSearchInput('')
                     setSearchTerm('')
                   }}
-                  className="ml-1 hover:bg-red-200 rounded-full p-0.5"
+                  className="px-2 py-0.5 text-xs text-red-600 hover:text-red-800 font-medium underline"
                 >
-                  <X className="w-3 h-3" />
+                  Xóa tất cả
                 </button>
               </div>
             )}
-            <button
-              onClick={() => {
-                setFilterSemester('')
-                setFilterClassYear('')
-                setFilterMajor('')
-                setFilterProgramType('')
-                setSearchInput('')
-                setSearchTerm('')
-              }}
-              className="px-3 py-1 text-sm text-red-600 hover:text-red-800 font-medium underline"
+            <select
+              value={filterProgramType}
+              onChange={(e) => setFilterProgramType(e.target.value)}
+              className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full ${
+                filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
             >
-              Xóa tất cả
+              <option value="">Tất cả hệ đào tạo</option>
+              {programTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+
+        {selectedSubjectIds.length > 0 && (
+          <div className="mb-4 flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+            <span className="text-sm font-medium text-red-800">
+              Đã chọn {selectedSubjectIds.length} môn học
+            </span>
+            <button
+              onClick={() => handleDeleteClick()}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Xóa {selectedSubjectIds.length} môn đã chọn
             </button>
           </div>
         )}
@@ -422,6 +571,14 @@ const SubjectsPage = () => {
           <table className="w-full border-collapse">
             <thead className="bg-red-600">
               <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700 w-12">
+                  <input
+                    type="checkbox"
+                    checked={subjects.length > 0 && selectedSubjectIds.length === subjects.length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
@@ -438,6 +595,14 @@ const SubjectsPage = () => {
             <tbody className="bg-white">
               {subjects.map((subject) => (
                 <tr key={subject.id} className="hover:bg-red-50 border-b border-gray-200">
+                  <td className="px-4 py-4 text-center border-r border-gray-200">
+                    <input
+                      type="checkbox"
+                      checked={selectedSubjectIds.includes(subject.id)}
+                      onChange={(e) => handleSelectSubject(subject.id, e.target.checked)}
+                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                    />
+                  </td>
                   <td className="px-4 py-4 text-sm text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
                   <td className="px-4 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.classYear}</td>
@@ -461,7 +626,7 @@ const SubjectsPage = () => {
                     <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-2">
                       <Edit className="w-4 h-4 inline" />
                     </button>
-                    <button onClick={() => handleDelete(subject.id)} className="text-red-600 hover:text-red-900">
+                    <button onClick={() => handleDeleteClick(subject.id)} className="text-red-600 hover:text-red-900">
                       <Trash2 className="w-4 h-4 inline" />
                     </button>
                   </td>
@@ -618,11 +783,32 @@ const SubjectsPage = () => {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl my-8">
-            <h2 className="text-2xl font-bold mb-4">{editingSubject ? 'Sửa môn học' : 'Thêm môn học mới'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-              <div className="grid grid-cols-2 gap-4">
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          style={{ margin: 0, padding: 0 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModal(false)
+              setEditingSubject(null)
+              resetForm()
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl my-8 max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowModal(false)
+                setEditingSubject(null)
+                resetForm()
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-2xl font-bold mb-4 pr-8">{editingSubject ? 'Sửa môn học' : 'Thêm môn học mới'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mã môn *</label>
                   <input
@@ -630,7 +816,7 @@ const SubjectsPage = () => {
                     required
                     value={formData.subjectCode}
                     onChange={(e) => setFormData({ ...formData, subjectCode: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -640,21 +826,28 @@ const SubjectsPage = () => {
                     required
                     value={formData.subjectName}
                     onChange={(e) => setFormData({ ...formData, subjectName: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
               
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-5 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số tín chỉ *</label>
                   <input
                     type="number"
                     required
                     min="1"
-                    value={formData.credits}
-                    onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    value={formData.credits || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, credits: value === '' ? 0 : parseInt(value) || 0 })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <div>
@@ -664,7 +857,7 @@ const SubjectsPage = () => {
                     required
                     value={formData.classYear}
                     onChange={(e) => setFormData({ ...formData, classYear: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <div>
@@ -674,21 +867,25 @@ const SubjectsPage = () => {
                     required
                     value={formData.programType}
                     onChange={(e) => setFormData({ ...formData, programType: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số sinh viên *</label>
                   <input
                     type="number"
                     required
                     min="1"
-                    value={formData.numberOfStudents}
-                    onChange={(e) => setFormData({ ...formData, numberOfStudents: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    value={formData.numberOfStudents || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, numberOfStudents: value === '' ? 0 : parseInt(value) || 0 })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -697,32 +894,54 @@ const SubjectsPage = () => {
                     type="number"
                     required
                     min="1"
-                    value={formData.numberOfClasses}
-                    onChange={(e) => setFormData({ ...formData, numberOfClasses: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    value={formData.numberOfClasses || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, numberOfClasses: value === '' ? 0 : parseInt(value) || 0 })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
+              </div>
+              
+              <div className="grid grid-cols-6 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sĩ số/lớp</label>
                   <input
                     type="number"
                     min="1"
-                    value={formData.studentsPerClass}
-                    onChange={(e) => setFormData({ ...formData, studentsPerClass: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    value={formData.studentsPerClass || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, studentsPerClass: value === '' ? undefined : (parseInt(value) || 0) })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ lý thuyết</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ lý thuyết *</label>
                   <input
                     type="number"
                     required
                     min="0"
-                    value={formData.theoryHours}
-                    onChange={(e) => setFormData({ ...formData, theoryHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    value={formData.theoryHours || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, theoryHours: value === '' ? 0 : (parseInt(value) || 0) })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -731,20 +950,34 @@ const SubjectsPage = () => {
                     type="number"
                     required
                     min="0"
-                    value={formData.labHours}
-                    onChange={(e) => setFormData({ ...formData, labHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    value={formData.labHours || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, labHours: value === '' ? 0 : (parseInt(value) || 0) })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ bài tập</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ bài tập *</label>
                   <input
                     type="number"
                     required
                     min="0"
-                    value={formData.exerciseHours}
-                    onChange={(e) => setFormData({ ...formData, exerciseHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    value={formData.exerciseHours || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, exerciseHours: value === '' ? 0 : (parseInt(value) || 0) })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -753,13 +986,38 @@ const SubjectsPage = () => {
                     type="number"
                     required
                     min="0"
-                    value={formData.selfStudyHours}
-                    onChange={(e) => setFormData({ ...formData, selfStudyHours: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    value={formData.selfStudyHours || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, selfStudyHours: value === '' ? 0 : (parseInt(value) || 0) })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đồ án</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={formData.projectHours || ''}
+                    onChange={(e) => {
+                      let value = e.target.value
+                      // Loại bỏ số 0 đầu tiên nếu có
+                      if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
+                        value = value.replace(/^0+/, '') || '0'
+                      }
+                      setFormData({ ...formData, projectHours: value === '' ? 0 : (parseInt(value) || 0) })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Bộ môn *</label>
                   <input
@@ -767,7 +1025,7 @@ const SubjectsPage = () => {
                     required
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
@@ -777,20 +1035,159 @@ const SubjectsPage = () => {
                     required
                     value={formData.examFormat}
                     onChange={(e) => setFormData({ ...formData, examFormat: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Major ID *</label>
-                <input
-                  type="number"
-                  required
-                  value={formData.majorId}
-                  onChange={(e) => setFormData({ ...formData, majorId: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                  placeholder="Nhập ID ngành"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Ngành {!isCommonSubject && '*'}
+                </label>
+                {!isCommonSubject && (
+                  <>
+                    <div className="relative" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={majorSearchInput}
+                        onChange={(e) => {
+                          setMajorSearchInput(e.target.value)
+                          setShowMajorDropdown(true)
+                        }}
+                        onFocus={() => {
+                          setShowMajorDropdown(true)
+                          if (!majorSearchInput.trim() && majors.length > 0) {
+                            // Show suggestions when focused
+                          }
+                        }}
+                        onBlur={() => {
+                          // Delay để cho phép click vào dropdown item
+                          setTimeout(() => setShowMajorDropdown(false), 200)
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                        placeholder="Nhập tên hoặc mã ngành để tìm kiếm..."
+                      />
+                      {showMajorDropdown && (filteredMajors.length > 0 || majorSearchInput.trim()) && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {filteredMajors.length > 0 ? (
+                            filteredMajors.map((major) => {
+                              const isSelected = selectedMajors.some(m => m.id === major.id)
+                              return (
+                                <div
+                                  key={major.id}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault()
+                                    if (!isSelected) {
+                                      handleAddMajor(major)
+                                    }
+                                  }}
+                                  className={`px-4 py-2 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                                    isSelected 
+                                      ? 'bg-gray-50 opacity-60' 
+                                      : 'hover:bg-gray-100'
+                                  }`}
+                                >
+                                  <div className="font-medium text-gray-900">
+                                    {major.majorName || major.majorCode}
+                                    {isSelected && <span className="ml-2 text-xs text-green-600">(Đã chọn)</span>}
+                                  </div>
+                                  <div className="text-sm text-gray-500">{major.majorCode}</div>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <div className="px-4 py-2 text-sm text-gray-500">
+                              Không tìm thấy ngành nào
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {selectedMajors.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-gray-500">Các ngành đã chọn:</p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="isCommonSubject"
+                              checked={isCommonSubject}
+                              onChange={(e) => {
+                                setIsCommonSubject(e.target.checked)
+                                if (e.target.checked) {
+                                  setSelectedMajors([])
+                                }
+                              }}
+                              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                            />
+                            <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                              Môn chung
+                            </label>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedMajors.map((major) => (
+                            <span
+                              key={major.id}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-800 rounded-lg text-sm font-medium"
+                            >
+                              {major.majorName || major.majorCode}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMajor(major.id)}
+                                className="ml-1 text-red-600 hover:text-red-800"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedMajors.length === 0 && !isCommonSubject && (
+                      <div className="mt-2 flex items-center justify-end">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="isCommonSubject"
+                            checked={isCommonSubject}
+                            onChange={(e) => {
+                              setIsCommonSubject(e.target.checked)
+                              if (e.target.checked) {
+                                setSelectedMajors([])
+                              }
+                            }}
+                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                          />
+                          <label htmlFor="isCommonSubject" className="text-sm font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                            Môn chung
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                {isCommonSubject && (
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-sm text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="isCommonSubjectBottom"
+                        checked={isCommonSubject}
+                        onChange={(e) => {
+                          setIsCommonSubject(e.target.checked)
+                          if (e.target.checked) {
+                            setSelectedMajors([])
+                          }
+                        }}
+                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      />
+                      <label htmlFor="isCommonSubjectBottom" className="text-sm font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                        Môn chung
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex gap-4">
                 <button
@@ -798,6 +1195,7 @@ const SubjectsPage = () => {
                   onClick={() => {
                     setShowModal(false)
                     setEditingSubject(null)
+                    resetForm()
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
@@ -808,6 +1206,49 @@ const SubjectsPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          style={{ margin: 0, padding: 0 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteConfirmModal(false)
+              setIdsToDelete([])
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Xác nhận xóa</h3>
+            <p className="text-gray-700 mb-6">
+              {idsToDelete.length === 1 
+                ? 'Bạn có chắc chắn muốn xóa môn học này không?'
+                : `Bạn có chắc chắn muốn xóa ${idsToDelete.length} môn học đã chọn không?`
+              }
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirmModal(false)
+                  setIdsToDelete([])
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Xóa
+              </button>
+            </div>
           </div>
         </div>
       )}

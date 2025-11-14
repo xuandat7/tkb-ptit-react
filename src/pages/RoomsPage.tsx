@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { roomService, type Room, type RoomRequest } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -27,6 +27,9 @@ const RoomsPage = () => {
     status: 'AVAILABLE',
     floor: 1,
   })
+  const [selectedRoomIds, setSelectedRoomIds] = useState<number[]>([])
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+  const [idsToDelete, setIdsToDelete] = useState<number[]>([])
 
   useEffect(() => {
     fetchRooms()
@@ -112,15 +115,46 @@ const RoomsPage = () => {
     setShowModal(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc muốn xóa phòng học này?')) return
-
+  const handleDelete = async (ids: number[]) => {
     try {
-      await roomService.delete(id)
-      toast.success('Xóa phòng học thành công')
+      // Xóa từng phòng một
+      await Promise.all(ids.map(id => roomService.delete(id)))
+      toast.success(`Đã xóa ${ids.length} phòng học thành công`, { duration: 5000 })
+      setSelectedRoomIds([])
       fetchRooms()
     } catch (error) {
       toast.error('Không thể xóa phòng học')
+    }
+  }
+
+  const handleDeleteClick = (id?: number) => {
+    const ids = id ? [id] : selectedRoomIds
+    if (ids.length === 0) return
+    
+    setIdsToDelete(ids)
+    setShowDeleteConfirmModal(true)
+  }
+
+  const confirmDelete = () => {
+    handleDelete(idsToDelete)
+    setShowDeleteConfirmModal(false)
+    setSelectedRoomIds([])
+    setIdsToDelete([])
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRoomIds(paginatedRooms.map(r => r.id))
+    } else {
+      setSelectedRoomIds([])
+    }
+  }
+
+  const handleSelectRoom = (id: number, checked: boolean) => {
+    if (checked) {
+      setSelectedRoomIds([...selectedRoomIds, id])
+    } else {
+      setSelectedRoomIds(selectedRoomIds.filter(rId => rId !== id))
     }
   }
 
@@ -176,7 +210,13 @@ const RoomsPage = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
+    setSelectedRoomIds([])
   }, [searchTerm, filterStatus, filterBuilding, filterCapacityMin, filterCapacityMax, filterFloor])
+
+  // Reset selection when page changes
+  useEffect(() => {
+    setSelectedRoomIds([])
+  }, [currentPage])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -342,10 +382,33 @@ const RoomsPage = () => {
           </div>
         </div>
 
+        {selectedRoomIds.length > 0 && (
+          <div className="mb-4 flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+            <span className="text-sm font-medium text-red-800">
+              Đã chọn {selectedRoomIds.length} phòng học
+            </span>
+            <button
+              onClick={() => handleDeleteClick()}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Xóa {selectedRoomIds.length} phòng đã chọn
+            </button>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead className="bg-red-600">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700 w-12">
+                  <input
+                    type="checkbox"
+                    checked={paginatedRooms.length > 0 && selectedRoomIds.length === paginatedRooms.length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tầng</th>
@@ -358,6 +421,14 @@ const RoomsPage = () => {
             <tbody className="bg-white">
               {paginatedRooms.map((room) => (
                 <tr key={room.id} className="hover:bg-red-50 border-b border-gray-200">
+                  <td className="px-6 py-4 text-center border-r border-gray-200">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoomIds.includes(room.id)}
+                      onChange={(e) => handleSelectRoom(room.id, e.target.checked)}
+                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
                   <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.building}</td>
                   <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.floor || '-'}</td>
@@ -372,7 +443,7 @@ const RoomsPage = () => {
                     <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-4">
                       <Edit className="w-4 h-4 inline" />
                     </button>
-                    <button onClick={() => handleDelete(room.id)} className="text-red-600 hover:text-red-900">
+                    <button onClick={() => handleDeleteClick(room.id)} className="text-red-600 hover:text-red-900">
                       <Trash2 className="w-4 h-4 inline" />
                     </button>
                   </td>
@@ -436,6 +507,49 @@ const RoomsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          style={{ margin: 0, padding: 0 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteConfirmModal(false)
+              setIdsToDelete([])
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Xác nhận xóa</h3>
+            <p className="text-gray-700 mb-6">
+              {idsToDelete.length === 1 
+                ? 'Bạn có chắc chắn muốn xóa phòng học này không?'
+                : `Bạn có chắc chắn muốn xóa ${idsToDelete.length} phòng học đã chọn không?`
+              }
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirmModal(false)
+                  setIdsToDelete([])
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
