@@ -834,7 +834,19 @@ const TKBPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Nhập nhiều môn học (bảng)</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Nhập nhiều môn học (bảng)</h2>
+          {batchRows.length > 0 && (
+            <button
+              onClick={generateTKB}
+              disabled={loading || batchRows.length === 0}
+              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              Sinh TKB Batch
+            </button>
+          )}
+        </div>
         
         {/* System Type and Class Year Selection */}
         <div className="mb-6 flex flex-wrap gap-4 items-end">
@@ -906,20 +918,20 @@ const TKBPage = () => {
 
         {/* Batch Table */}
         {batchRows.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+          <div>
+            <table className="w-full text-xs border-collapse table-fixed">
               <thead>
                 <tr className="bg-red-600 text-white">
-                  <th className="px-4 py-2 border">Mã môn</th>
-                  <th className="px-4 py-2 border">Tên môn</th>
-                  <th className="px-4 py-2 border">Số tiết</th>
-                  <th className="px-4 py-2 border">Sĩ số</th>
-                  <th className="px-4 py-2 border">Sĩ số một lớp</th>
-                  <th className="px-4 py-2 border">Khóa</th>
-                  <th className="px-4 py-2 border">Ngành</th>
-                  <th className="px-4 py-2 border">Gộp ngành</th>
-                  <th className="px-4 py-2 border">Đăng ký chung</th>
-                  <th className="px-4 py-2 border">Xóa</th>
+                  <th className="px-2 py-2 border text-xs w-[8%]">Mã môn</th>
+                  <th className="px-2 py-2 border text-xs">Tên môn</th>
+                  <th className="px-2 py-2 border text-xs w-[6%]">Số tiết</th>
+                  <th className="px-2 py-2 border text-xs w-[6%]">Sĩ số</th>
+                  <th className="px-2 py-2 border text-xs w-[8%]">Sĩ số/lớp</th>
+                  <th className="px-2 py-2 border text-xs w-[6%]">Khóa</th>
+                  <th className="px-2 py-2 border text-xs w-[8%]">Ngành</th>
+                  <th className="px-2 py-2 border text-xs w-[6%]">Gộp ngành</th>
+                  <th className="px-2 py-2 border text-xs w-[6%]">Đăng ký chung</th>
+                  <th className="px-2 py-2 border text-xs w-[6%]">Xóa</th>
                 </tr>
               </thead>
               <tbody>
@@ -928,70 +940,50 @@ const TKBPage = () => {
                     {/* Main row - only show if not hidden */}
                     {!row.isHiddenByCombination && (
                       <tr key={index} className="border">
-                        <td className="px-4 py-2 border">
-                          <input
-                            type="text"
-                            value={row.mmh}
-                            readOnly
-                            className="w-full px-2 py-1 border rounded"
-                          />
+                        <td className="px-2 py-2 border text-center">
+                          {row.mmh}
                         </td>
-                        <td className="px-4 py-2 border">
-                          <div className="w-full px-2 py-1 border rounded bg-white whitespace-normal break-words min-h-[2.5rem]">
+                        <td className="px-2 py-2 border">
+                          <div className="px-1.5 py-1 text-xs whitespace-normal break-words">
                             {row.tmh}
                           </div>
                         </td>
-                        <td className="px-4 py-2 border">
+                        <td className="px-2 py-2 border">
                           <input
                             type="number"
                             value={row.sotiet}
                             onChange={(e) =>
                               updateBatchRow(index, 'sotiet', parseInt(e.target.value) || 0)
                             }
-                            className="w-full px-2 py-1 border rounded text-center"
+                            className="w-full px-1.5 py-1 text-xs border rounded text-center"
                           />
                         </td>
-                        <td className="px-4 py-2 border">
-                          <input
-                            type="number"
-                            value={row.siso}
-                            readOnly
-                            className="w-full px-2 py-1 border rounded text-center"
-                          />
+                        <td className="px-2 py-2 border text-center">
+                          {row.siso}
                         </td>
-                        <td className="px-4 py-2 border">
+                        <td className="px-2 py-2 border">
                           <input
                             type="number"
                             value={row.siso_mot_lop}
                             onChange={(e) =>
                               updateBatchRow(index, 'siso_mot_lop', parseInt(e.target.value) || 0)
                             }
-                            className="w-full px-2 py-1 border rounded text-center"
+                            className="w-full px-1.5 py-1 text-xs border rounded text-center"
                           />
                         </td>
-                        <td className="px-4 py-2 border">
-                          <input
-                            type="text"
-                            value={row.khoa}
-                            readOnly
-                            className="w-full px-2 py-1 border rounded"
-                          />
+                        <td className="px-2 py-2 border text-center">
+                          {row.khoa}
                         </td>
-                        <td className="px-4 py-2 border">
-                          <input
-                            type="text"
-                            value={row.nganh}
-                            readOnly
-                            className="w-full px-2 py-1 border rounded"
-                          />
+                        <td className="px-2 py-2 border text-center">
+                          {row.nganh}
                         </td>
-                        <td className="px-4 py-2 border text-center">
+                        <td className="px-2 py-2 border text-center">
                           <input
                             type="checkbox"
                             checked={row.isGrouped || false}
                             disabled={!hasMultipleMajors(row.mmh)}
                             onChange={(e) => toggleMajorCombination(index, e.target.checked)}
-                            className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-3.5 h-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
                             title={
                               !hasMultipleMajors(row.mmh)
                                 ? 'Môn này chỉ có 1 ngành, không thể gộp'
@@ -999,13 +991,13 @@ const TKBPage = () => {
                             }
                           />
                         </td>
-                        <td className="px-4 py-2 border text-center">
-                          <input type="checkbox" disabled />
+                        <td className="px-2 py-2 border text-center">
+                          <input type="checkbox" disabled className="w-3.5 h-3.5" />
                         </td>
-                        <td className="px-4 py-2 border text-center">
+                        <td className="px-2 py-2 border text-center">
                           <button
                             onClick={() => removeBatchRow(index)}
-                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                            className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
                           >
                             Xóa
                           </button>
@@ -1016,7 +1008,7 @@ const TKBPage = () => {
                     {/* Expanded row - show when checkbox is checked */}
                     {expandedRows.has(index) && row.isGrouped && (
                       <tr key={`expand-${index}`} className="bg-gray-50">
-                        <td colSpan={11} className="px-4 py-4 border">
+                        <td colSpan={11} className="px-2 py-2 border">
                           <div className="space-y-3">
                             <h5 className="text-sm font-semibold text-gray-700">
                               Kết hợp ngành học chung:
@@ -1153,17 +1145,6 @@ const TKBPage = () => {
             </table>
           </div>
         )}
-
-        <div className="mt-4">
-          <button
-            onClick={generateTKB}
-            disabled={loading || batchRows.length === 0}
-            className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 disabled:opacity-50"
-          >
-            {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-             Sinh TKB Batch
-          </button>
-        </div>
       </div>
 
       {/* Results */}
@@ -1198,23 +1179,23 @@ const TKBPage = () => {
               </Link>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-collapse table-fixed" style={{ fontSize: '0.7rem' }}>
+          <div>
+            <table className="w-full text-xs border-collapse table-fixed">
               <thead>
-                <tr className="bg-red-50">
-                  <th className="px-1 py-1 border w-[3%]">Lớp</th>
-                  <th className="px-1 py-1 border w-[5%]">Mã môn</th>
-                  <th className="px-1 py-1 border w-[16%]">Tên môn</th>
-                  <th className="px-1 py-1 border w-[3%]">Khóa</th>
-                  <th className="px-1 py-1 border w-[3%]">Ngành</th>
-                  <th className="px-1 py-1 border w-[6%]">Hệ đặc thù</th>
-                  <th className="px-1 py-1 border w-[3%]">Thứ</th>
-                  <th className="px-1 py-1 border w-[3%]">Kíp</th>
-                  <th className="px-1 py-1 border w-[3%]">T.BĐ</th>
-                  <th className="px-1 py-1 border w-[2%]">L</th>
-                  <th className="px-1 py-1 border w-[4%]">Phòng</th>
+                <tr className="bg-red-600 text-white">
+                  <th className="px-1 py-1 border text-xs w-[3%]">Lớp</th>
+                  <th className="px-1 py-1 border text-xs w-[5%]">Mã môn</th>
+                  <th className="px-1 py-1 border text-xs w-[15%]">Tên môn</th>
+                  <th className="px-1 py-1 border text-xs w-[3%]">Khóa</th>
+                  <th className="px-1 py-1 border text-xs w-[4%]">Ngành</th>
+                  <th className="px-1 py-1 border text-xs w-[5%]">Hệ đặc thù</th>
+                  <th className="px-1 py-1 border text-xs w-[2%]">Thứ</th>
+                  <th className="px-1 py-1 border text-xs w-[2%]">Kíp</th>
+                  <th className="px-1 py-1 border text-xs w-[2%]">T.BĐ</th>
+                  <th className="px-1 py-1 border text-xs w-[2%]">L</th>
+                  <th className="px-1 py-1 border text-xs w-[4%]">Phòng</th>
                   {Array.from({ length: 18 }, (_, i) => (
-                    <th key={i} className="px-0.5 py-1 border text-center w-[2.5%]">
+                    <th key={i} className="px-0.5 py-1 border text-center text-xs w-[2.5%]">
                       {i === 17 ? '' : `T${i + 1}`}
                     </th>
                   ))}
@@ -1236,17 +1217,17 @@ const TKBPage = () => {
                     
                     return (
                       <tr key={idx} className={`hover:bg-gray-100 ${rowClass}`}>
-                        <td className="px-1 py-1 border text-center">{row.lop || ''}</td>
-                        <td className="px-1 py-1 border whitespace-normal break-words">{row.ma_mon || ''}</td>
-                        <td className="px-1 py-1 border whitespace-normal break-words">{row.ten_mon || ''}</td>
-                        <td className="px-1 py-1 border text-center">{row.khoa || row.student_year || ''}</td>
-                        <td className="px-1 py-1 border">{row.nganh || ''}</td>
-                        <td className="px-1 py-1 border">{row.he_dac_thu || ''}</td>
-                        <td className="px-1 py-1 border text-center">{row.thu || ''}</td>
-                        <td className="px-1 py-1 border text-center">{row.kip || ''}</td>
-                        <td className="px-1 py-1 border text-center">{row.tiet_bd || ''}</td>
-                        <td className="px-1 py-1 border text-center">{row.l || ''}</td>
-                        <td className="px-1 py-1 border">{row.phong || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.lop || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs whitespace-normal break-words">{row.ma_mon || ''}</td>
+                        <td className="px-1 py-1 border text-xs whitespace-normal break-words">{row.ten_mon || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.khoa || row.student_year || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.nganh || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.he_dac_thu || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.thu || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.kip || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.tiet_bd || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.l || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.phong || ''}</td>
                         {Array.from({ length: 18 }, (_, i) => {
                           let value = ''
                           if (i === 17) {
@@ -1260,7 +1241,7 @@ const TKBPage = () => {
                           return (
                             <td
                               key={i}
-                              className={`px-0.5 py-1 border text-center ${
+                              className={`px-0.5 py-1 border text-center text-xs ${
                                 isX ? 'x-cell' : ''
                               }`}
                             >

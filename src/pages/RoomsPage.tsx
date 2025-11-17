@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { roomService, type Room, type RoomRequest } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -222,6 +222,11 @@ const RoomsPage = () => {
     setCurrentPage(page)
   }
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    setItemsPerPage(newPageSize)
+    setCurrentPage(1) // Reset về trang đầu khi thay đổi page size
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'AVAILABLE':
@@ -255,12 +260,12 @@ const RoomsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+    <div className="space-y-4">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Quản lý Phòng học</h1>
-            <p className="text-red-100 text-lg">Quản lý thông tin các phòng học</p>
+            <h1 className="text-3xl font-bold mb-1">Quản lý Phòng học</h1>
+            <p className="text-red-100 text-base">Quản lý thông tin các phòng học</p>
           </div>
           <button
             onClick={() => {
@@ -360,25 +365,6 @@ const RoomsPage = () => {
                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
-
-            <div className="flex-1 min-w-[120px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Số lượng mục/trang</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              >
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-            </div>
-
-            {/* Results count */}
-            <div className="text-xs text-gray-600 whitespace-nowrap px-2 py-1.5">
-              Hiển thị {paginatedRooms.length} / {filteredRooms.length} kết quả
-            </div>
           </div>
         </div>
 
@@ -398,53 +384,53 @@ const RoomsPage = () => {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse text-xs">
             <thead className="bg-red-600">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700 w-12">
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 w-10">
                   <input
                     type="checkbox"
                     checked={paginatedRooms.length > 0 && selectedRoomIds.length === paginatedRooms.length}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                    className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tầng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Sức chứa</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Trạng thái</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tầng</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sức chứa</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Trạng thái</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white">
               {paginatedRooms.map((room) => (
                 <tr key={room.id} className="hover:bg-red-50 border-b border-gray-200">
-                  <td className="px-6 py-4 text-center border-r border-gray-200">
+                  <td className="px-2 py-2 text-center border-r border-gray-200">
                     <input
                       type="checkbox"
                       checked={selectedRoomIds.includes(room.id)}
                       onChange={(e) => handleSelectRoom(room.id, e.target.checked)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                     />
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.building}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.floor || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{room.capacity} người</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 border-r border-gray-200">{getRoomTypeText(room.roomType)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(room.status)}`}>
+                  <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.floor || '-'}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{getRoomTypeText(room.roomType)}</td>
+                  <td className="px-2 py-2 whitespace-nowrap border-r border-gray-200">
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(room.status)}`}>
                       {room.status === 'AVAILABLE' ? 'Có sẵn' : room.status === 'OCCUPIED' ? 'Đang sử dụng' : 'Bảo trì'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-4">
-                      <Edit className="w-4 h-4 inline" />
+                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
+                    <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
+                      <Edit className="w-3.5 h-3.5 inline" />
                     </button>
                     <button onClick={() => handleDeleteClick(room.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-4 h-4 inline" />
+                      <Trash2 className="w-3.5 h-3.5 inline" />
                     </button>
                   </td>
                 </tr>
@@ -454,16 +440,30 @@ const RoomsPage = () => {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 border-t border-gray-200 pt-4">
+        <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
+          <div className="flex items-center gap-3">
             <div className="text-sm text-gray-700">
-              Trang {currentPage} / {totalPages}
+              Hiển thị {paginatedRooms.length} trên tổng số {filteredRooms.length} phòng học
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700">Số bản ghi/trang:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+            </div>
+          </div>
+          {totalPages > 1 && (
             <div className="flex gap-2">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-2 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
+                className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -485,7 +485,7 @@ const RoomsPage = () => {
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-2 border rounded-lg ${
+                    className={`px-3 py-1 border rounded-lg ${
                       currentPage === pageNum
                         ? 'bg-red-600 text-white border-red-600'
                         : 'border-red-300 hover:bg-red-50 text-red-600'
@@ -499,13 +499,13 @@ const RoomsPage = () => {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-2 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
+                className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}

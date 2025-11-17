@@ -25,7 +25,7 @@ const SubjectsPage = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(12)
+  const [pageSize, setPageSize] = useState(10)
   const [totalElements, setTotalElements] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedSemester, setSelectedSemester] = useState('')
@@ -75,7 +75,7 @@ const SubjectsPage = () => {
 
   useEffect(() => {
     fetchSubjects()
-  }, [currentPage, searchTerm, filterSemester, filterClassYear, filterMajor, filterProgramType])
+  }, [currentPage, pageSize, searchTerm, filterSemester, filterClassYear, filterMajor, filterProgramType])
 
   const fetchFilterData = async () => {
     try {
@@ -370,6 +370,11 @@ const SubjectsPage = () => {
     setCurrentPage(page)
   }
 
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize)
+    setCurrentPage(1) // Reset về trang đầu khi thay đổi page size
+  }
+
   // Get unique majors for filter - using data from API
   const uniqueMajors = useMemo(() => {
     // Get unique major codes from majors API
@@ -382,12 +387,12 @@ const SubjectsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg flex-shrink-0">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Quản lý Môn học</h1>
-            <p className="text-red-100 text-lg">Quản lý thông tin các môn học</p>
+            <h1 className="text-3xl font-bold mb-1">Quản lý Môn học</h1>
+            <p className="text-red-100 text-base">Quản lý thông tin các môn học</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -413,8 +418,8 @@ const SubjectsPage = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex items-center gap-4 mb-4 flex-wrap">
+      <div className="bg-white rounded-lg shadow-md p-6 flex-1 flex flex-col overflow-hidden mt-4">
+        <div className="flex items-center gap-4 mb-4 flex-wrap flex-shrink-0">
           <div className="flex-1 relative min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -553,7 +558,7 @@ const SubjectsPage = () => {
 
 
         {selectedSubjectIds.length > 0 && (
-          <div className="mb-4 flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-4 flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg flex-shrink-0">
             <span className="text-sm font-medium text-red-800">
               Đã chọn {selectedSubjectIds.length} môn học
             </span>
@@ -567,67 +572,67 @@ const SubjectsPage = () => {
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="flex-1 overflow-y-auto">
+          <table className="w-full border-collapse text-xs">
             <thead className="bg-red-600">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700 w-12">
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 w-10">
                   <input
                     type="checkbox"
                     checked={subjects.length > 0 && selectedSubjectIds.length === subjects.length}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                    className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Hệ đào tạo</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Tổng tiết LT</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Hệ đào tạo</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tổng tiết LT</th>
+                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white">
               {subjects.map((subject) => (
                 <tr key={subject.id} className="hover:bg-red-50 border-b border-gray-200">
-                  <td className="px-4 py-4 text-center border-r border-gray-200">
+                  <td className="px-2 py-2 text-center border-r border-gray-200">
                     <input
                       type="checkbox"
                       checked={selectedSubjectIds.includes(subject.id)}
                       onChange={(e) => handleSelectSubject(subject.id, e.target.checked)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                     />
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
-                  <td className="px-4 py-4 text-sm font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.classYear}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">
+                  <td className="px-2 py-2 text-xs text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
+                  <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.classYear}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">
                     {subject.semester ? `${subject.semester}` : '-'}
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.programType}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.numberOfStudents}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.numberOfClasses}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.credits}</td>
-                  <td className="px-4 py-4 text-sm text-gray-500 border-r border-gray-200">{subject.theoryHours}</td>
-                  <td className="px-4 py-4 text-sm font-medium">
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.programType}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.numberOfStudents}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.numberOfClasses}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.credits}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.theoryHours}</td>
+                  <td className="px-2 py-2 text-xs font-medium">
                     <button 
                       onClick={() => handleViewDetail(subject)} 
-                      className="text-green-600 hover:text-green-900 mr-2"
+                      className="text-green-600 hover:text-green-900 mr-1"
                       title="Xem chi tiết"
                     >
-                      <Eye className="w-4 h-4 inline" />
+                      <Eye className="w-3.5 h-3.5 inline" />
                     </button>
-                    <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-2">
-                      <Edit className="w-4 h-4 inline" />
+                    <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-1">
+                      <Edit className="w-3.5 h-3.5 inline" />
                     </button>
                     <button onClick={() => handleDeleteClick(subject.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-4 h-4 inline" />
+                      <Trash2 className="w-3.5 h-3.5 inline" />
                     </button>
                   </td>
                 </tr>
@@ -637,9 +642,23 @@ const SubjectsPage = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-between items-center mt-6">
-          <div className="text-sm text-gray-700">
-            Hiển thị {subjects.length} trên tổng số {totalElements} môn học
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200 flex-wrap gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-700">
+              Hiển thị {subjects.length} trên tổng số {totalElements} môn học
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700">Số bản ghi/trang:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -682,8 +701,8 @@ const SubjectsPage = () => {
 
       {/* Modal Chi tiết môn học */}
       {showDetailModal && selectedSubject && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl my-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl my-8 max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Chi tiết môn học</h2>
               <button
@@ -794,7 +813,7 @@ const SubjectsPage = () => {
             }
           }}
         >
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl my-8 max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl my-8 max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => {

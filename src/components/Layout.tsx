@@ -85,8 +85,8 @@ const Layout = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`min-h-screen transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
-        <main className="p-8">
+      <div className={`h-screen transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'} ${location.pathname === '/subjects' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <main className={`h-full p-8 ${location.pathname === '/subjects' ? 'overflow-hidden' : ''}`}>
           <Outlet />
         </main>
       </div>
