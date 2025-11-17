@@ -84,20 +84,23 @@ export interface SubjectByMajor {
 export interface SubjectRequest {
   subjectCode: string
   subjectName: string
+  studentsPerClass?: number
+  numberOfClasses: number
   credits: number
   theoryHours: number
   exerciseHours: number
   projectHours: number
   labHours: number
   selfStudyHours: number
+  department: string
   examFormat: string
   classYear: string
+  facultyId?: string
+  majorId?: string
+  majorName?: string
   programType: string
   numberOfStudents: number
-  numberOfClasses: number
-  department: string
-  studentsPerClass?: number
-  majorId: number
+  semester?: string
 }
 
 // Major Types

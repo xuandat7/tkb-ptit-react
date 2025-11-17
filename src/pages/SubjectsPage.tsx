@@ -32,7 +32,7 @@ const SubjectsPage = () => {
   const [importing, setImporting] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
 
-  const [formData, setFormData] = useState<SubjectRequest>({
+  const [formData, setFormData] = useState<Omit<SubjectRequest, 'majorId' | 'majorName' | 'facultyId' | 'semester'>>({
     subjectCode: '',
     subjectName: '',
     credits: 0,
@@ -48,12 +48,16 @@ const SubjectsPage = () => {
     numberOfClasses: 0,
     department: '',
     studentsPerClass: 0,
-    majorId: 0,
   })
   const [isCommonSubject, setIsCommonSubject] = useState(false)
   const [selectedMajors, setSelectedMajors] = useState<Major[]>([])
   const [majorSearchInput, setMajorSearchInput] = useState('')
   const [showMajorDropdown, setShowMajorDropdown] = useState(false)
+  
+  // Separate state for majors in "Add Subject" modal
+  const [modalMajors, setModalMajors] = useState<Major[]>([])
+  const [loadingModalMajors, setLoadingModalMajors] = useState(false)
+  
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([])
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [idsToDelete, setIdsToDelete] = useState<number[]>([])
@@ -181,13 +185,37 @@ const SubjectsPage = () => {
     }
     
     try {
-      // Tạm thời lấy majorId đầu tiên nếu có, hoặc 0 nếu là môn chung
-      const submitData = {
-        ...formData,
-        majorId: selectedMajors.length > 0 ? selectedMajors[0].id : 0,
+      // Get major info
+      const selectedMajor = selectedMajors.length > 0 ? selectedMajors[0] : null
+      
+      // Build request body theo API specification
+      const submitData: SubjectRequest = {
+        subjectCode: formData.subjectCode,
+        subjectName: formData.subjectName,
+        studentsPerClass: formData.studentsPerClass,
+        numberOfClasses: formData.numberOfClasses,
+        credits: formData.credits,
+        theoryHours: formData.theoryHours,
+        exerciseHours: formData.exerciseHours,
+        projectHours: formData.projectHours,
+        labHours: formData.labHours,
+        selfStudyHours: formData.selfStudyHours,
+        department: formData.department,
+        examFormat: formData.examFormat,
+        classYear: formData.classYear,
+        programType: formData.programType,
+        numberOfStudents: formData.numberOfStudents,
+        // Optional fields - use majorCode instead of id
+        ...(selectedMajor && {
+          majorId: selectedMajor.majorCode, // Use majorCode (e.g. "AT") instead of id
+          majorName: selectedMajor.majorName,
+          facultyId: selectedMajor.facultyId,
+        }),
       }
       
       if (editingSubject) {
+        // Include semester when updating
+        submitData.semester = editingSubject.semester?.toString()
         await subjectService.update(editingSubject.id, submitData)
         toast.success('Cập nhật môn học thành công', { duration: 5000 })
       } else {
@@ -220,7 +248,6 @@ const SubjectsPage = () => {
       numberOfClasses: 0,
       department: '',
       studentsPerClass: undefined,
-      majorId: 0,
     })
     setIsCommonSubject(false)
     setSelectedMajors([])
@@ -246,43 +273,73 @@ const SubjectsPage = () => {
       numberOfClasses: subject.numberOfClasses,
       department: subject.department,
       studentsPerClass: subject.studentsPerClass || 0,
-      majorId: subject.majorId,
     })
     // Tìm major từ majorId
     const major = majors.find(m => m.id === subject.majorId)
     if (major) {
       setSelectedMajors([major])
+      setMajorSearchInput(major.majorCode) // Show major code in input
     } else {
       setSelectedMajors([])
+      setMajorSearchInput('')
     }
     setIsCommonSubject(false)
-    setMajorSearchInput('')
     setShowMajorDropdown(false)
     setShowModal(true)
   }
 
   // Filter majors based on search input - show all when focused, filter when typing
   const filteredMajors = useMemo(() => {
-    if (!majorSearchInput.trim()) return majors.slice(0, 10) // Show first 10 when no search
+    // Prioritize modalMajors if available, fallback to filter majors
+    const majorsToFilter = modalMajors.length > 0 ? modalMajors : majors
+    if (!majorSearchInput.trim()) return majorsToFilter.slice(0, 10) // Show first 10 when no search
     const searchLower = majorSearchInput.toLowerCase()
-    return majors.filter(major => 
+    return majorsToFilter.filter(major => 
       major.majorName?.toLowerCase().includes(searchLower) ||
       major.majorCode.toLowerCase().includes(searchLower)
     ).slice(0, 10) // Limit to 10 results
-  }, [majors, majorSearchInput])
+  }, [modalMajors, majors, majorSearchInput])
+
+  // Fetch majors specifically for the Add Subject modal
+  const fetchMajorsForModal = async () => {
+    try {
+      setLoadingModalMajors(true)
+      const response = await majorService.getAll()
+      
+      if (response.data.success) {
+        setModalMajors(response.data.data)
+        console.log('✅ Loaded majors for Add Subject modal:', response.data.data.length, 'majors')
+      } else {
+        toast.error('Không thể tải danh sách ngành')
+      }
+    } catch (error) {
+      console.error('❌ Error loading majors for modal:', error)
+      toast.error('Lỗi khi tải danh sách ngành')
+    } finally {
+      setLoadingModalMajors(false)
+    }
+  }
 
   // Add major to selected list
   const handleAddMajor = (major: Major) => {
     if (!selectedMajors.find(m => m.id === major.id)) {
       setSelectedMajors([...selectedMajors, major])
+      // Update input to show selected major code
+      setMajorSearchInput(major.majorCode)
     }
-    setMajorSearchInput('')
     setShowMajorDropdown(false)
   }
 
   // Remove major from selected list
   const handleRemoveMajor = (majorId: number) => {
-    setSelectedMajors(selectedMajors.filter(m => m.id !== majorId))
+    const updatedMajors = selectedMajors.filter(m => m.id !== majorId)
+    setSelectedMajors(updatedMajors)
+    // Clear input if no majors left, otherwise show the first one
+    if (updatedMajors.length === 0) {
+      setMajorSearchInput('')
+    } else {
+      setMajorSearchInput(updatedMajors[0].majorCode)
+    }
   }
 
   const handleDelete = async (ids: number[]) => {
@@ -407,7 +464,12 @@ const SubjectsPage = () => {
               onClick={() => {
                 setEditingSubject(null)
                 resetForm()
+                setSelectedMajors([])
+                setMajorSearchInput('')
+                setShowMajorDropdown(false)
                 setShowModal(true)
+                // Load majors for modal
+                fetchMajorsForModal()
               }}
               className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
             >
@@ -465,96 +527,96 @@ const SubjectsPage = () => {
               <option key={major} value={major}>{major}</option>
             ))}
           </select>
-          <div className="relative">
-            {(filterSemester || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
-              <div className="absolute -top-8 left-0 w-full flex items-center gap-1 flex-wrap text-xs z-10">
-                {filterSemester && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
-                    <span>HK: {filterSemester}</span>
-                    <button
-                      onClick={() => setFilterSemester('')}
-                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                )}
-                {filterClassYear && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
-                    <span>Khóa: {filterClassYear}</span>
-                    <button
-                      onClick={() => setFilterClassYear('')}
-                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                )}
-                {filterMajor && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
-                    <span>Ngành: {filterMajor}</span>
-                    <button
-                      onClick={() => setFilterMajor('')}
-                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                )}
-                {filterProgramType && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
-                    <span>Hệ: {filterProgramType}</span>
-                    <button
-                      onClick={() => setFilterProgramType('')}
-                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                )}
-                {searchTerm && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
-                    <span>"{searchTerm}"</span>
-                    <button
-                      onClick={() => {
-                        setSearchInput('')
-                        setSearchTerm('')
-                      }}
-                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                )}
+          <select
+            value={filterProgramType}
+            onChange={(e) => setFilterProgramType(e.target.value)}
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Tất cả hệ đào tạo</option>
+            {programTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Filter Tags - Hiển thị các filter đang active DƯỚI hàng filter */}
+        {(filterSemester || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
+          <div className="mb-4 flex items-center gap-2 flex-wrap">
+            {filterSemester && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>HK: {filterSemester}</span>
                 <button
-                  onClick={() => {
-                    setFilterSemester('')
-                    setFilterClassYear('')
-                    setFilterMajor('')
-                    setFilterProgramType('')
-                    setSearchInput('')
-                    setSearchTerm('')
-                  }}
-                  className="px-2 py-0.5 text-xs text-red-600 hover:text-red-800 font-medium underline"
+                  onClick={() => setFilterSemester('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
                 >
-                  Xóa tất cả
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             )}
-            <select
-              value={filterProgramType}
-              onChange={(e) => setFilterProgramType(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full ${
-                filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-              }`}
+            {filterClassYear && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Khóa: {filterClassYear}</span>
+                <button
+                  onClick={() => setFilterClassYear('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterMajor && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Ngành: {filterMajor}</span>
+                <button
+                  onClick={() => setFilterMajor('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterProgramType && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Hệ: {filterProgramType}</span>
+                <button
+                  onClick={() => setFilterProgramType('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {searchTerm && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>"{searchTerm}"</span>
+                <button
+                  onClick={() => {
+                    setSearchInput('')
+                    setSearchTerm('')
+                  }}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setFilterSemester('')
+                setFilterClassYear('')
+                setFilterMajor('')
+                setFilterProgramType('')
+                setSearchInput('')
+                setSearchTerm('')
+              }}
+              className="px-2 py-1 text-xs text-red-600 hover:text-red-800 font-medium underline"
             >
-              <option value="">Tất cả hệ đào tạo</option>
-              {programTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+              Xóa tất cả
+            </button>
           </div>
-        </div>
+        )}
 
 
         {selectedSubjectIds.length > 0 && (
@@ -967,7 +1029,6 @@ const SubjectsPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Giờ thực hành</label>
                   <input
                     type="number"
-                    required
                     min="0"
                     value={formData.labHours || ''}
                     onChange={(e) => {
@@ -1021,7 +1082,6 @@ const SubjectsPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đồ án</label>
                   <input
                     type="number"
-                    required
                     min="0"
                     value={formData.projectHours || ''}
                     onChange={(e) => {
@@ -1106,10 +1166,9 @@ const SubjectsPage = () => {
                                   }`}
                                 >
                                   <div className="font-medium text-gray-900">
-                                    {major.majorName || major.majorCode}
+                                    {major.majorCode}
                                     {isSelected && <span className="ml-2 text-xs text-green-600">(Đã chọn)</span>}
                                   </div>
-                                  <div className="text-sm text-gray-500">{major.majorCode}</div>
                                 </div>
                               )
                             })
