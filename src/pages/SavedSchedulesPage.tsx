@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Trash2, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import api from '../services/api'
+import api, { subjectService, majorService, type Major } from '../services/api'
 
 interface Schedule {
   id: number
@@ -51,15 +51,24 @@ const SavedSchedulesPage: React.FC = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState({
-    subjectId: '',
     major: '',
     studentYear: '',
   })
   const [showDeleteMajorModal, setShowDeleteMajorModal] = useState(false)
   const [majorToDelete, setMajorToDelete] = useState('')
+  
+  // Dropdown data from API
+  const [majors, setMajors] = useState<Major[]>([])
+  const [classYears, setClassYears] = useState<string[]>([])
+  
+  // Delete confirmation modals
+  const [showDeleteClassModal, setShowDeleteClassModal] = useState(false)
+  const [classToDelete, setClassToDelete] = useState<GroupedSchedule | null>(null)
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
 
   useEffect(() => {
     loadSchedules()
+    loadFilterData()
   }, [])
 
   const loadSchedules = async () => {
@@ -75,12 +84,34 @@ const SavedSchedulesPage: React.FC = () => {
     }
   }
 
-  // Group schedules by class (subjectId + classNumber)
+  const loadFilterData = async () => {
+    try {
+      // Load class years and majors from API
+      const [classYearsRes, majorsRes] = await Promise.all([
+        subjectService.getAllClassYears(),
+        majorService.getAll()
+      ])
+
+      if (classYearsRes.data.success) {
+        setClassYears(classYearsRes.data.data)
+      }
+      if (majorsRes.data.success) {
+        setMajors(majorsRes.data.data)
+      }
+    } catch (error) {
+      console.error('Error loading filter data:', error)
+    }
+  }
+
+  // Group schedules by class (subjectId + major + classNumber)
   const groupSchedulesByClass = (scheduleList: Schedule[]): GroupedSchedule[] => {
+    // Sort by ID to maintain insertion order from database
+    const sortedSchedules = [...scheduleList].sort((a, b) => a.id - b.id)
+
     const grouped = new Map<string, GroupedSchedule>()
 
-    scheduleList.forEach((schedule) => {
-      const classKey = `${schedule.subjectId}-${schedule.classNumber}`
+    sortedSchedules.forEach((schedule) => {
+      const classKey = `${schedule.subjectId}-${schedule.major}-${schedule.classNumber}`
       
       if (!grouped.has(classKey)) {
         grouped.set(classKey, {
@@ -101,13 +132,20 @@ const SavedSchedulesPage: React.FC = () => {
     return Array.from(grouped.values())
   }
 
-  const handleDeleteClass = async (group: GroupedSchedule) => {
-    if (!confirm(`Bạn có chắc muốn xóa lớp ${group.classNumber} - ${group.subjectName}? (${group.schedules.length} buổi học)`)) return
+  const handleDeleteClass = (group: GroupedSchedule) => {
+    setClassToDelete(group)
+    setShowDeleteClassModal(true)
+  }
+
+  const confirmDeleteClass = async () => {
+    if (!classToDelete) return
 
     try {
       // Delete all schedules in this class
-      await Promise.all(group.schedules.map((s) => api.delete(`/schedules/${s.id}`)))
-      alert('Đã xóa lớp học!')
+      await Promise.all(classToDelete.schedules.map((s) => api.delete(`/schedules/${s.id}`)))
+      alert('Đã xóa lớp học thành công!')
+      setShowDeleteClassModal(false)
+      setClassToDelete(null)
       loadSchedules()
     } catch (error) {
       console.error('Error deleting class:', error)
@@ -115,12 +153,15 @@ const SavedSchedulesPage: React.FC = () => {
     }
   }
 
-  const handleDeleteAll = async () => {
-    if (!confirm('Bạn có chắc muốn xóa TOÀN BỘ lịch học?')) return
+  const handleDeleteAll = () => {
+    setShowDeleteAllModal(true)
+  }
 
+  const confirmDeleteAll = async () => {
     try {
       await api.delete('/schedules')
-      alert('Đã xóa toàn bộ lịch học!')
+      alert('Đã xóa toàn bộ lịch học thành công!')
+      setShowDeleteAllModal(false)
       loadSchedules()
     } catch (error) {
       console.error('Error deleting all schedules:', error)
@@ -151,7 +192,7 @@ const SavedSchedulesPage: React.FC = () => {
 
     try {
       await Promise.all(schedulesToDelete.map((s) => api.delete(`/schedules/${s.id}`)))
-      alert(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}"!`)
+      alert(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}" thành công!`)
       setShowDeleteMajorModal(false)
       setMajorToDelete('')
       loadSchedules()
@@ -236,15 +277,25 @@ const SavedSchedulesPage: React.FC = () => {
     return value.toLowerCase()
   }
 
+  // Get unique values from schedules for dropdown fallback
+  const uniqueMajorsFromSchedules = Array.from(new Set(schedules.map(s => s.major))).filter(Boolean).sort()
+  const uniqueYearsFromSchedules = Array.from(new Set(schedules.map(s => s.studentYear))).filter(Boolean).sort()
+  
+  // Use API data if available, otherwise fallback to schedule data
+  const majorOptions = majors.length > 0 ? majors : uniqueMajorsFromSchedules.map((code, idx) => ({ 
+    id: idx, 
+    majorCode: code, 
+    majorName: code,
+    numberOfStudents: 0,
+    classYear: '',
+    facultyId: '',
+    facultyName: ''
+  }))
+  const yearOptions = classYears.length > 0 ? classYears : uniqueYearsFromSchedules
+
   const filteredSchedules = schedules.filter((s) => {
-    if (filter.subjectId && !s.subjectId.toLowerCase().includes(filter.subjectId.toLowerCase()))
-      return false
-    if (filter.major && !s.major.toLowerCase().includes(filter.major.toLowerCase())) return false
-    if (
-      filter.studentYear &&
-      !s.studentYear.toLowerCase().includes(filter.studentYear.toLowerCase())
-    )
-      return false
+    if (filter.major && filter.major !== s.major) return false
+    if (filter.studentYear && filter.studentYear !== s.studentYear) return false
     return true
   })
 
@@ -272,27 +323,30 @@ const SavedSchedulesPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-1.5">
         {/* Filters and Actions in one row */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <input
-            type="text"
-            placeholder="Mã môn..."
-            className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-24"
-            value={filter.subjectId}
-            onChange={(e) => setFilter({ ...filter, subjectId: e.target.value })}
-          />
-          <input
-            type="text"
-            placeholder="Ngành..."
-            className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-24"
-            value={filter.major}
-            onChange={(e) => setFilter({ ...filter, major: e.target.value })}
-          />
-          <input
-            type="text"
-            placeholder="Khóa..."
-            className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-24"
+          <select
             value={filter.studentYear}
             onChange={(e) => setFilter({ ...filter, studentYear: e.target.value })}
-          />
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
+              filter.studentYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Tất cả khóa</option>
+            {yearOptions.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+          <select
+            value={filter.major}
+            onChange={(e) => setFilter({ ...filter, major: e.target.value })}
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
+              filter.major ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Tất cả ngành</option>
+            {majorOptions.map(major => (
+              <option key={major.id} value={major.majorCode}>{major.majorCode}</option>
+            ))}
+          </select>
           <button
             onClick={handleDeleteByMajor}
             className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"
@@ -410,6 +464,86 @@ const SavedSchedulesPage: React.FC = () => {
         </table>
       </div>
 
+      {/* Modal xóa lớp học */}
+      {showDeleteClassModal && classToDelete && (
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteClassModal(false)
+              setClassToDelete(null)
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Xác nhận xóa</h3>
+            <p className="text-gray-700 mb-2">
+              Bạn có chắc chắn muốn xóa lớp <strong>{classToDelete.classNumber} - {classToDelete.subjectName}</strong> không?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Sẽ xóa {classToDelete.schedules.length} buổi học của lớp này
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteClassModal(false)
+                  setClassToDelete(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteClass}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xóa tất cả */}
+      {showDeleteAllModal && (
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteAllModal(false)
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Xác nhận xóa</h3>
+            <p className="text-gray-700 mb-2">
+              Bạn có chắc chắn muốn xóa <strong>TOÀN BỘ</strong> lịch học không?
+            </p>
+            <p className="text-sm text-red-500 mb-6">
+              Hành động này không thể hoàn tác!
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteAll}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Xóa tất cả
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal xóa theo ngành */}
       {showDeleteMajorModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -422,7 +556,7 @@ const SavedSchedulesPage: React.FC = () => {
                 value={majorToDelete}
                 onChange={(e) => setMajorToDelete(e.target.value)}
                 placeholder="Ví dụ: CNPM, KTPM..."
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none"
                 autoFocus
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') confirmDeleteByMajor()
@@ -432,13 +566,13 @@ const SavedSchedulesPage: React.FC = () => {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={cancelDeleteByMajor}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
               >
                 Hủy
               </button>
               <button
                 onClick={confirmDeleteByMajor}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
                 Xóa
               </button>

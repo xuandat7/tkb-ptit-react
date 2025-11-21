@@ -123,7 +123,7 @@ export interface Room {
   building: string
   capacity: number
   roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
-  status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE'
+  status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
   equipment?: string[]
   floor?: number
 }
@@ -133,7 +133,17 @@ export interface RoomRequest {
   building: string
   capacity: number
   roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
-  status?: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE'
+  status?: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
+  equipment?: string[]
+  floor?: number
+}
+
+export interface RoomApiPayload {
+  phong: string
+  day: string
+  capacity: number
+  type: string // Backend accepts: KHOA_2024, ENGLISH_CLASS, CLC, NGOC_TRUC, GENERAL
+  status?: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
   equipment?: string[]
   floor?: number
 }
@@ -280,14 +290,16 @@ export const majorService = {
 export const roomService = {
   getAll: () => api.get<ApiResponse<Room[]>>('/rooms'),
   getById: (id: number) => api.get<ApiResponse<Room>>(`/rooms/${id}`),
-  create: (data: RoomRequest) => api.post<ApiResponse<Room>>('/rooms', data),
-  update: (id: number, data: RoomRequest) => api.put<ApiResponse<Room>>(`/rooms/${id}`, data),
+  create: (data: RoomApiPayload) => api.post<ApiResponse<Room>>('/rooms', data),
+  update: (id: number, data: RoomApiPayload) => api.put<ApiResponse<Room>>(`/rooms/${id}`, data),
+  updateStatus: (id: number, status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE') =>
+    api.patch<ApiResponse<Room>>(`/rooms/${id}/status`, { status }),
   delete: (id: number) => api.delete(`/rooms/${id}`),
   getByBuilding: (building: string) => api.get<ApiResponse<Room[]>>(`/rooms/building/${building}`),
   getByStatus: (status: string) => api.get<ApiResponse<Room[]>>(`/rooms/status/${status}`),
   getByType: (type: string) => api.get<ApiResponse<Room[]>>(`/rooms/type/${type}`),
   getAvailable: (capacity: number) => api.get<ApiResponse<Room[]>>(`/rooms/available?capacity=${capacity}`),
-  updateStatusByRoomCodes: (roomCodes: string[], status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE') => 
+  updateStatusByRoomCodes: (roomCodes: string[], status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE') => 
     api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomCodes, status }),
   saveResults: () => 
     api.post<ApiResponse<any>>('/rooms/save-results'),

@@ -99,6 +99,7 @@ const TKBPage = () => {
   const [selectedMajorGroup, setSelectedMajorGroup] = useState(persistedState?.selectedMajorGroup || '')
   const [batchRows, setBatchRows] = useState<BatchRowWithCombination[]>(persistedState?.batchRows || [])
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
+  const [inlineInputs, setInlineInputs] = useState<Record<string, string>>({})
   const [results, setResults] = useState<TKBResultRow[]>(persistedState?.results || [])
   const [savedResults, setSavedResults] = useState<SavedResult[]>(persistedState?.savedResults || [])
   const [failedSubjects, setFailedSubjects] = useState<FailedSubject[]>(persistedState?.failedSubjects || [])
@@ -308,6 +309,33 @@ const TKBPage = () => {
     const updated = [...batchRows]
     updated[index] = { ...updated[index], [field]: value }
     setBatchRows(updated)
+  }
+
+  const getInlineInputKey = (index: number, field: 'sotiet' | 'siso_mot_lop') => `${index}-${field}`
+
+  const handleInlineInputChange = (
+    index: number,
+    field: 'sotiet' | 'siso_mot_lop',
+    value: string
+  ) => {
+    if (!/^\d*$/.test(value)) return
+    const key = getInlineInputKey(index, field)
+    setInlineInputs((prev) => ({
+      ...prev,
+      [key]: value,
+    }))
+  }
+
+  const handleInlineInputBlur = (index: number, field: 'sotiet' | 'siso_mot_lop') => {
+    const key = getInlineInputKey(index, field)
+    if (!(key in inlineInputs)) return
+    const rawValue = inlineInputs[key]
+    const numericValue = parseInt(rawValue, 10)
+    updateBatchRow(index, field, Number.isNaN(numericValue) ? 0 : numericValue)
+    setInlineInputs((prev) => {
+      const { [key]: _removed, ...rest } = prev
+      return rest
+    })
   }
 
   const removeBatchRow = (index: number) => {
@@ -586,7 +614,7 @@ const TKBPage = () => {
                 ten_mon: row.tmh,
                 sotiet: row.sotiet,
                 solop: solop,
-                siso: combo.sisoMotLop,
+                siso: combo.totalSiso,
                 siso_mot_lop: combo.sisoMotLop,
                 nganh: selectedNganhs.join('-'), // Join majors with dash
                 subject_type: row.subject_type,
@@ -843,7 +871,7 @@ const TKBPage = () => {
               className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Sinh TKB Batch
+              Sinh Thời khoá biểu
             </button>
           )}
         </div>
@@ -949,27 +977,39 @@ const TKBPage = () => {
                           </div>
                         </td>
                         <td className="px-2 py-2 border">
-                          <input
-                            type="number"
-                            value={row.sotiet}
-                            onChange={(e) =>
-                              updateBatchRow(index, 'sotiet', parseInt(e.target.value) || 0)
-                            }
-                            className="w-full px-1.5 py-1 text-xs border rounded text-center"
-                          />
+                          {(() => {
+                            const key = getInlineInputKey(index, 'sotiet')
+                            return (
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={inlineInputs[key] ?? (row.sotiet?.toString() || '')}
+                                onChange={(e) => handleInlineInputChange(index, 'sotiet', e.target.value)}
+                                onBlur={() => handleInlineInputBlur(index, 'sotiet')}
+                                className="w-full px-1.5 py-1 text-xs border rounded text-center"
+                              />
+                            )
+                          })()}
                         </td>
                         <td className="px-2 py-2 border text-center">
                           {row.siso}
                         </td>
                         <td className="px-2 py-2 border">
-                          <input
-                            type="number"
-                            value={row.siso_mot_lop}
-                            onChange={(e) =>
-                              updateBatchRow(index, 'siso_mot_lop', parseInt(e.target.value) || 0)
-                            }
-                            className="w-full px-1.5 py-1 text-xs border rounded text-center"
-                          />
+                          {(() => {
+                            const key = getInlineInputKey(index, 'siso_mot_lop')
+                            return (
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={inlineInputs[key] ?? (row.siso_mot_lop?.toString() || '')}
+                                onChange={(e) =>
+                                  handleInlineInputChange(index, 'siso_mot_lop', e.target.value)
+                                }
+                                onBlur={() => handleInlineInputBlur(index, 'siso_mot_lop')}
+                                className="w-full px-1.5 py-1 text-xs border rounded text-center"
+                              />
+                            )
+                          })()}
                         </td>
                         <td className="px-2 py-2 border text-center">
                           {row.khoa}
@@ -1008,7 +1048,7 @@ const TKBPage = () => {
                     {/* Expanded row - show when checkbox is checked */}
                     {expandedRows.has(index) && row.isGrouped && (
                       <tr key={`expand-${index}`} className="bg-gray-50">
-                        <td colSpan={11} className="px-2 py-2 border">
+                        <td colSpan={10} className="px-2 py-2 border">
                           <div className="space-y-3">
                             <h5 className="text-sm font-semibold text-gray-700">
                               Kết hợp ngành học chung:

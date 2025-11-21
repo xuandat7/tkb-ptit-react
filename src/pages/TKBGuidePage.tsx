@@ -134,7 +134,7 @@ const TKBGuidePage = () => {
       icon: Play,
       description: 'Sau khi đã chuẩn bị đầy đủ, nhấp nút để hệ thống tự động sinh TKB.',
       details: [
-        'Nhấp vào nút "🚀 Sinh TKB Batch" màu đỏ',
+        'Nhấp vào nút "🚀 Sinh Thời khoá biểu" màu đỏ',
         'Hệ thống sẽ gọi API `/tkb/generate-batch` để sinh TKB',
         'Quá trình này có thể mất vài giây đến vài phút tùy số lượng môn',
         'Chờ thông báo kết quả:',
@@ -173,7 +173,7 @@ const TKBGuidePage = () => {
         'Nhấp vào nút "Thêm vào kết quả" màu xanh lá',
         'Hệ thống sẽ thực hiện các bước sau:',
         '  1. Lưu tất cả lịch học vào database (bảng Schedule)',
-        '  2. Cập nhật trạng thái các phòng đã sử dụng thành "OCCUPIED"',
+        '  2. Gọi API "/api/rooms/bulk-status" để chuyển các phòng đã dùng sang "OCCUPIED"',
         '  3. Lưu kết quả vào room results',
         'Thông báo thành công sẽ hiển thị số phòng đã cập nhật',
         'Kết quả đã lưu sẽ xuất hiện trong section "📚 Kết quả TKB đã lưu"',

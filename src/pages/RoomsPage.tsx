@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
-import { roomService, type Room, type RoomRequest } from '../services/api'
+import { roomService, type Room, type RoomRequest, type RoomApiPayload, API_BASE_URL } from '../services/api'
 import toast from 'react-hot-toast'
 
 const RoomsPage = () => {
@@ -13,7 +13,6 @@ const RoomsPage = () => {
   const [filterBuilding, setFilterBuilding] = useState<string>('ALL')
   const [filterCapacityMin, setFilterCapacityMin] = useState<string>('')
   const [filterCapacityMax, setFilterCapacityMax] = useState<string>('')
-  const [filterFloor, setFilterFloor] = useState<string>('ALL')
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -27,7 +26,6 @@ const RoomsPage = () => {
     status: 'AVAILABLE',
     floor: 1,
   })
-  const [selectedRoomIds, setSelectedRoomIds] = useState<number[]>([])
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [idsToDelete, setIdsToDelete] = useState<number[]>([])
 
@@ -63,6 +61,10 @@ const RoomsPage = () => {
   const mapRoomType = (type: string) => {
     const typeMap: Record<string, 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'> = {
       GENERAL: 'CLASSROOM',
+      CLC: 'CLASSROOM',
+      KHOA_2024: 'CLASSROOM',
+      ENGLISH_CLASS: 'CLASSROOM',
+      NGOC_TRUC: 'CLASSROOM',
       CLASSROOM: 'CLASSROOM',
       LAB: 'LAB',
       LIBRARY: 'LIBRARY',
@@ -71,22 +73,58 @@ const RoomsPage = () => {
     return (typeMap[type] || 'CLASSROOM') as 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
   }
 
+  // Helper function to map UI type back to API type
+  const mapUITypeToAPI = (uiType: string) => {
+    const typeMap: Record<string, string> = {
+      CLASSROOM: 'GENERAL',
+      LAB: 'LAB',
+      LIBRARY: 'LIBRARY',
+      MEETING: 'MEETING',
+    }
+    return typeMap[uiType] || 'GENERAL'
+  }
+
+  const mapFormDataToPayload = (data: RoomRequest): RoomApiPayload => ({
+    phong: data.roomCode.trim(),
+    day: data.building.trim(),
+    capacity: data.capacity,
+    type: mapUITypeToAPI(data.roomType),
+    floor: data.floor,
+    equipment: data.equipment && data.equipment.length > 0 ? data.equipment : undefined,
+  })
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const payload = mapFormDataToPayload(formData)
+      
       if (editingRoom) {
-        await roomService.update(editingRoom.id, formData)
+        // Update thông tin phòng trước
+        await roomService.update(editingRoom.id, payload)
+        // Sau đó update status riêng (luôn update để đảm bảo đồng bộ)
+        if (formData.status) {
+          await roomService.updateStatus(editingRoom.id, formData.status)
+        }
         toast.success('Cập nhật phòng học thành công')
       } else {
-        await roomService.create(formData)
+        // Tạo phòng mới trước
+        const response = await roomService.create(payload)
+        const newRoomId = response.data?.data?.id
+        // Sau đó set status nếu khác AVAILABLE
+        if (newRoomId && formData.status && formData.status !== 'AVAILABLE') {
+          await roomService.updateStatus(newRoomId, formData.status)
+        }
         toast.success('Tạo phòng học thành công')
       }
       setShowModal(false)
       setEditingRoom(null)
       resetForm()
       fetchRooms()
-    } catch (error) {
-      toast.error('Có lỗi xảy ra')
+    } catch (error: any) {
+      console.error('Lỗi khi lưu phòng học:', error)
+      // Hiển thị lỗi chi tiết từ API nếu có
+      const errorMessage = error?.response?.data?.message || 'Có lỗi xảy ra khi lưu phòng học'
+      toast.error(errorMessage)
     }
   }
 
@@ -100,6 +138,9 @@ const RoomsPage = () => {
       floor: 1,
     })
   }
+
+  // Removed fetchFixedRoomStatus as the endpoint doesn't exist
+  // Status is already available in the room object
 
   const handleEdit = (room: Room) => {
     setEditingRoom(room)
@@ -120,53 +161,29 @@ const RoomsPage = () => {
       // Xóa từng phòng một
       await Promise.all(ids.map(id => roomService.delete(id)))
       toast.success(`Đã xóa ${ids.length} phòng học thành công`, { duration: 5000 })
-      setSelectedRoomIds([])
       fetchRooms()
     } catch (error) {
       toast.error('Không thể xóa phòng học')
     }
   }
 
-  const handleDeleteClick = (id?: number) => {
-    const ids = id ? [id] : selectedRoomIds
-    if (ids.length === 0) return
-    
-    setIdsToDelete(ids)
+  const handleDeleteClick = (id: number) => {
+    setIdsToDelete([id])
     setShowDeleteConfirmModal(true)
   }
 
   const confirmDelete = () => {
     handleDelete(idsToDelete)
     setShowDeleteConfirmModal(false)
-    setSelectedRoomIds([])
     setIdsToDelete([])
   }
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedRoomIds(paginatedRooms.map(r => r.id))
-    } else {
-      setSelectedRoomIds([])
-    }
-  }
 
-  const handleSelectRoom = (id: number, checked: boolean) => {
-    if (checked) {
-      setSelectedRoomIds([...selectedRoomIds, id])
-    } else {
-      setSelectedRoomIds(selectedRoomIds.filter(rId => rId !== id))
-    }
-  }
 
   // Get unique values for filters
   const uniqueBuildings = useMemo(() => {
     const buildings = rooms.map(r => r.building).filter(Boolean)
     return Array.from(new Set(buildings)).sort()
-  }, [rooms])
-
-  const uniqueFloors = useMemo(() => {
-    const floors = rooms.map(r => r.floor).filter((f): f is number => f !== undefined)
-    return Array.from(new Set(floors)).sort((a, b) => a - b)
   }, [rooms])
 
   // Advanced filtering
@@ -192,12 +209,9 @@ const RoomsPage = () => {
         matchesCapacity = matchesCapacity && room.capacity <= parseInt(filterCapacityMax)
       }
       
-      // Floor filter
-      const matchesFloor = filterFloor === 'ALL' || room.floor?.toString() === filterFloor
-      
-      return matchesSearch && matchesStatus && matchesBuilding && matchesCapacity && matchesFloor
+      return matchesSearch && matchesStatus && matchesBuilding && matchesCapacity
     })
-  }, [rooms, searchTerm, filterStatus, filterBuilding, filterCapacityMin, filterCapacityMax, filterFloor])
+  }, [rooms, searchTerm, filterStatus, filterBuilding, filterCapacityMin, filterCapacityMax])
 
   // Pagination
   const totalPages = Math.ceil(filteredRooms.length / itemsPerPage)
@@ -210,13 +224,7 @@ const RoomsPage = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-    setSelectedRoomIds([])
-  }, [searchTerm, filterStatus, filterBuilding, filterCapacityMin, filterCapacityMax, filterFloor])
-
-  // Reset selection when page changes
-  useEffect(() => {
-    setSelectedRoomIds([])
-  }, [currentPage])
+  }, [searchTerm, filterStatus, filterBuilding, filterCapacityMin, filterCapacityMax])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -233,7 +241,7 @@ const RoomsPage = () => {
         return 'bg-green-100 text-green-800'
       case 'OCCUPIED':
         return 'bg-yellow-100 text-yellow-800'
-      case 'MAINTENANCE':
+      case 'UNAVAILABLE':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -308,7 +316,7 @@ const RoomsPage = () => {
                 <option value="ALL">Tất cả</option>
                 <option value="AVAILABLE">Có sẵn</option>
                 <option value="OCCUPIED">Đang sử dụng</option>
-                <option value="MAINTENANCE">Bảo trì</option>
+                <option value="UNAVAILABLE">Không khả dụng</option>
               </select>
             </div>
 
@@ -328,21 +336,7 @@ const RoomsPage = () => {
               </select>
             </div>
 
-            <div className="flex-1 min-w-[100px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Tầng</label>
-              <select
-                value={filterFloor}
-                onChange={(e) => setFilterFloor(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              >
-                <option value="ALL">Tất cả</option>
-                {uniqueFloors.map((floor) => (
-                  <option key={floor} value={floor.toString()}>
-                    Tầng {floor}
-                  </option>
-                ))}
-              </select>
-            </div>
+
 
             <div className="flex-1 min-w-[100px]">
               <label className="block text-xs font-medium text-gray-700 mb-1">Sức chứa tối thiểu</label>
@@ -368,33 +362,12 @@ const RoomsPage = () => {
           </div>
         </div>
 
-        {selectedRoomIds.length > 0 && (
-          <div className="mb-4 flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-            <span className="text-sm font-medium text-red-800">
-              Đã chọn {selectedRoomIds.length} phòng học
-            </span>
-            <button
-              onClick={() => handleDeleteClick()}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              Xóa {selectedRoomIds.length} phòng đã chọn
-            </button>
-          </div>
-        )}
+
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs">
             <thead className="bg-red-600">
               <tr>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 w-10">
-                  <input
-                    type="checkbox"
-                    checked={paginatedRooms.length > 0 && selectedRoomIds.length === paginatedRooms.length}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                  />
-                </th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tầng</th>
@@ -407,14 +380,6 @@ const RoomsPage = () => {
             <tbody className="bg-white">
               {paginatedRooms.map((room) => (
                 <tr key={room.id} className="hover:bg-red-50 border-b border-gray-200">
-                  <td className="px-2 py-2 text-center border-r border-gray-200">
-                    <input
-                      type="checkbox"
-                      checked={selectedRoomIds.includes(room.id)}
-                      onChange={(e) => handleSelectRoom(room.id, e.target.checked)}
-                      className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                    />
-                  </td>
                   <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.floor || '-'}</td>
@@ -422,7 +387,7 @@ const RoomsPage = () => {
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{getRoomTypeText(room.roomType)}</td>
                   <td className="px-2 py-2 whitespace-nowrap border-r border-gray-200">
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(room.status)}`}>
-                      {room.status === 'AVAILABLE' ? 'Có sẵn' : room.status === 'OCCUPIED' ? 'Đang sử dụng' : 'Bảo trì'}
+                      {room.status === 'AVAILABLE' ? 'Có sẵn' : room.status === 'OCCUPIED' ? 'Đang sử dụng' : 'Không khả dụng'}
                     </span>
                   </td>
                   <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
@@ -626,7 +591,7 @@ const RoomsPage = () => {
                   >
                     <option value="AVAILABLE">Có sẵn</option>
                     <option value="OCCUPIED">Đang sử dụng</option>
-                    <option value="MAINTENANCE">Bảo trì</option>
+                    <option value="UNAVAILABLE">Không khả dụng</option>
                   </select>
                 </div>
               </div>
