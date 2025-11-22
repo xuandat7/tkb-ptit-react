@@ -862,18 +862,8 @@ const TKBPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Nhập nhiều môn học (bảng)</h2>
-          {batchRows.length > 0 && (
-            <button
-              onClick={generateTKB}
-              disabled={loading || batchRows.length === 0}
-              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Sinh Thời khoá biểu
-            </button>
-          )}
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold"></h2>
         </div>
         
         {/* System Type and Class Year Selection */}
@@ -1334,49 +1324,7 @@ const TKBPage = () => {
         </div>
       )}
 
-      {/* Saved Results */}
-      {savedResults.length > 0 && (
-        <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg shadow-lg p-6">
-          <h3 className="text-2xl font-bold mb-4">📚 Kết quả TKB đã lưu</h3>
-          <div className="space-y-3">
-            {savedResults.map((result) => (
-              <div
-                key={result.id}
-                className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg p-4 flex justify-between items-center"
-              >
-                <div className="flex-1">
-                  <div className="font-semibold text-white">{result.title}</div>
-                  <div className="text-sm text-red-100 mt-1">
-                    Ngành: {result.department} | Thời gian: {result.timestamp} | Số lớp: {result.data.length}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => viewResult(result.id)}
-                    className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors text-sm"
-                  >
-                    👁️ Xem
-                  </button>
-                  <button
-                    onClick={() => removeResult(result.id)}
-                    className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors text-sm"
-                  >
-                    🗑️ Xóa
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex gap-3">
-            <button
-              onClick={clearAllResults}
-              className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
-            >
-              🗑️ Xóa tất cả
-            </button>
-          </div>
-        </div>
-      )}
+      
 
       {/* Import File Modal */}
       <ImportFileModal
@@ -1388,6 +1336,24 @@ const TKBPage = () => {
         maxSizeMB={10}
         sampleFileName="mau_data_lich_hoc.xlsx"
       />
+      
+      {/* Floating Generate Button */}
+      {batchRows.length > 0 && (
+        <div className="fixed bottom-6 left-6 z-50">
+          <button
+            onClick={generateTKB}
+            disabled={loading || batchRows.length === 0}
+            className="flex items-center gap-3 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            {loading ? (
+              <Loader className="w-5 h-5 animate-spin" />
+            ) : (
+              <Play className="w-5 h-5" />
+            )}
+            <span className="font-semibold">Sinh TKB Batch</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

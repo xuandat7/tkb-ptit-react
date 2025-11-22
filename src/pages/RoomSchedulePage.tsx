@@ -25,6 +25,8 @@ const RoomSchedulePage = () => {
   const [allRooms, setAllRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
+  const [roomScheduleDetails, setRoomScheduleDetails] = useState<any[]>([])
   
   // Filters
   const [filterBuilding, setFilterBuilding] = useState('')
@@ -372,6 +374,32 @@ const RoomSchedulePage = () => {
     }
   }
 
+  const showRoomScheduleDetails = async (room: Room) => {
+    setSelectedRoom(room)
+    setLoading(true)
+    
+    try {
+      // Lấy lịch học chi tiết cho phòng này
+      const response = await fetch(`http://localhost:8080/api/schedule/classes`)
+      const schedules = await response.json()
+      
+      // Lọc lịch cho phòng được chọn
+      const roomSchedules = schedules.filter((schedule: any) => {
+        const roomKey = `${room.phong}-${room.day}`
+        return schedule.roomNumber === room.phong || schedule.roomNumber === roomKey
+      })
+      
+      console.log(`🏫 Schedules for room ${room.phong}:`, roomSchedules)
+      setRoomScheduleDetails(roomSchedules)
+    } catch (error) {
+      console.error('Error loading room schedule details:', error)
+      toast.error('Không thể tải chi tiết lịch phòng')
+      setRoomScheduleDetails([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (selectedSlot) {
       showRoomDetails(selectedSlot)
@@ -398,21 +426,7 @@ const RoomSchedulePage = () => {
             <p className="text-red-100 text-sm ml-2">Xem lịch sử dụng phòng học theo thời gian</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Stats */}
-            <div className="flex gap-1.5">
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-center border border-white/30">
-                <div className="text-xl font-bold text-white">{stats.totalRooms}</div>
-                <div className="text-[10px] text-red-100">Tổng</div>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-center border border-white/30">
-                <div className="text-xl font-bold text-white">{stats.totalOccupied}</div>
-                <div className="text-[10px] text-red-100">Đã dùng</div>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-center border border-white/30">
-                <div className="text-xl font-bold text-white">{stats.totalAvailable}</div>
-                <div className="text-[10px] text-red-100">Trống</div>
-              </div>
-            </div>
+
             
             <div className="flex items-center gap-1.5">
               <select
@@ -428,18 +442,7 @@ const RoomSchedulePage = () => {
                 ))}
               </select>
 
-              <select
-                value={filterCapacity}
-                onChange={(e) => setFilterCapacity(e.target.value)}
-                className="px-2 py-1.5 text-sm bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg focus:ring-2 focus:ring-white/50 focus:outline-none"
-              >
-                <option value="" className="text-gray-900">Tất cả sĩ số</option>
-                <option value="0-30" className="text-gray-900">≤ 30</option>
-                <option value="31-50" className="text-gray-900">31-50</option>
-                <option value="51-80" className="text-gray-900">51-80</option>
-                <option value="81-100" className="text-gray-900">81-100</option>
-                <option value="100+" className="text-gray-900">&gt; 100</option>
-              </select>
+
 
               <select
                 value={filterStatus}
@@ -498,11 +501,16 @@ const RoomSchedulePage = () => {
                         <p className="text-gray-500 italic">Không có phòng nào được sử dụng</p>
                       ) : (
                         activeFilters.occupied_rooms.map((room, idx) => (
-                          <div key={idx} className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                          <div 
+                            key={idx} 
+                            className="bg-red-50 border-l-4 border-red-500 p-3 rounded cursor-pointer hover:bg-red-100 transition-colors"
+                            onClick={() => showRoomScheduleDetails(room)}
+                          >
                             <div className="font-semibold text-gray-900">{room.phong}</div>
                             <div className="text-sm text-gray-600">
                               Tòa {room.day} - Sức chứa: {room.capacity} chỗ
                             </div>
+                            <div className="text-xs text-blue-600 mt-1">👆 Click để xem chi tiết lịch</div>
                           </div>
                         ))
                       )}
@@ -533,6 +541,104 @@ const RoomSchedulePage = () => {
             </div>
           </div>
         )}
+
+      {/* Room Schedule Details Modal */}
+      {selectedRoom && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto p-4">
+          <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] flex flex-col my-8">
+            <div className="bg-blue-600 text-white p-6 flex justify-between items-center flex-shrink-0">
+              <div>
+                <h3 className="text-xl font-bold">Chi tiết lịch học - Phòng {selectedRoom.phong}</h3>
+                <p className="text-blue-100 text-sm mt-1">Tòa {selectedRoom.day} - Sức chứa: {selectedRoom.capacity} chỗ</p>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedRoom(null)
+                  setRoomScheduleDetails([])
+                }}
+                className="text-white hover:text-gray-200 text-2xl font-bold leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1">
+              {roomScheduleDetails.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-500 text-lg">Phòng này không có lịch học trong tuần</div>
+                  <div className="text-sm text-gray-400 mt-2">Hoặc dữ liệu lịch học chưa được cập nhật</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-blue-600 border-b-2 border-blue-600 pb-2 mb-4">
+                    Các kíp học trong tuần ({roomScheduleDetails.length} kíp)
+                  </h4>
+                  
+                  <div className="grid gap-4">
+                    {roomScheduleDetails
+                      .sort((a, b) => {
+                        // Sắp xếp theo thứ, rồi theo kíp
+                        if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek
+                        return a.sessionNumber - b.sessionNumber
+                      })
+                      .map((schedule, idx) => {
+                        const dayNames = ['', '', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
+                        const sessionTime = {
+                          1: '07:00 - 09:25',
+                          2: '09:35 - 12:00', 
+                          3: '13:00 - 15:25',
+                          4: '15:35 - 18:00'
+                        }
+                        
+                        return (
+                          <div key={idx} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex-1">
+                                <div className="font-semibold text-lg text-gray-900 mb-1">
+                                  {schedule.subjectName || 'Không có tên môn học'}
+                                </div>
+                                <div className="text-blue-600 font-medium">
+                                  Mã môn: {schedule.subjectCode || 'N/A'}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                  {dayNames[schedule.dayOfWeek]} - Kíp {schedule.sessionNumber}
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {sessionTime[schedule.sessionNumber as keyof typeof sessionTime]}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              <div>
+                                <span className="text-gray-600">Lớp:</span>
+                                <div className="font-medium">{schedule.className || 'N/A'}</div>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Giảng viên:</span>
+                                <div className="font-medium">{schedule.instructorName || 'N/A'}</div>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Sĩ số:</span>
+                                <div className="font-medium">{schedule.studentCount || 0} sinh viên</div>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Loại lớp:</span>
+                                <div className="font-medium">{schedule.classType || 'N/A'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

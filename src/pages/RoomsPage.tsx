@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { roomService, type Room, type RoomRequest, type RoomApiPayload, API_BASE_URL } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -291,9 +291,8 @@ const RoomsPage = () => {
 
       <div className="bg-white rounded-lg shadow-md p-6">
         {/* Search and Filters */}
-        <div className="space-y-3 mb-6">
-          {/* Search Bar */}
-          <div className="relative">
+        <div className="flex items-center gap-4 mb-4 flex-wrap flex-shrink-0">
+          <div className="flex-1 relative min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
@@ -303,64 +302,124 @@ const RoomsPage = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
-
-          {/* All Filters in One Row */}
-          <div className="flex items-end gap-2 flex-wrap">
-            <div className="flex-1 min-w-[120px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Trạng thái</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              >
-                <option value="ALL">Tất cả</option>
-                <option value="AVAILABLE">Có sẵn</option>
-                <option value="OCCUPIED">Đang sử dụng</option>
-                <option value="UNAVAILABLE">Không khả dụng</option>
-              </select>
-            </div>
-
-            <div className="flex-1 min-w-[120px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Tòa nhà</label>
-              <select
-                value={filterBuilding}
-                onChange={(e) => setFilterBuilding(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              >
-                <option value="ALL">Tất cả</option>
-                {uniqueBuildings.map((building) => (
-                  <option key={building} value={building}>
-                    {building}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-
-
-            <div className="flex-1 min-w-[100px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Sức chứa tối thiểu</label>
-              <input
-                type="number"
-                placeholder="VD: 50"
-                value={filterCapacityMin}
-                onChange={(e) => setFilterCapacityMin(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-
-            <div className="flex-1 min-w-[100px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Sức chứa tối đa</label>
-              <input
-                type="number"
-                placeholder="VD: 100"
-                value={filterCapacityMax}
-                onChange={(e) => setFilterCapacityMax(e.target.value)}
-                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterStatus && filterStatus !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="AVAILABLE">Có sẵn</option>
+            <option value="OCCUPIED">Đang sử dụng</option>
+            <option value="UNAVAILABLE">Không khả dụng</option>
+          </select>
+          <select
+            value={filterBuilding}
+            onChange={(e) => setFilterBuilding(e.target.value)}
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="ALL">Tất cả tòa nhà</option>
+            {uniqueBuildings.map((building) => (
+              <option key={building} value={building}>
+                {building}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            placeholder="Sức chứa tối thiểu"
+            value={filterCapacityMin}
+            onChange={(e) => setFilterCapacityMin(e.target.value)}
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent min-w-[140px] ${
+              filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          />
+          <input
+            type="number"
+            placeholder="Sức chứa tối đa"
+            value={filterCapacityMax}
+            onChange={(e) => setFilterCapacityMax(e.target.value)}
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent min-w-[140px] ${
+              filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          />
         </div>
+
+        {/* Filter Tags - Hiển thị các filter đang active */}
+        {(filterStatus && filterStatus !== 'ALL') || (filterBuilding && filterBuilding !== 'ALL') || filterCapacityMin || filterCapacityMax || searchTerm ? (
+          <div className="mb-4 flex items-center gap-2 flex-wrap">
+            {filterStatus && filterStatus !== 'ALL' && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Trạng thái: {filterStatus === 'AVAILABLE' ? 'Có sẵn' : filterStatus === 'OCCUPIED' ? 'Đang sử dụng' : 'Không khả dụng'}</span>
+                <button
+                  onClick={() => setFilterStatus('ALL')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterBuilding && filterBuilding !== 'ALL' && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Tòa: {filterBuilding}</span>
+                <button
+                  onClick={() => setFilterBuilding('ALL')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterCapacityMin && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Min: {filterCapacityMin}</span>
+                <button
+                  onClick={() => setFilterCapacityMin('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterCapacityMax && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Max: {filterCapacityMax}</span>
+                <button
+                  onClick={() => setFilterCapacityMax('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {searchTerm && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>Tìm kiếm: {searchTerm}</span>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setFilterStatus('ALL')
+                setFilterBuilding('ALL')
+                setFilterCapacityMin('')
+                setFilterCapacityMax('')
+                setSearchTerm('')
+              }}
+              className="px-2 py-1 text-xs text-red-600 hover:text-red-800 font-medium underline"
+            >
+              Xóa tất cả
+            </button>
+          </div>
+        ) : null}
 
 
 
@@ -370,7 +429,6 @@ const RoomsPage = () => {
               <tr>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tầng</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sức chứa</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Trạng thái</th>
@@ -382,7 +440,6 @@ const RoomsPage = () => {
                 <tr key={room.id} className="hover:bg-red-50 border-b border-gray-200">
                   <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.floor || '-'}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{getRoomTypeText(room.roomType)}</td>
                   <td className="px-2 py-2 whitespace-nowrap border-r border-gray-200">
