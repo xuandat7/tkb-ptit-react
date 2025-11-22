@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Play, Loader, Upload, HelpCircle, FileText, ArrowRight } from 'lucide-react'
-import { subjectService, roomService, type SubjectByMajor } from '../services/api'
+import { subjectService, roomService, semesterService, type SubjectByMajor } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import ImportFileModal from '../components/ImportFileModal'
@@ -76,6 +76,7 @@ const TKBPage = () => {
       if (saved) {
         const parsed = JSON.parse(saved)
         return {
+          semester: parsed.semester || '',
           systemType: parsed.systemType || 'chinh_quy',
           classYear: parsed.classYear || '',
           selectedMajorGroup: parsed.selectedMajorGroup || '',
@@ -93,6 +94,8 @@ const TKBPage = () => {
 
   const persistedState = loadPersistedState()
 
+  const [semester, setSemester] = useState(persistedState?.semester || '')
+  const [semesters, setSemesters] = useState<string[]>([])
   const [systemType, setSystemType] = useState(persistedState?.systemType || 'chinh_quy')
   const [classYear, setClassYear] = useState(persistedState?.classYear || '')
   const [classYears, setClassYears] = useState<string[]>([])
@@ -111,6 +114,7 @@ const TKBPage = () => {
   // Persist state to localStorage whenever it changes
   useEffect(() => {
     const stateToSave = {
+      semester,
       systemType,
       classYear,
       selectedMajorGroup,
@@ -120,12 +124,27 @@ const TKBPage = () => {
       failedSubjects,
     }
     localStorage.setItem('tkbPageState', JSON.stringify(stateToSave))
-  }, [systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
+  }, [semester, systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
 
   // Load class years on component mount
   useEffect(() => {
     loadClassYears()
+    loadSemesters()
   }, [])
+
+  const loadSemesters = async () => {
+    try {
+      const response = await semesterService.getAllNames()
+      if (response.data.success) {
+        const names = response.data.data || []
+        setSemesters(names)
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách học kỳ:', error)
+      // Fallback to hardcoded semesters if API fails
+      setSemesters(['HK1-2024-2025', 'HK2-2024-2025', 'HK3-2024-2025'])
+    }
+  }
 
   const loadClassYears = async () => {
     try {
@@ -905,6 +924,22 @@ const TKBPage = () => {
         
         {/* System Type and Class Year Selection */}
         <div className="mb-6 flex flex-wrap gap-4 items-end">
+          <div className="min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Chọn học kỳ:</label>
+            <select
+              value={semester}
+              onChange={(e) => setSemester(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="">-- Chọn học kỳ --</option>
+              {semesters.map((sem) => (
+                <option key={sem} value={sem}>
+                  {sem}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-2">Loại hệ đào tạo:</label>
             <select

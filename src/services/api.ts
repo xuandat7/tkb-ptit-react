@@ -116,6 +116,27 @@ export interface Major {
   subjectNames?: string[]
 }
 
+// Semester Types
+export interface Semester {
+  id: number
+  semesterName: string
+  academicYear: string
+  startDate: string
+  endDate: string
+  isActive: boolean
+  description?: string
+  subjectCount: number
+}
+
+export interface SemesterRequest {
+  semesterName: string
+  academicYear: string
+  startDate?: string
+  endDate?: string
+  isActive?: boolean
+  description?: string
+}
+
 // Room Types
 export interface Room {
   id: number
@@ -286,6 +307,18 @@ export const subjectService = {
 
 export const majorService = {
   getAll: () => api.get<ApiResponse<Major[]>>('/majors'),
+}
+
+export const semesterService = {
+  getAll: () => api.get<ApiResponse<Semester[]>>('/semesters'),
+  getById: (id: number) => api.get<ApiResponse<Semester>>(`/semesters/${id}`),
+  getByName: (semesterName: string) => api.get<ApiResponse<Semester>>(`/semesters/name/${semesterName}`),
+  getActive: () => api.get<ApiResponse<Semester>>('/semesters/active'),
+  getAllNames: () => api.get<ApiResponse<string[]>>('/semesters/names'),
+  create: (data: SemesterRequest) => api.post<ApiResponse<Semester>>('/semesters', data),
+  update: (id: number, data: SemesterRequest) => api.put<ApiResponse<Semester>>(`/semesters/${id}`, data),
+  delete: (id: number) => api.delete<ApiResponse<void>>(`/semesters/${id}`),
+  activate: (id: number) => api.patch<ApiResponse<Semester>>(`/semesters/${id}/activate`),
 }
 
 export const roomService = {
