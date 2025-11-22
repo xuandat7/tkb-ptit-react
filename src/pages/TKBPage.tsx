@@ -77,7 +77,7 @@ const TKBPage = () => {
         const parsed = JSON.parse(saved)
         return {
           systemType: parsed.systemType || 'chinh_quy',
-          classYear: parsed.classYear || '2022',
+          classYear: parsed.classYear || '',
           selectedMajorGroup: parsed.selectedMajorGroup || '',
           batchRows: parsed.batchRows || [],
           results: parsed.results || [],
@@ -94,7 +94,8 @@ const TKBPage = () => {
   const persistedState = loadPersistedState()
 
   const [systemType, setSystemType] = useState(persistedState?.systemType || 'chinh_quy')
-  const [classYear, setClassYear] = useState(persistedState?.classYear || '2022')
+  const [classYear, setClassYear] = useState(persistedState?.classYear || '')
+  const [classYears, setClassYears] = useState<string[]>([])
   const [majorGroups, setMajorGroups] = useState<string[]>([])
   const [selectedMajorGroup, setSelectedMajorGroup] = useState(persistedState?.selectedMajorGroup || '')
   const [batchRows, setBatchRows] = useState<BatchRowWithCombination[]>(persistedState?.batchRows || [])
@@ -121,14 +122,42 @@ const TKBPage = () => {
     localStorage.setItem('tkbPageState', JSON.stringify(stateToSave))
   }, [systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
 
+  // Load class years on component mount
+  useEffect(() => {
+    loadClassYears()
+  }, [])
+
+  const loadClassYears = async () => {
+    try {
+      const response = await subjectService.getAllClassYears()
+      if (response.data.success) {
+        const years = response.data.data || []
+        setClassYears(years)
+        // Don't auto-select first year, keep empty to show placeholder
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách khóa:', error)
+    }
+  }
+
   useEffect(() => {
     // Load major groups when systemType and classYear change
-    if (systemType && classYear) {
+    // Skip API call for "chung" system type
+    if (systemType && classYear && systemType !== 'chung') {
       loadMajorGroups()
+    } else if (systemType === 'chung') {
+      // Clear major groups for "chung" system type
+      setMajorGroups([])
     }
   }, [systemType, classYear])
 
   const loadMajorGroups = async () => {
+    // Skip API call for "chung" system type
+    if (systemType === 'chung') {
+      setMajorGroups([])
+      return
+    }
+
     try {
       setLoading(true)
       
@@ -138,8 +167,6 @@ const TKBPage = () => {
         programType = 'Chính quy'
       } else if (systemType === 'he_dac_thu') {
         programType = 'Đặc thù'
-      } else if (systemType === 'chung') {
-        programType = 'Chung'
       } else {
         // Default fallback
         programType = 'Chính quy'
@@ -168,13 +195,13 @@ const TKBPage = () => {
   }
 
   const loadSubjectsByMajorGroup = async () => {
-    // For "Chung" system type, we don't need classYear or selectedMajorGroup
+    // For "Chung" system type, call common subjects API
     if (systemType === 'chung') {
       try {
         setLoading(true)
         
         // Call API to get all common subjects
-        const response = await subjectService.getByMajors('', 'Chung', [])
+        const response = await subjectService.getCommonSubjects()
         
         if (response.data.success) {
           const subjects = response.data.data
@@ -898,9 +925,12 @@ const TKBPage = () => {
                 systemType === 'chung' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
               }`}
             >
-              <option value="2022">Khóa 2022</option>
-              <option value="2023">Khóa 2023</option>
-              <option value="2024">Khóa 2024</option>
+              <option value="">-- Chọn khóa --</option>
+              {classYears.map((year) => (
+                <option key={year} value={year}>
+                  Khóa {year}
+                </option>
+              ))}
             </select>
           </div>
 

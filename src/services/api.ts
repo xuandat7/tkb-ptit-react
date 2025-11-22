@@ -280,6 +280,7 @@ export const subjectService = {
   },
   getAllProgramTypes: () => api.get<ApiResponse<string[]>>('/subjects/program-types'),
   getAllClassYears: () => api.get<ApiResponse<string[]>>('/subjects/class-years'),
+  getCommonSubjects: () => api.get<ApiResponse<SubjectByMajor[]>>('/subjects/common-subjects'),
   deleteBySemester: (semester: string) => api.delete<ApiResponse<number>>(`/subjects/semester/${semester}`),
 }
 
