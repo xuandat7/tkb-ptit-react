@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Home, Calendar, CheckCircle, FileText, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Home, Calendar, CheckCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react'
 
 const Layout = () => {
   const location = useLocation()
@@ -9,6 +9,7 @@ const Layout = () => {
   const navItems = [
     { path: '/subjects', label: 'CT Đào tạo', icon: BookOpen },
     { path: '/rooms', label: 'Phòng học', icon: Home },
+    { path: '/semesters', label: 'Học kỳ', icon: GraduationCap },
     { path: '/room-schedule', label: 'Lịch phòng', icon: Calendar },
     { path: '/tkb', label: 'Thời khóa biểu', icon: LayoutDashboard },
     { path: '/saved-schedules', label: 'TKB đã lưu', icon: FileText },

@@ -116,6 +116,28 @@ export interface Major {
   subjectNames?: string[]
 }
 
+// Semester Types
+export interface Semester {
+  id: number
+  name: string
+  startDate: string
+  endDate: string
+  isActive: boolean
+  academicYear: string
+  description?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface SemesterRequest {
+  name: string
+  startDate: string
+  endDate: string
+  isActive?: boolean
+  academicYear: string
+  description?: string
+}
+
 // Room Types
 export interface Room {
   id: number
@@ -344,6 +366,16 @@ export const scheduleValidationService = {
     if (teacherId) params.append('teacherId', teacherId)
     return api.get<ApiResponse<any>>(`/schedule-validation/conflicts/${type}?${params}`)
   },
+}
+
+export const semesterService = {
+  getAll: () => api.get<ApiResponse<Semester[]>>('/semesters'),
+  getById: (id: number) => api.get<ApiResponse<Semester>>(`/semesters/${id}`),
+  create: (semester: SemesterRequest) => api.post<ApiResponse<Semester>>('/semesters', semester),
+  update: (id: number, semester: SemesterRequest) => api.put<ApiResponse<Semester>>(`/semesters/${id}`, semester),
+  delete: (id: number) => api.delete<ApiResponse<void>>(`/semesters/${id}`),
+  setActive: (id: number) => api.put<ApiResponse<Semester>>(`/semesters/${id}/activate`),
+  getActive: () => api.get<ApiResponse<Semester>>('/semesters/active'),
 }
 
 export const tkbService = {
