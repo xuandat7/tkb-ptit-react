@@ -64,7 +64,7 @@ export interface Subject {
   majorName: string | null
   facultyId: string
   facultyName: string | null
-  semester?: string | number
+  semesterName?: string
 }
 
 export interface SubjectByMajor {
@@ -100,7 +100,7 @@ export interface SubjectRequest {
   majorName?: string
   programType: string
   numberOfStudents: number
-  semester?: string
+  semesterName?: string
 }
 
 // Major Types
@@ -135,6 +135,12 @@ export interface SemesterRequest {
   endDate?: string
   isActive?: boolean
   description?: string
+}
+
+// Academic Year type
+export interface AcademicYear {
+  year: string
+  isActive: boolean
 }
 
 // Room Types
@@ -262,6 +268,7 @@ export const subjectService = {
     classYear?: string,
     majorCode?: string,
     programType?: string,
+    academicYear?: string,
     sortBy = 'id',
     sortDir = 'asc'
   ) => {
@@ -276,6 +283,7 @@ export const subjectService = {
     if (classYear) params.append('classYear', classYear)
     if (majorCode) params.append('majorCode', majorCode)
     if (programType) params.append('programType', programType)
+    if (academicYear) params.append('academicYear', academicYear)
     return api.get<ApiResponse<PaginatedResponse<Subject>>>(`/subjects?${params}`)
   },
   getById: (id: number) => api.get<ApiResponse<Subject>>(`/subjects/${id}`),
@@ -284,15 +292,19 @@ export const subjectService = {
   create: (data: SubjectRequest) => api.post<ApiResponse<Subject>>('/subjects', data),
   update: (id: number, data: SubjectRequest) => api.put<ApiResponse<Subject>>(`/subjects/${id}`, data),
   delete: (id: number) => api.delete<ApiResponse<void>>(`/subjects/${id}`),
-  getGroupMajors: (classYear: string, programType: string) => {
+  getGroupMajors: (semesterName: string, academicYear: string, classYear: string, programType: string) => {
     const params = new URLSearchParams({ 
+      semesterName: semesterName,
+      academicYear: academicYear,
       classYear: classYear,
       programType: programType
     })
     return api.get<ApiResponse<string[][]>>(`/subjects/group-majors?${params}`)
   },
-  getByMajors: (classYear: string, programType: string, majorCodes: string[]) => {
+  getByMajors: (semesterName: string, academicYear: string, classYear: string, programType: string, majorCodes: string[]) => {
     const params = new URLSearchParams({ 
+      semesterName: semesterName,
+      academicYear: academicYear,
       classYear: classYear,
       programType: programType
     })
@@ -301,7 +313,13 @@ export const subjectService = {
   },
   getAllProgramTypes: () => api.get<ApiResponse<string[]>>('/subjects/program-types'),
   getAllClassYears: () => api.get<ApiResponse<string[]>>('/subjects/class-years'),
-  getCommonSubjects: () => api.get<ApiResponse<SubjectByMajor[]>>('/subjects/common-subjects'),
+  getCommonSubjects: (semesterName: string, academicYear: string) => {
+    const params = new URLSearchParams({ 
+      semesterName: semesterName,
+      academicYear: academicYear
+    })
+    return api.get<ApiResponse<SubjectByMajor[]>>(`/subjects/common-subjects?${params}`)
+  },
   deleteBySemester: (semester: string) => api.delete<ApiResponse<number>>(`/subjects/semester/${semester}`),
 }
 
@@ -315,10 +333,28 @@ export const semesterService = {
   getByName: (semesterName: string) => api.get<ApiResponse<Semester>>(`/semesters/name/${semesterName}`),
   getActive: () => api.get<ApiResponse<Semester>>('/semesters/active'),
   getAllNames: () => api.get<ApiResponse<string[]>>('/semesters/names'),
+  getAcademicYears: () => api.get<ApiResponse<Semester[]>>('/semesters').then(response => {
+    if (response.data.success && response.data.data) {
+      const uniqueYears = Array.from(new Set(response.data.data.map(s => s.academicYear)))
+        .sort((a, b) => b.localeCompare(a)) // Sort descending
+      return {
+        ...response.data,
+        data: uniqueYears.map(year => ({
+          year,
+          isActive: response.data.data!.some(s => s.academicYear === year && s.isActive)
+        }))
+      }
+    }
+    return response.data
+  }),
   create: (data: SemesterRequest) => api.post<ApiResponse<Semester>>('/semesters', data),
   update: (id: number, data: SemesterRequest) => api.put<ApiResponse<Semester>>(`/semesters/${id}`, data),
   delete: (id: number) => api.delete<ApiResponse<void>>(`/semesters/${id}`),
-  activate: (id: number) => api.patch<ApiResponse<Semester>>(`/semesters/${id}/activate`),
+  setActive: (id: number) => api.patch<ApiResponse<Semester>>(`/semesters/${id}/activate`),
+  deleteSubjectsBySemesterName: (semesterName: string) => 
+    api.delete<ApiResponse<number>>(`/subjects/semester-name/${encodeURIComponent(semesterName)}`),
+  deleteSubjectsBySemesterNameAndAcademicYear: (semesterName: string, academicYear: string) => 
+    api.delete<ApiResponse<number>>(`/subjects/semester-name/${encodeURIComponent(semesterName)}/academic-year/${encodeURIComponent(academicYear)}`),
 }
 
 export const roomService = {
@@ -378,6 +414,8 @@ export const scheduleValidationService = {
     return api.get<ApiResponse<any>>(`/schedule-validation/conflicts/${type}?${params}`)
   },
 }
+
+
 
 export const tkbService = {
   resetLastSlotIdx: () => api.post<ApiResponse<any>>('/tkb/reset-last-slot-idx'),

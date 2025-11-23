@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Play, Loader, Upload, HelpCircle, FileText, ArrowRight } from 'lucide-react'
-import { subjectService, roomService, semesterService, type SubjectByMajor } from '../services/api'
+import { subjectService, roomService, semesterService, type SubjectByMajor, type Semester } from '../services/api'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import ImportFileModal from '../components/ImportFileModal'
@@ -77,6 +77,7 @@ const TKBPage = () => {
         const parsed = JSON.parse(saved)
         return {
           semester: parsed.semester || '',
+          academicYear: parsed.academicYear || '',
           systemType: parsed.systemType || 'chinh_quy',
           classYear: parsed.classYear || '',
           selectedMajorGroup: parsed.selectedMajorGroup || '',
@@ -95,10 +96,13 @@ const TKBPage = () => {
   const persistedState = loadPersistedState()
 
   const [semester, setSemester] = useState(persistedState?.semester || '')
-  const [semesters, setSemesters] = useState<string[]>([])
+  const [academicYear, setAcademicYear] = useState(persistedState?.academicYear || '')
+  const [academicYears, setAcademicYears] = useState<string[]>([])
+  const [allSemesters, setAllSemesters] = useState<Semester[]>([])
   const [systemType, setSystemType] = useState(persistedState?.systemType || 'chinh_quy')
   const [classYear, setClassYear] = useState(persistedState?.classYear || '')
   const [classYears, setClassYears] = useState<string[]>([])
+  const [programTypes, setProgramTypes] = useState<string[]>([])
   const [majorGroups, setMajorGroups] = useState<string[]>([])
   const [selectedMajorGroup, setSelectedMajorGroup] = useState(persistedState?.selectedMajorGroup || '')
   const [batchRows, setBatchRows] = useState<BatchRowWithCombination[]>(persistedState?.batchRows || [])
@@ -115,6 +119,7 @@ const TKBPage = () => {
   useEffect(() => {
     const stateToSave = {
       semester,
+      academicYear,
       systemType,
       classYear,
       selectedMajorGroup,
@@ -124,38 +129,150 @@ const TKBPage = () => {
       failedSubjects,
     }
     localStorage.setItem('tkbPageState', JSON.stringify(stateToSave))
-  }, [semester, systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
+  }, [semester, academicYear, systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
 
   // Load class years on component mount
   useEffect(() => {
-    loadClassYears()
     loadSemesters()
   }, [])
 
+  // Load program types when semester changes
+  useEffect(() => {
+    if (semester && academicYear) {
+      loadProgramTypes()
+    } else {
+      setProgramTypes([])
+      setSystemType('chinh_quy')
+    }
+  }, [semester, academicYear])
+
+  // Load class years when program type changes  
+  useEffect(() => {
+    if (semester && academicYear && systemType && systemType !== 'chung') {
+      loadClassYears()
+    } else {
+      setClassYears([])
+      setClassYear('')
+    }
+  }, [semester, academicYear, systemType])
+
+  // Load major groups when class year changes
+  useEffect(() => {
+    if (systemType && classYear && systemType !== 'chung') {
+      loadMajorGroups()
+    } else if (systemType === 'chung') {
+      setMajorGroups([])
+    }
+  }, [systemType, classYear])
+
   const loadSemesters = async () => {
     try {
-      const response = await semesterService.getAllNames()
+      const response = await semesterService.getAll()
       if (response.data.success) {
-        const names = response.data.data || []
-        setSemesters(names)
+        const semesterData = response.data.data || []
+        setAllSemesters(semesterData)
+        
+        // Extract unique academic years and sort descending
+        const uniqueYears = Array.from(new Set(semesterData.map(s => s.academicYear)))
+          .sort((a, b) => b.localeCompare(a))
+        setAcademicYears(uniqueYears)
       }
     } catch (error) {
       console.error('Lỗi khi tải danh sách học kỳ:', error)
-      // Fallback to hardcoded semesters if API fails
-      setSemesters(['HK1-2024-2025', 'HK2-2024-2025', 'HK3-2024-2025'])
+      // Fallback to hardcoded data if API fails
+      setAllSemesters([
+        { 
+          id: 1, 
+          semesterName: 'Học kỳ 1', 
+          academicYear: '2024-2025',
+          startDate: '2024-09-01',
+          endDate: '2025-01-15',
+          isActive: true,
+          subjectCount: 0
+        },
+        { 
+          id: 2, 
+          semesterName: 'Học kỳ 2', 
+          academicYear: '2024-2025',
+          startDate: '2025-01-20',
+          endDate: '2025-05-30',
+          isActive: false,
+          subjectCount: 0
+        },
+        { 
+          id: 3, 
+          semesterName: 'Học kỳ 3', 
+          academicYear: '2024-2025',
+          startDate: '2025-06-01',
+          endDate: '2025-08-20',
+          isActive: false,
+          subjectCount: 0
+        },
+      ])
+      setAcademicYears(['2024-2025'])
     }
   }
 
   const loadClassYears = async () => {
+    if (!semester || !academicYear || !systemType || systemType === 'chung') {
+      return
+    }
+
     try {
-      const response = await subjectService.getAllClassYears()
+      setLoading(true)
+      
+      // Map systemType to programType for API
+      let programType = ''
+      if (systemType === 'chinh_quy') {
+        programType = 'Chính quy'
+      } else if (systemType === 'he_dac_thu') {
+        programType = 'Đặc thù'
+      }
+
+      // Call API với query parameters
+      const response = await api.get('/subjects/class-years', {
+        params: {
+          semester: semester,
+          academicYear: academicYear,
+          programType: programType
+        }
+      })
+      
       if (response.data.success) {
         const years = response.data.data || []
         setClassYears(years)
-        // Don't auto-select first year, keep empty to show placeholder
       }
     } catch (error) {
       console.error('Lỗi khi tải danh sách khóa:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadProgramTypes = async () => {
+    if (!semester || !academicYear) {
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Call API với query parameters
+      const response = await api.get('/subjects/program-types', {
+        params: {
+          semester: semester,
+          academicYear: academicYear
+        }
+      })
+      
+      if (response.data.success) {
+        const types = response.data.data || []
+        setProgramTypes(types)
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách hệ đào tạo:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -177,6 +294,12 @@ const TKBPage = () => {
       return
     }
 
+    // Validate required fields
+    if (!semester || !academicYear || !classYear) {
+      console.log('Missing required fields for loadMajorGroups')
+      return
+    }
+
     try {
       setLoading(true)
       
@@ -191,8 +314,8 @@ const TKBPage = () => {
         programType = 'Chính quy'
       }
       
-      // Call API to get major groups
-      const response = await subjectService.getGroupMajors(classYear, programType)
+      // Call API to get major groups với semesterName và academicYear
+      const response = await subjectService.getGroupMajors(semester, academicYear, classYear, programType)
       
       if (response.data.success) {
         // Convert array of arrays to string array (join with dash)
@@ -216,11 +339,17 @@ const TKBPage = () => {
   const loadSubjectsByMajorGroup = async () => {
     // For "Chung" system type, call common subjects API
     if (systemType === 'chung') {
+      // Validate required fields
+      if (!semester || !academicYear) {
+        toast.error('Vui lòng chọn năm học và học kỳ trước')
+        return
+      }
+
       try {
         setLoading(true)
         
-        // Call API to get all common subjects
-        const response = await subjectService.getCommonSubjects()
+        // Call API to get all common subjects với semesterName và academicYear
+        const response = await subjectService.getCommonSubjects(semester, academicYear)
         
         if (response.data.success) {
           const subjects = response.data.data
@@ -269,7 +398,7 @@ const TKBPage = () => {
     }
 
     // Original logic for other system types
-    if (!classYear || !selectedMajorGroup || !systemType) {
+    if (!semester || !academicYear || !classYear || !selectedMajorGroup || !systemType) {
       toast.error('Vui lòng chọn đầy đủ thông tin trước')
       return
     }
@@ -303,8 +432,8 @@ const TKBPage = () => {
       // Filter out empty codes
       const processedMajorCodes = majorCodes.filter((code: string) => code.trim() !== '')
 
-      // Call API to get subjects by majors
-      const response = await subjectService.getByMajors(classYear, programType, processedMajorCodes)
+      // Call API to get subjects by majors với semesterName và academicYear
+      const response = await subjectService.getByMajors(semester, academicYear, classYear, programType, processedMajorCodes)
       
       if (response.data.success) {
         const subjects = response.data.data
@@ -908,51 +1037,76 @@ const TKBPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Nhập nhiều môn học (bảng)</h2>
-          {batchRows.length > 0 && (
-            <button
-              onClick={generateTKB}
-              disabled={loading || batchRows.length === 0}
-              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Sinh Thời khoá biểu
-            </button>
-          )}
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold"></h2>
         </div>
         
         {/* System Type and Class Year Selection */}
-        <div className="mb-6 flex flex-wrap gap-4 items-end">
-          <div className="min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Chọn học kỳ:</label>
+        <div className="mb-6 flex flex-wrap gap-3 items-end">
+          <div className="min-w-[160px]">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Chọn năm học:</label>
             <select
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              value={academicYear}
+              onChange={(e) => {
+                setAcademicYear(e.target.value)
+                setSemester('') // Reset semester when year changes
+                setSystemType('chinh_quy') // Reset subsequent filters
+                setClassYear('')
+                setSelectedMajorGroup('')
+                setBatchRows([])
+              }}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg"
             >
-              <option value="">-- Chọn học kỳ --</option>
-              {semesters.map((sem) => (
-                <option key={sem} value={sem}>
-                  {sem}
+              <option value="">-- Chọn năm học --</option>
+              {academicYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Loại hệ đào tạo:</label>
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Chọn học kỳ:</label>
+            <select
+              value={semester}
+              onChange={(e) => {
+                setSemester(e.target.value)
+                setSystemType('chinh_quy') // Reset subsequent filters
+                setClassYear('')
+                setSelectedMajorGroup('')
+                setBatchRows([])
+              }}
+              disabled={!academicYear}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
+                !academicYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              }`}
+            >
+              <option value="">-- Chọn học kỳ --</option>
+              {allSemesters
+                .filter(s => !academicYear || s.academicYear === academicYear)
+                .map((sem) => (
+                  <option key={sem.id} value={sem.semesterName}>
+                    {sem.semesterName}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="min-w-[140px]">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Loại hệ đào tạo:</label>
             <select
               value={systemType}
               onChange={(e) => {
                 setSystemType(e.target.value)
+                setClassYear('') // Reset subsequent filters
+                setSelectedMajorGroup('')
                 setBatchRows([])
-                // Reset selectedMajorGroup when changing to/from "chung"
-                if (e.target.value === 'chung' || systemType === 'chung') {
-                  setSelectedMajorGroup('')
-                }
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              disabled={!semester}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
+                !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              }`}
             >
               <option value="chinh_quy">Hệ thường</option>
               <option value="he_dac_thu">Hệ đặc thù</option>
@@ -960,14 +1114,18 @@ const TKBPage = () => {
             </select>
           </div>
 
-          <div className="min-w-[150px]">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Chọn khóa:</label>
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Chọn khóa:</label>
             <select
               value={classYear}
-              onChange={(e) => setClassYear(e.target.value)}
-              disabled={systemType === 'chung'}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
-                systemType === 'chung' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              onChange={(e) => {
+                setClassYear(e.target.value)
+                setSelectedMajorGroup('') // Reset subsequent filters
+                setBatchRows([])
+              }}
+              disabled={systemType === 'chung' || !systemType || !semester}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
+                systemType === 'chung' || !systemType || !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
               }`}
             >
               <option value="">-- Chọn khóa --</option>
@@ -979,14 +1137,17 @@ const TKBPage = () => {
             </select>
           </div>
 
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Chọn ngành:</label>
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Chọn ngành:</label>
             <select
               value={selectedMajorGroup}
-              onChange={(e) => setSelectedMajorGroup(e.target.value)}
-              disabled={systemType === 'chung' || !majorGroups.length}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
-                systemType === 'chung' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              onChange={(e) => {
+                setSelectedMajorGroup(e.target.value)
+                setBatchRows([])
+              }}
+              disabled={systemType === 'chung' || !majorGroups.length || !classYear}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
+                systemType === 'chung' || !majorGroups.length || !classYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
               }`}
             >
               <option value="">-- Chọn ngành --</option>
@@ -1002,7 +1163,7 @@ const TKBPage = () => {
             <button
               onClick={loadSubjectsByMajorGroup}
               disabled={systemType === 'chung' ? loading : (!selectedMajorGroup || loading)}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 whitespace-nowrap"
+              className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 whitespace-nowrap"
             >
               {loading ? 'Đang tải...' : 'Tải môn học'}
             </button>
@@ -1399,49 +1560,7 @@ const TKBPage = () => {
         </div>
       )}
 
-      {/* Saved Results */}
-      {savedResults.length > 0 && (
-        <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg shadow-lg p-6">
-          <h3 className="text-2xl font-bold mb-4">📚 Kết quả TKB đã lưu</h3>
-          <div className="space-y-3">
-            {savedResults.map((result) => (
-              <div
-                key={result.id}
-                className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg p-4 flex justify-between items-center"
-              >
-                <div className="flex-1">
-                  <div className="font-semibold text-white">{result.title}</div>
-                  <div className="text-sm text-red-100 mt-1">
-                    Ngành: {result.department} | Thời gian: {result.timestamp} | Số lớp: {result.data.length}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => viewResult(result.id)}
-                    className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors text-sm"
-                  >
-                    👁️ Xem
-                  </button>
-                  <button
-                    onClick={() => removeResult(result.id)}
-                    className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors text-sm"
-                  >
-                    🗑️ Xóa
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex gap-3">
-            <button
-              onClick={clearAllResults}
-              className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
-            >
-              🗑️ Xóa tất cả
-            </button>
-          </div>
-        </div>
-      )}
+      
 
       {/* Import File Modal */}
       <ImportFileModal
@@ -1453,6 +1572,24 @@ const TKBPage = () => {
         maxSizeMB={10}
         sampleFileName="mau_data_lich_hoc.xlsx"
       />
+      
+      {/* Floating Generate Button */}
+      {batchRows.length > 0 && (
+        <div className="fixed bottom-6 left-6 z-50">
+          <button
+            onClick={generateTKB}
+            disabled={loading || batchRows.length === 0}
+            className="flex items-center gap-3 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            {loading ? (
+              <Loader className="w-5 h-5 animate-spin" />
+            ) : (
+              <Play className="w-5 h-5" />
+            )}
+            <span className="font-semibold">Sinh TKB Batch</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

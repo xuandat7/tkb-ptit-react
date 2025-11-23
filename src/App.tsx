@@ -8,6 +8,7 @@ import TKBGuidePage from './pages/TKBGuidePage'
 import RoomSchedulePage from './pages/RoomSchedulePage'
 import ScheduleValidationPage from './pages/ScheduleValidationPage'
 import SavedSchedulesPage from './pages/SavedSchedulesPage'
+import SemestersPage from './pages/SemestersPage'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="tkb-guide" element={<TKBGuidePage />} />
         <Route path="schedule-validation" element={<ScheduleValidationPage />} />
         <Route path="saved-schedules" element={<SavedSchedulesPage />} />
+        <Route path="semesters" element={<SemestersPage />} />
       </Route>
     </Routes>
   )

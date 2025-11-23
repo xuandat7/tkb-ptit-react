@@ -1,25 +1,28 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, Home } from 'lucide-react'
-import { subjectService, roomService } from '../services/api'
+import { BookOpen, Home, GraduationCap } from 'lucide-react'
+import { subjectService, roomService, semesterService } from '../services/api'
 import toast from 'react-hot-toast'
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
     subjects: 0,
     rooms: 0,
+    semesters: 0,
   })
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [subjectsRes, roomsRes] = await Promise.all([
+        const [subjectsRes, roomsRes, semestersRes] = await Promise.all([
           subjectService.getAll(),
           roomService.getAll(),
+          semesterService.getAll(),
         ])
 
         setStats({
           subjects: subjectsRes.data.data?.totalElements || 0,
           rooms: roomsRes.data.data?.length || 0,
+          semesters: semestersRes.data.data?.length || 0,
         })
       } catch (error) {
         toast.error('Không thể tải dữ liệu thống kê')
@@ -32,6 +35,7 @@ const Dashboard = () => {
   const statCards = [
     { title: 'CT Đào tạo', value: stats.subjects, icon: BookOpen, color: 'from-red-500 to-red-600' },
     { title: 'Phòng học', value: stats.rooms, icon: Home, color: 'from-orange-500 to-orange-600' },
+    { title: 'Học kỳ', value: stats.semesters, icon: GraduationCap, color: 'from-blue-500 to-blue-600' },
   ]
 
   return (
@@ -41,7 +45,7 @@ const Dashboard = () => {
         <p className="text-gray-600 mt-2">Tổng quan hệ thống quản lý thời khóa biểu</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {statCards.map((card) => {
           const Icon = card.icon
           return (
@@ -77,6 +81,10 @@ const Dashboard = () => {
           <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
             <h3 className="font-semibold text-gray-900">Quản lý Phòng học</h3>
             <p className="text-sm text-gray-600 mt-1">Quản lý thông tin phòng học</p>
+          </div>
+          <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <h3 className="font-semibold text-gray-900">Quản lý Học kỳ</h3>
+            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin học kỳ</p>
           </div>
         </div>
       </div>

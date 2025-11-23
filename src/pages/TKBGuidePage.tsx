@@ -176,7 +176,7 @@ const TKBGuidePage = () => {
         '  2. Gọi API "/api/rooms/bulk-status" để chuyển các phòng đã dùng sang "OCCUPIED"',
         '  3. Lưu kết quả vào room results',
         'Thông báo thành công sẽ hiển thị số phòng đã cập nhật',
-        'Kết quả đã lưu sẽ xuất hiện trong section "📚 Kết quả TKB đã lưu"',
+        'Kết quả đã lưu sẽ xuất hiện trong section "Kết quả TKB đã lưu"',
       ],
       color: 'bg-red-50 border-red-200 text-red-800',
       iconColor: 'text-red-600',
@@ -312,7 +312,7 @@ const TKBGuidePage = () => {
 
       {/* Flow Diagram */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-6">📊 Sơ đồ quy trình</h2>
+        <h2 className="text-2xl font-bold mb-6">Sơ đồ quy trình</h2>
         <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6">
           <div className="space-y-3">
             {steps.map((step, index) => (
@@ -321,9 +321,7 @@ const TKBGuidePage = () => {
                   {step.number}
                 </div>
                 <div className="flex-1 text-gray-700 font-medium">{step.title}</div>
-                {index < steps.length - 1 && (
-                  <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                )}
+                
               </div>
             ))}
           </div>

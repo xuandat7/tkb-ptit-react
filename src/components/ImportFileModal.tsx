@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Upload, FileText, X, Download, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { semesterService, type Semester } from '../services/api'
 
 interface ImportFileModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (file: File, semester?: string) => void
+  onConfirm: (file: File, semesterName?: string) => void
   title?: string
   accept?: string
   maxSizeMB?: number
@@ -13,7 +14,7 @@ interface ImportFileModalProps {
   sampleFileUrl?: string
   showSemesterSelect?: boolean
   semester?: string
-  onSemesterChange?: (semester: string) => void
+  onSemesterChange?: (semesterName: string) => void
   isLoading?: boolean
 }
 
@@ -34,7 +35,31 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
   const [localSemester, setLocalSemester] = useState(semester)
+  const [semesters, setSemesters] = useState<Semester[]>([])
+  const [loadingSemesters, setLoadingSemesters] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Load semesters when modal opens
+  useEffect(() => {
+    if (isOpen && showSemesterSelect) {
+      loadSemesters()
+    }
+  }, [isOpen, showSemesterSelect])
+
+  const loadSemesters = async () => {
+    try {
+      setLoadingSemesters(true)
+      const response = await semesterService.getAll()
+      if (response.data.success && response.data.data) {
+        setSemesters(response.data.data)
+      }
+    } catch (error) {
+      console.error('Failed to load semesters:', error)
+      toast.error('Không thể tải danh sách học kỳ')
+    } finally {
+      setLoadingSemesters(false)
+    }
+  }
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
@@ -184,10 +209,16 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
                 value={localSemester}
                 onChange={(e) => handleSemesterChange(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                disabled={loadingSemesters}
               >
-                <option value="">-- Chọn học kỳ --</option>
-                <option value="Học kỳ 1">Học kỳ 1</option>
-                <option value="Học kỳ 2">Học kỳ 2</option>
+                <option value="">
+                  {loadingSemesters ? 'Đang tải...' : '-- Chọn học kỳ --'}
+                </option>
+                {semesters.map((s) => (
+                  <option key={s.id} value={`${s.semesterName} - ${s.academicYear}`}>
+                    {s.semesterName} - {s.academicYear}
+                  </option>
+                ))}
               </select>
             </div>
           )}

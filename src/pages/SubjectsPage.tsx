@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, Eye, ChevronLeft, ChevronRight, X, Upload } from 'lucide-react'
-import { subjectService, curriculumService, majorService, type Subject, type SubjectRequest, type Major } from '../services/api'
+import { subjectService, curriculumService, majorService, semesterService, type Subject, type SubjectRequest, type Major, type Semester } from '../services/api'
 import toast from 'react-hot-toast'
 import ImportFileModal from '../components/ImportFileModal'
 
@@ -13,7 +13,8 @@ const SubjectsPage = () => {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('') // Input value for search field
-  const [filterSemester, setFilterSemester] = useState('')
+  const [filterSemesterName, setFilterSemesterName] = useState('')
+  const [filterAcademicYear, setFilterAcademicYear] = useState('')
   const [filterClassYear, setFilterClassYear] = useState('')
   const [filterMajor, setFilterMajor] = useState('')
   const [filterProgramType, setFilterProgramType] = useState('')
@@ -22,17 +23,19 @@ const SubjectsPage = () => {
   const [programTypes, setProgramTypes] = useState<string[]>([])
   const [classYears, setClassYears] = useState<string[]>([])
   const [majors, setMajors] = useState<Major[]>([])
+  const [semesters, setSemesters] = useState<Semester[]>([])
+  const [academicYears, setAcademicYears] = useState<string[]>([])
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalElements, setTotalElements] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
-  const [selectedSemester, setSelectedSemester] = useState('')
+  const [selectedSemesterName, setSelectedSemesterName] = useState('')
   const [importing, setImporting] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
 
-  const [formData, setFormData] = useState<Omit<SubjectRequest, 'majorId' | 'majorName' | 'facultyId' | 'semester'>>({
+  const [formData, setFormData] = useState<Omit<SubjectRequest, 'majorId' | 'majorName' | 'facultyId' | 'semesterName'>>({
     subjectCode: '',
     subjectName: '',
     credits: 0,
@@ -56,7 +59,6 @@ const SubjectsPage = () => {
   
   // Separate state for majors in "Add Subject" modal
   const [modalMajors, setModalMajors] = useState<Major[]>([])
-  const [loadingModalMajors, setLoadingModalMajors] = useState(false)
   
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([])
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
@@ -79,15 +81,16 @@ const SubjectsPage = () => {
 
   useEffect(() => {
     fetchSubjects()
-  }, [currentPage, pageSize, searchTerm, filterSemester, filterClassYear, filterMajor, filterProgramType])
+  }, [currentPage, pageSize, searchTerm, filterSemesterName, filterAcademicYear, filterClassYear, filterMajor, filterProgramType])
 
   const fetchFilterData = async () => {
     try {
-      // Fetch program types, class years, and majors in parallel
-      const [programTypesRes, classYearsRes, majorsRes] = await Promise.all([
+      // Fetch program types, class years, majors, and semesters in parallel
+      const [programTypesRes, classYearsRes, majorsRes, semestersRes] = await Promise.all([
         subjectService.getAllProgramTypes(),
         subjectService.getAllClassYears(),
-        majorService.getAll()
+        majorService.getAll(),
+        semesterService.getAll()
       ])
 
       if (programTypesRes.data.success) {
@@ -107,6 +110,13 @@ const SubjectsPage = () => {
           { id: 4, majorCode: 'TT', majorName: 'Truyền thông', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
         ]
         setMajors(sampleMajors)
+      }
+      if (semestersRes.data.success) {
+        setSemesters(semestersRes.data.data)
+        // Extract unique academic years and sort descending
+        const uniqueYears = Array.from(new Set(semestersRes.data.data.map(s => s.academicYear)))
+          .sort((a, b) => b.localeCompare(a))
+        setAcademicYears(uniqueYears)
       }
     } catch (error) {
       console.error('Không thể tải dữ liệu filter:', error)
@@ -128,10 +138,11 @@ const SubjectsPage = () => {
         currentPage, 
         pageSize, 
         searchTerm || undefined,
-        filterSemester || undefined,
+        filterSemesterName || undefined,
         filterClassYear || undefined,
         filterMajor || undefined,
-        filterProgramType || undefined
+        filterProgramType || undefined,
+        filterAcademicYear || undefined
       )
       
       if (response.data.success) {
@@ -214,8 +225,8 @@ const SubjectsPage = () => {
       }
       
       if (editingSubject) {
-        // Include semester when updating
-        submitData.semester = editingSubject.semester?.toString()
+        // Include semesterName when updating
+        submitData.semesterName = editingSubject.semesterName
         await subjectService.update(editingSubject.id, submitData)
         toast.success('Cập nhật môn học thành công', { duration: 5000 })
       } else {
@@ -303,7 +314,6 @@ const SubjectsPage = () => {
   // Fetch majors specifically for the Add Subject modal
   const fetchMajorsForModal = async () => {
     try {
-      setLoadingModalMajors(true)
       const response = await majorService.getAll()
       
       if (response.data.success) {
@@ -315,8 +325,6 @@ const SubjectsPage = () => {
     } catch (error) {
       console.error('❌ Error loading majors for modal:', error)
       toast.error('Lỗi khi tải danh sách ngành')
-    } finally {
-      setLoadingModalMajors(false)
     }
   }
 
@@ -493,15 +501,31 @@ const SubjectsPage = () => {
             />
           </div>
           <select
-            value={filterSemester}
-            onChange={(e) => setFilterSemester(e.target.value)}
+            value={filterAcademicYear}
+            onChange={(e) => setFilterAcademicYear(e.target.value)}
             className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterSemester ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              filterAcademicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Tất cả năm học</option>
+            {academicYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+          <select
+            value={filterSemesterName}
+            onChange={(e) => setFilterSemesterName(e.target.value)}
+            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+              filterSemesterName ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
             }`}
           >
             <option value="">Tất cả học kỳ</option>
-            <option value="Học kỳ 1">Học kỳ 1</option>
-            <option value="Học kỳ 2">Học kỳ 2</option>
+            {semesters
+              .filter(s => !filterAcademicYear || s.academicYear === filterAcademicYear)
+              .map(s => (
+                <option key={s.id} value={s.semesterName}>{s.semesterName}</option>
+              ))
+            }
           </select>
           <select
             value={filterClassYear}
@@ -542,13 +566,24 @@ const SubjectsPage = () => {
         </div>
 
         {/* Filter Tags - Hiển thị các filter đang active DƯỚI hàng filter */}
-        {(filterSemester || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
+        {(filterAcademicYear || filterSemesterName || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
           <div className="mb-4 flex items-center gap-2 flex-wrap">
-            {filterSemester && (
+            {filterAcademicYear && (
               <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                <span>HK: {filterSemester}</span>
+                <span>Năm học: {filterAcademicYear}</span>
                 <button
-                  onClick={() => setFilterSemester('')}
+                  onClick={() => setFilterAcademicYear('')}
+                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {filterSemesterName && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                <span>HK: {filterSemesterName}</span>
+                <button
+                  onClick={() => setFilterSemesterName('')}
                   className="ml-0.5 hover:bg-red-200 rounded p-0.5"
                 >
                   <X className="w-3 h-3" />
@@ -599,12 +634,13 @@ const SubjectsPage = () => {
                   className="ml-0.5 hover:bg-red-200 rounded p-0.5"
                 >
                   <X className="w-3 h-3" />
-                </button>
+            </button>
               </div>
             )}
             <button
               onClick={() => {
-                setFilterSemester('')
+                setFilterAcademicYear('')
+                setFilterSemesterName('')
                 setFilterClassYear('')
                 setFilterMajor('')
                 setFilterProgramType('')
@@ -674,7 +710,7 @@ const SubjectsPage = () => {
                   <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.classYear}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">
-                    {subject.semester ? `${subject.semester}` : '-'}
+                    {subject.semesterName || '-'}
                   </td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.programType}</td>
@@ -1341,8 +1377,8 @@ const SubjectsPage = () => {
         maxSizeMB={10}
         sampleFileName="mau_ct_dao_tao.xlsx"
         showSemesterSelect={true}
-        semester={selectedSemester}
-        onSemesterChange={setSelectedSemester}
+        semester={selectedSemesterName}
+        onSemesterChange={setSelectedSemesterName}
         isLoading={importing}
       />
     </div>
