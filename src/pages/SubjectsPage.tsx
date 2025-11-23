@@ -405,9 +405,38 @@ const SubjectsPage = () => {
       // Gọi API upload Excel
       const response = await curriculumService.importExcel(file, semester)
       
-      if (response.data.success && response.data.data !== undefined) {
-        const count = response.data.data
-        toast.success(`Đã thêm thành công ${count} môn học từ file ${file.name}`, { duration: 5000 })
+      if (response.data.success && response.data.data) {
+        const result = response.data.data
+        
+        // Hiển thị thông báo thành công
+        if (result.successCount > 0) {
+          toast.success(
+            `Đã import thành công ${result.successCount} môn học từ file ${file.name}`,
+            { duration: 5000 }
+          )
+        }
+        
+        // Hiển thị cảnh báo nếu có môn bị trùng
+        if (result.skippedCount > 0 && result.warnings && result.warnings.length > 0) {
+          // Hiển thị warning với danh sách chi tiết
+          const warningMessage = result.warnings.slice(0, 3).join('\n')
+          const moreWarnings = result.warnings.length > 3 ? `\n... và ${result.warnings.length - 3} cảnh báo khác` : ''
+          
+          toast(
+            `Đã bỏ qua ${result.skippedCount} môn học bị trùng lặp:\n${warningMessage}${moreWarnings}`,
+            { 
+              duration: 8000,
+              icon: '⚠️',
+              style: {
+                maxWidth: '600px',
+                whiteSpace: 'pre-line',
+                background: '#fff3cd',
+                color: '#856404',
+                border: '1px solid #ffeeba'
+              }
+            }
+          )
+        }
         
         // Reload danh sách môn học
         fetchSubjects()

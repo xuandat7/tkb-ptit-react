@@ -203,6 +203,14 @@ export interface CurriculumImportResponse {
   data: CurriculumImportItem[]
 }
 
+export interface ExcelImportResult {
+  successCount: number
+  skippedCount: number
+  totalRows: number
+  warnings: string[]
+  validSubjects: SubjectRequest[]
+}
+
 // Schedule Validation Types
 export interface TimeSlot {
   date: string
@@ -380,7 +388,7 @@ export const curriculumService = {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('semester', semester)
-    return api.post<ApiResponse<number>>('/subjects/upload-excel', formData, {
+    return api.post<ApiResponse<ExcelImportResult>>('/subjects/upload-excel', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
