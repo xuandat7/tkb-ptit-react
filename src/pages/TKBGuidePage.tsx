@@ -214,24 +214,20 @@ const TKBGuidePage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
-        <h1 className="text-4xl font-bold mb-2">Hướng dẫn Sinh Thời khóa biểu</h1>
-        <p className="text-red-100 text-lg">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg">
+        <h1 className="text-2xl font-bold mb-2">Hướng dẫn Sinh Thời khóa biểu</h1>
+        <p className="text-red-100 text-sm">
           Hướng dẫn chi tiết từng bước để tạo thời khóa biểu tự động trong hệ thống
         </p>
       </div>
 
       {/* Quick Links */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <ArrowRight className="w-5 h-5 text-red-600" />
-          Đi đến trang Tạo TKB
-        </h2>
+      <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-between relative">
         <Link
           to="/tkb"
           className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
         >
-          <Play className="w-5 h-5" />
+          <Play className="w-4 h-4" />
           Mở trang Tạo Thời khóa biểu
         </Link>
       </div>

@@ -1010,11 +1010,11 @@ const TKBPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Tạo Thời khóa biểu</h1>
-            <p className="text-red-100 text-lg">Quản lý và tạo thời khóa biểu tự động</p>
+            <h1 className="text-2xl font-bold mb-2">Tạo Thời khóa biểu</h1>
+            <p className="text-red-100 text-sm">Quản lý và tạo thời khóa biểu tự động</p>
           </div>
           <div className="flex gap-3">
             <Link

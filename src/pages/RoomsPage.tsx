@@ -462,17 +462,17 @@ const RoomsPage = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-gray-700">
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-wrap gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 text-xs">
+            <div className="text-gray-700">
               Hiển thị {paginatedRooms.length} trên tổng số {filteredRooms.length} phòng học
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Số bản ghi/trang:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-700">Số bản ghi/trang:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -481,49 +481,79 @@ const RoomsPage = () => {
             </div>
           </div>
           {totalPages > 1 && (
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
+                className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3 h-3" />
               </button>
               
-              {/* Page numbers */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum
-                if (totalPages <= 5) {
-                  pageNum = i + 1
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i
+              {/* Page numbers with smart pagination: 1..5...10 */}
+              {(() => {
+                const pages: (number | string)[] = []
+                
+                if (totalPages <= 7) {
+                  // Nếu <= 7 trang, hiển thị tất cả
+                  for (let i = 1; i <= totalPages; i++) {
+                    pages.push(i)
+                  }
                 } else {
-                  pageNum = currentPage - 2 + i
+                  // Luôn hiển thị trang 1
+                  pages.push(1)
+                  
+                  // Tính toán trang ở giữa
+                  if (currentPage <= 4) {
+                    // Nếu ở đầu: hiển thị 2, 3, 4, 5
+                    pages.push(2, 3, 4, 5)
+                    pages.push('...')
+                    pages.push(totalPages)
+                  } else if (currentPage >= totalPages - 3) {
+                    // Nếu ở cuối: hiển thị totalPages-4, totalPages-3, totalPages-2, totalPages-1
+                    pages.push('...')
+                    pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1)
+                    pages.push(totalPages)
+                  } else {
+                    // Nếu ở giữa: hiển thị currentPage-1, currentPage, currentPage+1
+                    pages.push('...')
+                    pages.push(currentPage - 1, currentPage, currentPage + 1)
+                    pages.push('...')
+                    pages.push(totalPages)
+                  }
                 }
                 
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-1 border rounded-lg ${
-                      currentPage === pageNum
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'border-red-300 hover:bg-red-50 text-red-600'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                )
-              })}
+                return pages.map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${index}`} className="px-1 py-0.5 text-xs text-gray-500">
+                        ...
+                      </span>
+                    )
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page as number)}
+                      className={`px-2 py-0.5 border rounded text-xs ${
+                        currentPage === page
+                          ? 'bg-red-600 text-white border-red-600'
+                          : 'border-red-300 hover:bg-red-50 text-red-600'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                })
+              })()}
               
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
+                className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3 h-3" />
               </button>
             </div>
           )}
