@@ -25,6 +25,36 @@ const api = axios.create({
   },
 })
 
+// Request Interceptor - Thêm token vào header
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Response Interceptor - Xử lý lỗi 401
+api.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token hết hạn hoặc không hợp lệ
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 // Types
 export interface ApiResponse<T> {
   success: boolean
@@ -424,6 +454,27 @@ export const scheduleValidationService = {
 }
 
 
+
+// User Types
+export interface User {
+  id: number
+  username: string
+  email: string
+  fullName: string
+  role: 'USER' | 'ADMIN'
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING'
+  createdAt?: string
+  updatedAt?: string
+}
+
+export const userService = {
+  getAll: () => api.get<ApiResponse<User[]>>('/users'),
+  getAllPending: () => api.get<ApiResponse<User[]>>('/users/pending'),
+  getById: (id: number) => api.get<ApiResponse<User>>(`/users/${id}`),
+  approve: (id: number) => api.put<ApiResponse<User>>(`/users/${id}/approve`),
+  reject: (id: number) => api.put<ApiResponse<User>>(`/users/${id}/reject`),
+  delete: (id: number) => api.delete<ApiResponse<void>>(`/users/${id}`),
+}
 
 export const tkbService = {
   resetLastSlotIdx: () => api.post<ApiResponse<any>>('/tkb/reset-last-slot-idx'),

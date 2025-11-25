@@ -518,21 +518,21 @@ const SubjectsPage = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6 flex-1 flex flex-col overflow-hidden mt-4">
-        <div className="flex items-center gap-4 mb-4 flex-wrap flex-shrink-0">
-          <div className="flex-1 relative min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <div className="flex items-center gap-2 mb-4 flex-wrap flex-shrink-0">
+          <div className="flex-1 relative min-w-[160px]">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Tìm kiếm môn học..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
           <select
             value={filterAcademicYear}
             onChange={(e) => setFilterAcademicYear(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
               filterAcademicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
             }`}
           >
@@ -544,7 +544,7 @@ const SubjectsPage = () => {
           <select
             value={filterSemesterName}
             onChange={(e) => setFilterSemesterName(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
               filterSemesterName ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
             }`}
           >
@@ -559,7 +559,7 @@ const SubjectsPage = () => {
           <select
             value={filterClassYear}
             onChange={(e) => setFilterClassYear(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
               filterClassYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
             }`}
           >
@@ -571,7 +571,7 @@ const SubjectsPage = () => {
           <select
             value={filterMajor}
             onChange={(e) => setFilterMajor(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
               filterMajor ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
             }`}
           >
@@ -583,7 +583,7 @@ const SubjectsPage = () => {
           <select
             value={filterProgramType}
             onChange={(e) => setFilterProgramType(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
               filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
             }`}
           >
@@ -703,7 +703,7 @@ const SubjectsPage = () => {
           <table className="w-full border-collapse text-xs">
             <thead className="bg-red-600">
               <tr>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 w-10">
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 w-8">
                   <input
                     type="checkbox"
                     checked={subjects.length > 0 && selectedSubjectIds.length === subjects.length}
@@ -711,23 +711,23 @@ const SubjectsPage = () => {
                     className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                   />
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Hệ đào tạo</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tổng tiết LT</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Hệ đào tạo</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Số lớp</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tín chỉ</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tổng tiết LT</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white">
               {subjects.map((subject) => (
                 <tr key={subject.id} className="hover:bg-red-50 border-b border-gray-200">
-                  <td className="px-2 py-2 text-center border-r border-gray-200">
+                  <td className="px-1.5 py-1.5 text-center border-r border-gray-200">
                     <input
                       type="checkbox"
                       checked={selectedSubjectIds.includes(subject.id)}
@@ -735,31 +735,31 @@ const SubjectsPage = () => {
                       className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                     />
                   </td>
-                  <td className="px-2 py-2 text-xs text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
-                  <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.classYear}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">
+                  <td className="px-1.5 py-1.5 text-xs text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
+                  <td className="px-1.5 py-1.5 text-xs font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.classYear}</td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">
                     {subject.semesterName || '-'}
                   </td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.programType}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.numberOfStudents}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.numberOfClasses}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.credits}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{subject.theoryHours}</td>
-                  <td className="px-2 py-2 text-xs font-medium">
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.programType}</td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.numberOfStudents}</td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.numberOfClasses}</td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.credits}</td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.theoryHours}</td>
+                  <td className="px-1.5 py-1.5 text-xs font-medium">
                     <button 
                       onClick={() => handleViewDetail(subject)} 
-                      className="text-green-600 hover:text-green-900 mr-1"
+                      className="text-green-600 hover:text-green-900 mr-0.5"
                       title="Xem chi tiết"
                     >
-                      <Eye className="w-3.5 h-3.5 inline" />
+                      <Eye className="w-3 h-3 inline" />
                     </button>
-                    <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-1">
-                      <Edit className="w-3.5 h-3.5 inline" />
+                    <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-0.5">
+                      <Edit className="w-3 h-3 inline" />
                     </button>
                     <button onClick={() => handleDeleteClick(subject.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-3.5 h-3.5 inline" />
+                      <Trash2 className="w-3 h-3 inline" />
                     </button>
                   </td>
                 </tr>
@@ -769,17 +769,17 @@ const SubjectsPage = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200 flex-wrap gap-4 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-gray-700">
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-wrap gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 text-xs">
+            <div className="text-gray-700">
               Hiển thị {subjects.length} trên tổng số {totalElements} môn học
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Số bản ghi/trang:</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-700">Số bản ghi/trang:</span>
               <select
                 value={pageSize}
                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -787,40 +787,79 @@ const SubjectsPage = () => {
               </select>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage <= 1}
-              className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
+              className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3 h-3" />
             </button>
             
-            {[...Array(Math.min(5, totalPages))].map((_, index) => {
-              const page = currentPage - 2 + index
-              if (page < 1 || page > totalPages) return null
+            {/* Page numbers with smart pagination: 1..5...10 */}
+            {(() => {
+              const pages: (number | string)[] = []
               
-              return (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-1 border rounded-lg ${
-                    currentPage === page 
-                      ? 'bg-red-600 text-white border-red-600' 
-                      : 'border-red-300 hover:bg-red-50 text-red-600'
-                  }`}
-                >
-                  {page}
-                </button>
-              )
-            })}
+              if (totalPages <= 7) {
+                // Nếu <= 7 trang, hiển thị tất cả
+                for (let i = 1; i <= totalPages; i++) {
+                  pages.push(i)
+                }
+              } else {
+                // Luôn hiển thị trang 1
+                pages.push(1)
+                
+                // Tính toán trang ở giữa
+                if (currentPage <= 4) {
+                  // Nếu ở đầu: hiển thị 2, 3, 4, 5
+                  pages.push(2, 3, 4, 5)
+                  pages.push('...')
+                  pages.push(totalPages)
+                } else if (currentPage >= totalPages - 3) {
+                  // Nếu ở cuối: hiển thị totalPages-4, totalPages-3, totalPages-2, totalPages-1
+                  pages.push('...')
+                  pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1)
+                  pages.push(totalPages)
+                } else {
+                  // Nếu ở giữa: hiển thị currentPage-1, currentPage, currentPage+1
+                  pages.push('...')
+                  pages.push(currentPage - 1, currentPage, currentPage + 1)
+                  pages.push('...')
+                  pages.push(totalPages)
+                }
+              }
+              
+              return pages.map((page, index) => {
+                if (page === '...') {
+                  return (
+                    <span key={`ellipsis-${index}`} className="px-1 py-0.5 text-xs text-gray-500">
+                      ...
+                    </span>
+                  )
+                }
+                
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page as number)}
+                    className={`px-2 py-0.5 border rounded text-xs ${
+                      currentPage === page 
+                        ? 'bg-red-600 text-white border-red-600' 
+                        : 'border-red-300 hover:bg-red-50 text-red-600'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              })
+            })()}
             
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage >= totalPages}
-              className="px-3 py-1 border border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600"
+              className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -1184,7 +1223,7 @@ const SubjectsPage = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-0.9">
                   Ngành {!isCommonSubject && '*'}
                 </label>
                 {!isCommonSubject && (
@@ -1207,11 +1246,11 @@ const SubjectsPage = () => {
                           // Delay để cho phép click vào dropdown item
                           setTimeout(() => setShowMajorDropdown(false), 200)
                         }}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                        className="w-full px-3 py-1.8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                         placeholder="Nhập tên hoặc mã ngành để tìm kiếm..."
                       />
                       {showMajorDropdown && (filteredMajors.length > 0 || majorSearchInput.trim()) && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-0.9 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                           {filteredMajors.length > 0 ? (
                             filteredMajors.map((major) => {
                               const isSelected = selectedMajors.some(m => m.id === major.id)
@@ -1224,7 +1263,7 @@ const SubjectsPage = () => {
                                       handleAddMajor(major)
                                     }
                                   }}
-                                  className={`px-4 py-2 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                                  className={`px-3.5 py-1.8 text-sm cursor-pointer border-b border-gray-100 last:border-b-0 ${
                                     isSelected 
                                       ? 'bg-gray-50 opacity-60' 
                                       : 'hover:bg-gray-100'
@@ -1238,7 +1277,7 @@ const SubjectsPage = () => {
                               )
                             })
                           ) : (
-                            <div className="px-4 py-2 text-sm text-gray-500">
+                            <div className="px-3.5 py-1.8 text-sm text-gray-500">
                               Không tìm thấy ngành nào
                             </div>
                           )}
@@ -1246,10 +1285,10 @@ const SubjectsPage = () => {
                       )}
                     </div>
                     {selectedMajors.length > 0 && (
-                      <div className="mt-2 space-y-1">
+                      <div className="mt-1.8 space-y-0.9">
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-gray-500">Các ngành đã chọn:</p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.8">
                             <input
                               type="checkbox"
                               id="isCommonSubject"
@@ -1260,18 +1299,18 @@ const SubjectsPage = () => {
                                   setSelectedMajors([])
                                 }
                               }}
-                              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                              className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                             />
                             <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                               Môn chung
                             </label>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.8">
                           {selectedMajors.map((major) => (
                             <span
                               key={major.id}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-100 text-red-800 rounded-lg text-sm font-medium"
+                              className="inline-flex items-center gap-1 px-2.7 py-1.35 bg-red-100 text-red-800 rounded-lg text-xs font-medium"
                             >
                               {major.majorName || major.majorCode}
                               <button
@@ -1279,7 +1318,7 @@ const SubjectsPage = () => {
                                 onClick={() => handleRemoveMajor(major.id)}
                                 className="ml-1 text-red-600 hover:text-red-800"
                               >
-                                <X className="w-4 h-4" />
+                                <X className="w-3.5 h-3.5" />
                               </button>
                             </span>
                           ))}
@@ -1287,8 +1326,8 @@ const SubjectsPage = () => {
                       </div>
                     )}
                     {selectedMajors.length === 0 && !isCommonSubject && (
-                      <div className="mt-2 flex items-center justify-end">
-                        <div className="flex items-center gap-2">
+                      <div className="mt-1.8 flex items-center justify-end">
+                        <div className="flex items-center gap-1.8">
                           <input
                             type="checkbox"
                             id="isCommonSubject"
@@ -1299,9 +1338,9 @@ const SubjectsPage = () => {
                                 setSelectedMajors([])
                               }
                             }}
-                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                           />
-                          <label htmlFor="isCommonSubject" className="text-sm font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                          <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                             Môn chung
                           </label>
                         </div>
@@ -1310,9 +1349,9 @@ const SubjectsPage = () => {
                   </>
                 )}
                 {isCommonSubject && (
-                  <div className="mt-2 flex items-center justify-between">
-                    <p className="text-sm text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
-                    <div className="flex items-center gap-2">
+                  <div className="mt-1.8 flex items-center justify-between">
+                    <p className="text-xs text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
+                    <div className="flex items-center gap-1.8">
                       <input
                         type="checkbox"
                         id="isCommonSubjectBottom"
@@ -1323,16 +1362,16 @@ const SubjectsPage = () => {
                             setSelectedMajors([])
                           }
                         }}
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                        className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                       />
-                      <label htmlFor="isCommonSubjectBottom" className="text-sm font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                      <label htmlFor="isCommonSubjectBottom" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                         Môn chung
                       </label>
                     </div>
                   </div>
                 )}
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -1340,11 +1379,11 @@ const SubjectsPage = () => {
                     setEditingSubject(null)
                     resetForm()
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-3.5 py-1.8 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
                 >
                   Hủy
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                <button type="submit" className="flex-1 px-3.5 py-1.8 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
                   {editingSubject ? 'Cập nhật' : 'Tạo mới'}
                 </button>
               </div>
@@ -1365,29 +1404,29 @@ const SubjectsPage = () => {
             }
           }}
         >
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold mb-4 text-gray-900">Xác nhận xóa</h3>
-            <p className="text-gray-700 mb-6">
+          <div className="bg-white rounded-lg p-5.5 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-1.6xl font-bold mb-3.5 text-gray-900">Xác nhận xóa</h3>
+            <p className="text-sm text-gray-700 mb-5.5">
               {idsToDelete.length === 1 
                 ? 'Bạn có chắc chắn muốn xóa môn học này không?'
                 : `Bạn có chắc chắn muốn xóa ${idsToDelete.length} môn học đã chọn không?`
               }
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2.5 justify-end">
               <button
                 type="button"
                 onClick={() => {
                   setShowDeleteConfirmModal(false)
                   setIdsToDelete([])
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                className="px-3.5 py-1.8 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
               >
                 Hủy
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="px-3.5 py-1.8 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
               >
                 Xóa
               </button>

@@ -48,9 +48,11 @@ interface TKBResultRow {
   tiet_bd?: string
   l?: string
   phong?: string
-  O_to_AG?: string[]
+  o_to_AG?: string[]
   ah?: string
   student_year?: string
+  academic_year?: string
+  semester?: string
 }
 
 interface SavedResult {
@@ -795,6 +797,8 @@ const TKBPage = () => {
                 subject_type: row.subject_type,
                 student_year: row.khoa,
                 he_dac_thu: row.he_dac_thu,
+                academic_year: academicYear,
+                semester: semester,
               })
             }
           })
@@ -812,6 +816,8 @@ const TKBPage = () => {
             subject_type: row.subject_type,
             student_year: row.khoa,
             he_dac_thu: row.he_dac_thu,
+            academic_year: academicYear,
+            semester: semester,
           })
         }
       })
@@ -873,10 +879,10 @@ const TKBPage = () => {
       
       // Transform TKBResultRow to backend Schedule format
       const schedules = results.map((row) => {
-        // Create week fields from O_to_AG array and ah
+        // Create week fields from o_to_AG array and ah
         const weekFields: any = {}
         for (let i = 0; i < 17; i++) {
-          weekFields[`week${i + 1}`] = row.O_to_AG?.[i] || ''
+          weekFields[`week${i + 1}`] = row.o_to_AG?.[i] || ''
         }
         weekFields.week18 = row.ah || ''
         
@@ -892,6 +898,8 @@ const TKBPage = () => {
           startPeriod: parseInt(row.tiet_bd || '0') || 0,
           periodLength: parseInt(row.l || '0') || 0,
           roomNumber: row.phong || null,
+          academicYear: academicYear,
+          semester: semester,
           ...weekFields
         }
       })
@@ -1010,11 +1018,11 @@ const TKBPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Tạo Thời khóa biểu</h1>
-            <p className="text-red-100 text-lg">Quản lý và tạo thời khóa biểu tự động</p>
+            <h1 className="text-2xl font-bold mb-2">Tạo Thời khóa biểu</h1>
+            <p className="text-red-100 text-sm">Quản lý và tạo thời khóa biểu tự động</p>
           </div>
           <div className="flex gap-3">
             <Link
@@ -1452,6 +1460,8 @@ const TKBPage = () => {
                   <th className="px-1 py-1 border text-xs w-[3%]">Lớp</th>
                   <th className="px-1 py-1 border text-xs w-[5%]">Mã môn</th>
                   <th className="px-1 py-1 border text-xs w-[15%]">Tên môn</th>
+                  <th className="px-1 py-1 border text-xs w-[6%]">Năm học</th>
+                  <th className="px-1 py-1 border text-xs w-[4%]">Học kỳ</th>
                   <th className="px-1 py-1 border text-xs w-[3%]">Khóa</th>
                   <th className="px-1 py-1 border text-xs w-[4%]">Ngành</th>
                   <th className="px-1 py-1 border text-xs w-[5%]">Hệ đặc thù</th>
@@ -1473,7 +1483,7 @@ const TKBPage = () => {
                   let flip = false
                   
                   return results.map((row, idx) => {
-                    const schedule = row.O_to_AG || []
+                    const schedule = row.o_to_AG || []
                     const key = `${row.ma_mon || ''}|${row.lop || ''}`
                     if (key !== lastKey) {
                       flip = !flip
@@ -1486,6 +1496,8 @@ const TKBPage = () => {
                         <td className="px-1 py-1 border text-center text-xs">{row.lop || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs whitespace-normal break-words">{row.ma_mon || ''}</td>
                         <td className="px-1 py-1 border text-xs whitespace-normal break-words">{row.ten_mon || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.academic_year || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.semester || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.khoa || row.student_year || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.nganh || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.he_dac_thu || ''}</td>
@@ -1500,7 +1512,7 @@ const TKBPage = () => {
                             // Tuần 18 hiển thị giá trị ah
                             value = row.ah || ''
                           } else {
-                            // Tuần 1-17 hiển thị từ O_to_AG
+                            // Tuần 1-17 hiển thị từ o_to_AG
                             value = schedule[i] || ''
                           }
                           const isX = value === 'x'
