@@ -62,19 +62,19 @@ const Layout = () => {
               <img 
                 src="/ptit-logo.png" 
                 alt="PTIT Logo" 
-                className="w-16 h-16 object-contain mb-2"
+                className="w-16 h-16 object-contain"
               />
             </div>
           )}
         </div>
-        <nav className="mt-6">
+        <nav className="mt-1">
           {navItems.map((item) => {
             const Icon = item.icon
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 py-3 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 py-3 text-sm font-medium transition-colors ${
                   isCollapsed ? 'px-4 justify-center' : 'px-6'
                 } ${
                   isActive(item.path)

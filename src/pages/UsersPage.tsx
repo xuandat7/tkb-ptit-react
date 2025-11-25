@@ -130,12 +130,12 @@ const UsersPage = () => {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Quản lý người dùng</h1>
+            <h1 className="text-xl font-bold mb-1">Quản lý người dùng</h1>
             <p className="text-red-100">Quản lý danh sách người dùng và phân quyền</p>
           </div>
           <Users className="w-12 h-12 opacity-20" />
@@ -143,110 +143,50 @@ const UsersPage = () => {
       </div>
 
       {/* Filter and Statistics */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Filter */}
-        <div className="lg:w-64">
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <h3 className="font-semibold text-gray-900">Bộ lọc</h3>
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                  statusFilter === 'all'
-                    ? 'bg-red-50 text-red-700 font-semibold border-l-4 border-red-600'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span>Tất cả</span>
-                  <span className="text-sm font-semibold bg-gray-100 px-2 py-0.5 rounded-full">
-                    {users.length}
-                  </span>
-                </div>
-              </button>
-              <button
-                onClick={() => setStatusFilter('enabled')}
-                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                  statusFilter === 'enabled'
-                    ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-600'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Đang hoạt động
-                  </span>
-                  <span className="text-sm font-semibold bg-green-100 px-2 py-0.5 rounded-full">
-                    {users.filter((u) => u.enabled).length}
-                  </span>
-                </div>
-              </button>
-              <button
-                onClick={() => setStatusFilter('disabled')}
-                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                  statusFilter === 'disabled'
-                    ? 'bg-red-50 text-red-700 font-semibold border-l-4 border-red-600'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    Bị vô hiệu hóa
-                  </span>
-                  <span className="text-sm font-semibold bg-red-100 px-2 py-0.5 rounded-full">
-                    {users.filter((u) => !u.enabled).length}
-                  </span>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Statistics */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-600 text-sm font-medium">Tổng người dùng</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-              </div>
-              <Users className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-600 text-sm font-medium">Đang hoạt động</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.filter((u: User) => u.enabled).length}
-                </p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-500" />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-600 text-sm font-medium">Bị vô hiệu hóa</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.filter((u: User) => !u.enabled).length}
-                </p>
-              </div>
-              <XCircle className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
+      <div className="bg-white rounded-lg shadow-md p-2 mb-2 w-fit">
+        <div className="flex items-center gap-2">
+          {/* Tất cả */}
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+              statusFilter === 'all'
+                ? 'bg-red-50 text-red-700 border-l-4 border-red-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <span>Tất cả ({users.length})</span>
+          </button>
+          
+          {/* Đang hoạt động */}
+          <button
+            onClick={() => setStatusFilter('enabled')}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
+              statusFilter === 'enabled'
+                ? 'bg-green-50 text-green-700 border-l-4 border-green-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span>Đang hoạt động ({users.filter((u) => u.enabled).length})</span>
+          </button>
+          
+          {/* Bị vô hiệu hóa */}
+          <button
+            onClick={() => setStatusFilter('disabled')}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
+              statusFilter === 'disabled'
+                ? 'bg-red-50 text-red-700 border-l-4 border-red-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <XCircle className="w-4 h-4" />
+            <span>Bị vô hiệu hóa ({users.filter((u) => !u.enabled).length})</span>
+          </button>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white rounded-sm shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900">
             Danh sách người dùng
@@ -272,25 +212,25 @@ const UsersPage = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tên đăng nhập
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Họ tên
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Vai trò
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ngày tạo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao tác
                   </th>
                 </tr>

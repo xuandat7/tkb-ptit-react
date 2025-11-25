@@ -171,13 +171,13 @@ const SemestersPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Quản lý học kỳ</h1>
-            <p className="text-red-100">Thêm, sửa, xóa và quản lý các học kỳ trong hệ thống</p>
+            <h1 className="text-2xl font-bold mb-1">Quản lý học kỳ</h1>
+            <p className="text-red-100 text-sm">Thêm, sửa, xóa và quản lý các học kỳ trong hệ thống</p>
           </div>
           <button
             onClick={handleAdd}
@@ -190,75 +190,75 @@ const SemestersPage = () => {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-600 text-sm font-medium">Tổng học kỳ</p>
-              <p className="text-2xl font-bold text-gray-900">{semesters.length}</p>
+              <p className="text-blue-600 text-xs font-medium">Tổng học kỳ</p>
+              <p className="text-xl font-bold text-gray-900">{semesters.length}</p>
             </div>
-            <BookOpen className="w-8 h-8 text-blue-500" />
+            <BookOpen className="w-7 h-7 text-blue-500" />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+        <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-600 text-sm font-medium">Học kỳ đang hoạt động</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-green-600 text-xs font-medium">Học kỳ đang hoạt động</p>
+              <p className="text-xl font-bold text-gray-900">
                 {semesters.filter(s => s.isActive).length}
               </p>
             </div>
-            <Calendar className="w-8 h-8 text-green-500" />
+            <Calendar className="w-7 h-7 text-green-500" />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500">
+        <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-600 text-sm font-medium">Học kỳ không hoạt động</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-orange-600 text-xs font-medium">Học kỳ không hoạt động</p>
+              <p className="text-xl font-bold text-gray-900">
                 {semesters.filter(s => !s.isActive).length}
               </p>
             </div>
-            <Clock className="w-8 h-8 text-orange-500" />
+            <Clock className="w-7 h-7 text-orange-500" />
           </div>
         </div>
       </div>
 
       {/* Danh sách học kỳ */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Danh sách học kỳ</h2>
+        <div className="p-3.5 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900">Danh sách học kỳ</h2>
         </div>
 
         {semesters.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
-            <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg mb-2">Chưa có học kỳ nào</p>
-            <p className="text-sm">Hãy thêm học kỳ đầu tiên để bắt đầu</p>
+          <div className="p-3.5 text-center text-gray-500">
+            <BookOpen className="w-9 h-9 mx-auto mb-2 text-gray-300" />
+            <p className="text-sm mb-1">Chưa có học kỳ nào</p>
+            <p className="text-xs">Hãy thêm học kỳ đầu tiên để bắt đầu</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2.5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tên học kỳ
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2.5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Năm học
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2.5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thời gian
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2.5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Số môn học
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2.5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-2.5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao tác
                   </th>
                 </tr>
@@ -266,27 +266,27 @@ const SemestersPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {semesters.map((semester) => (
                   <tr key={semester.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{semester.semesterName}</div>
+                    <td className="px-2.5 py-2 whitespace-nowrap">
+                      <div className="text-xs font-medium text-gray-900">{semester.semesterName}</div>
                       {semester.description && (
-                        <div className="text-sm text-gray-500">{semester.description}</div>
+                        <div className="text-xs text-gray-500">{semester.description}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{semester.academicYear}</div>
+                    <td className="px-2.5 py-2 whitespace-nowrap">
+                      <div className="text-xs text-gray-900">{semester.academicYear}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                    <td className="px-2.5 py-2 whitespace-nowrap">
+                      <div className="text-xs text-gray-900">
                         {formatDate(semester.startDate)} - {formatDate(semester.endDate)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                    <td className="px-2.5 py-2 whitespace-nowrap">
+                      <div className="text-xs text-gray-900">
                         {semester.subjectCount || 0} môn
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    <td className="px-2.5 py-2 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
                         semester.isActive 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-gray-100 text-gray-800'
@@ -294,8 +294,8 @@ const SemestersPage = () => {
                         {semester.isActive ? 'Đang hoạt động' : 'Không hoạt động'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                    <td className="px-2.5 py-2 whitespace-nowrap text-xs font-medium">
+                      <div className="flex items-center gap-1.5">
                         {!semester.isActive && (
                           <button
                             onClick={() => handleSetActive(semester)}
