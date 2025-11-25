@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Trash2, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import api, { subjectService, majorService, type Major } from '../services/api'
+import api, { subjectService, majorService, semesterService, type Major, type Semester } from '../services/api'
 
 interface Schedule {
   id: number
@@ -16,6 +16,8 @@ interface Schedule {
   startPeriod: number
   periodLength: number
   roomNumber: string
+  academicYear?: string
+  semester?: string
   week1?: string
   week2?: string
   week3?: string
@@ -53,6 +55,8 @@ const SavedSchedulesPage: React.FC = () => {
   const [filter, setFilter] = useState({
     major: '',
     studentYear: '',
+    academicYear: '',
+    semester: '',
   })
   const [showDeleteMajorModal, setShowDeleteMajorModal] = useState(false)
   const [majorToDelete, setMajorToDelete] = useState('')
@@ -60,6 +64,8 @@ const SavedSchedulesPage: React.FC = () => {
   // Dropdown data from API
   const [majors, setMajors] = useState<Major[]>([])
   const [classYears, setClassYears] = useState<string[]>([])
+  const [semesters, setSemesters] = useState<Semester[]>([])
+  const [academicYears, setAcademicYears] = useState<string[]>([])
   
   // Delete confirmation modals
   const [showDeleteClassModal, setShowDeleteClassModal] = useState(false)
@@ -86,10 +92,11 @@ const SavedSchedulesPage: React.FC = () => {
 
   const loadFilterData = async () => {
     try {
-      // Load class years and majors from API
-      const [classYearsRes, majorsRes] = await Promise.all([
+      // Load class years, majors and semesters from API
+      const [classYearsRes, majorsRes, semestersRes] = await Promise.all([
         subjectService.getAllClassYears(),
-        majorService.getAll()
+        majorService.getAll(),
+        semesterService.getAll()
       ])
 
       if (classYearsRes.data.success) {
@@ -97,6 +104,15 @@ const SavedSchedulesPage: React.FC = () => {
       }
       if (majorsRes.data.success) {
         setMajors(majorsRes.data.data)
+      }
+      if (semestersRes.data.success) {
+        const semesterData = semestersRes.data.data || []
+        setSemesters(semesterData)
+        
+        // Extract unique academic years
+        const uniqueYears = Array.from(new Set(semesterData.map((s: Semester) => s.academicYear)))
+          .sort((a, b) => b.localeCompare(a))
+        setAcademicYears(uniqueYears)
       }
     } catch (error) {
       console.error('Error loading filter data:', error)
@@ -213,6 +229,8 @@ const SavedSchedulesPage: React.FC = () => {
       'Lớp',
       'Mã môn',
       'Tên môn',
+      'Năm học',
+      'Học kỳ',
       'Khóa',
       'Ngành',
       'Hệ đặc thù',
@@ -231,6 +249,8 @@ const SavedSchedulesPage: React.FC = () => {
         schedule.classNumber,
         schedule.subjectId,
         schedule.subjectName,
+        schedule.academicYear || '',
+        schedule.semester || '',
         schedule.studentYear,
         schedule.major,
         schedule.specialSystem,
@@ -252,6 +272,8 @@ const SavedSchedulesPage: React.FC = () => {
       { wch: 6 },  // Lớp
       { wch: 10 }, // Mã môn
       { wch: 30 }, // Tên môn
+      { wch: 12 }, // Năm học
+      { wch: 10 }, // Học kỳ
       { wch: 8 },  // Khóa
       { wch: 8 },  // Ngành
       { wch: 12 }, // Hệ đặc thù
@@ -280,6 +302,8 @@ const SavedSchedulesPage: React.FC = () => {
   // Get unique values from schedules for dropdown fallback
   const uniqueMajorsFromSchedules = Array.from(new Set(schedules.map(s => s.major))).filter(Boolean).sort()
   const uniqueYearsFromSchedules = Array.from(new Set(schedules.map(s => s.studentYear))).filter(Boolean).sort()
+  const uniqueAcademicYearsFromSchedules = Array.from(new Set(schedules.map(s => s.academicYear))).filter(Boolean).sort()
+  const uniqueSemestersFromSchedules = Array.from(new Set(schedules.map(s => s.semester))).filter(Boolean).sort()
   
   // Use API data if available, otherwise fallback to schedule data
   const majorOptions = majors.length > 0 ? majors : uniqueMajorsFromSchedules.map((code, idx) => ({ 
@@ -292,10 +316,24 @@ const SavedSchedulesPage: React.FC = () => {
     facultyName: ''
   }))
   const yearOptions = classYears.length > 0 ? classYears : uniqueYearsFromSchedules
+  const academicYearOptions = academicYears.length > 0 ? academicYears : uniqueAcademicYearsFromSchedules
+  const semesterOptions = semesters.length > 0 
+    ? semesters.filter(s => !filter.academicYear || s.academicYear === filter.academicYear)
+    : uniqueSemestersFromSchedules.map((name, idx) => ({
+        id: idx,
+        semesterName: name,
+        academicYear: '',
+        startDate: '',
+        endDate: '',
+        isActive: false,
+        subjectCount: 0
+      }))
 
   const filteredSchedules = schedules.filter((s) => {
     if (filter.major && filter.major !== s.major) return false
     if (filter.studentYear && filter.studentYear !== s.studentYear) return false
+    if (filter.academicYear && filter.academicYear !== s.academicYear) return false
+    if (filter.semester && filter.semester !== s.semester) return false
     return true
   })
 
@@ -323,6 +361,30 @@ const SavedSchedulesPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-1.5">
         {/* Filters and Actions in one row */}
         <div className="flex items-center gap-1.5 flex-wrap">
+          <select
+            value={filter.academicYear}
+            onChange={(e) => setFilter({ ...filter, academicYear: e.target.value, semester: '' })}
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
+              filter.academicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Tất cả năm học</option>
+            {academicYearOptions.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+          <select
+            value={filter.semester}
+            onChange={(e) => setFilter({ ...filter, semester: e.target.value })}
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
+              filter.semester ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            }`}
+          >
+            <option value="">Tất cả học kỳ</option>
+            {semesterOptions.map(sem => (
+              <option key={sem.id} value={sem.semesterName}>{sem.semesterName}</option>
+            ))}
+          </select>
           <select
             value={filter.studentYear}
             onChange={(e) => setFilter({ ...filter, studentYear: e.target.value })}
@@ -370,37 +432,39 @@ const SavedSchedulesPage: React.FC = () => {
       {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-auto" style={{ maxHeight: 'calc(100vh - 150px)' }}>
         <table className="min-w-full text-xs border-collapse" style={{ fontSize: '0.65rem' }}>
-          <thead className="sticky top-0 bg-red-50">
-            <tr className="bg-red-50">
-              <th className="px-1 py-1 border" style={{ minWidth: '35px' }}>Lớp</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '70px' }}>Mã môn</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '150px' }}>Tên môn</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '45px' }}>Khóa</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '45px' }}>Ngành</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '70px' }}>Hệ đặc thù</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '35px' }}>Thứ</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '35px' }}>Kíp</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '35px' }}>T.BĐ</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '25px' }}>L</th>
-              <th className="px-1 py-1 border" style={{ minWidth: '50px' }}>Phòng</th>
+          <thead className="sticky top-0 bg-red-600">
+            <tr className="bg-red-600 text-white">
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Lớp</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '70px' }}>Mã môn</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '150px' }}>Tên môn</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '80px' }}>Năm học</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '50px' }}>Học kỳ</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '45px' }}>Khóa</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '45px' }}>Ngành</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '70px' }}>Hệ đặc thù</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Thứ</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Kíp</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>T.BĐ</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '25px' }}>L</th>
+              <th className="px-1 py-1 border border-white" style={{ minWidth: '50px' }}>Phòng</th>
               {Array.from({ length: 18 }, (_, i) => (
-                <th key={i} className="px-0.5 py-1 border text-center" style={{ minWidth: '28px' }}>
+                <th key={i} className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '28px' }}>
                   {i === 17 ? '' : `T${i + 1}`}
                 </th>
               ))}
-              <th className="px-1 py-1 border text-center" style={{ minWidth: '60px' }}>Xóa</th>
+              <th className="px-1 py-1 border border-white text-center" style={{ minWidth: '60px' }}>Xóa</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={30} className="text-center py-8">
+                <td colSpan={32} className="text-center py-8">
                   Đang tải...
                 </td>
               </tr>
             ) : groupedSchedules.length === 0 ? (
               <tr>
-                <td colSpan={30} className="text-center py-8">
+                <td colSpan={32} className="text-center py-8">
                   Chưa có lịch học nào được lưu
                 </td>
               </tr>
@@ -423,6 +487,8 @@ const SavedSchedulesPage: React.FC = () => {
                         <td className="px-1 py-1 border text-center">{schedule.classNumber}</td>
                         <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subjectId}</td>
                         <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subjectName}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.academicYear || ''}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.semester || ''}</td>
                         <td className="px-1 py-1 border text-center">{schedule.studentYear}</td>
                         <td className="px-1 py-1 border">{schedule.major}</td>
                         <td className="px-1 py-1 border">{schedule.specialSystem}</td>
