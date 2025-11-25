@@ -46,10 +46,16 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token hết hạn hoặc không hợp lệ
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      // Không redirect nếu đang ở trang login hoặc đang call API login
+      const isLoginPage = window.location.pathname === '/login'
+      const isLoginRequest = error.config?.url?.includes('/auth/login')
+      
+      if (!isLoginPage && !isLoginRequest) {
+        // Token hết hạn hoặc không hợp lệ
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
@@ -462,18 +468,21 @@ export interface User {
   email: string
   fullName: string
   role: 'USER' | 'ADMIN'
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING'
+  enabled: boolean
   createdAt?: string
   updatedAt?: string
 }
 
+export interface ToggleUserStatusRequest {
+  enabled: boolean
+}
+
 export const userService = {
-  getAll: () => api.get<ApiResponse<User[]>>('/users'),
-  getAllPending: () => api.get<ApiResponse<User[]>>('/users/pending'),
-  getById: (id: number) => api.get<ApiResponse<User>>(`/users/${id}`),
-  approve: (id: number) => api.put<ApiResponse<User>>(`/users/${id}/approve`),
-  reject: (id: number) => api.put<ApiResponse<User>>(`/users/${id}/reject`),
-  delete: (id: number) => api.delete<ApiResponse<void>>(`/users/${id}`),
+  getAll: () => api.get<ApiResponse<User[]>>('/admin/users'),
+  getById: (id: number) => api.get<ApiResponse<User>>(`/admin/users/${id}`),
+  toggleStatus: (id: number, enabled: boolean) => 
+    api.patch<ApiResponse<User>>(`/admin/users/${id}/toggle-status`, { enabled }),
+  delete: (id: number) => api.delete<ApiResponse<void>>(`/admin/users/${id}`),
 }
 
 export const tkbService = {

@@ -51,9 +51,35 @@ const LoginPage = () => {
       } else {
         toast.error(response.data?.message || 'Đăng nhập thất bại')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error)
-      toast.error('Lỗi kết nối máy chủ')
+      
+      // Hiển thị lỗi chi tiết từ backend
+      if (error.response?.data) {
+        const errorData = error.response.data
+        
+        // Ưu tiên hiển thị error message chi tiết
+        if (errorData.error) {
+          // Customize error messages
+          if (errorData.error === 'Bad credentials') {
+            toast.error('Sai tên đăng nhập hoặc mật khẩu')
+          } else if (errorData.error === 'Tài khoản chưa đươc kích hoạt') {
+            toast.error('Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.')
+          } else if (errorData.error === 'Tài khoản không tồn tại') {
+            toast.error('Tài khoản không tồn tại')
+          } else {
+            toast.error(errorData.error)
+          }
+        } else if (errorData.message) {
+          toast.error(errorData.message)
+        } else {
+          toast.error('Đăng nhập thất bại')
+        }
+      } else if (error.request) {
+        toast.error('Không thể kết nối tới máy chủ')
+      } else {
+        toast.error('Đã xảy ra lỗi. Vui lòng thử lại')
+      }
     } finally {
       setLoading(false)
     }

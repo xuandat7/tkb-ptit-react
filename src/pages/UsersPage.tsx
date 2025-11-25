@@ -1,40 +1,35 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, Trash2, Users, Clock, AlertCircle } from 'lucide-react'
+import { Power, PowerOff, Trash2, Users, CheckCircle, XCircle, Filter, AlertTriangle } from 'lucide-react'
 import { userService, User } from '../services/api'
 import toast from 'react-hot-toast'
 
+type StatusFilter = 'all' | 'enabled' | 'disabled'
+
 const UsersPage = () => {
-  const [allUsers, setAllUsers] = useState<User[]>([])
-  const [pendingUsers, setPendingUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all')
-  const [showNotification, setShowNotification] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  
+  // Modal state
+  const [showModal, setShowModal] = useState(false)
+  const [modalAction, setModalAction] = useState<'toggle' | 'delete'>('toggle')
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const [allRes, pendingRes] = await Promise.all([
-        userService.getAll(),
-        userService.getAllPending(),
-      ])
+      const response = await userService.getAll()
 
-      if (allRes.data.success) {
-        setAllUsers(allRes.data.data)
-      }
+      console.log('API Response:', response.data) // Debug
 
-      if (pendingRes.data.success) {
-        const pending = pendingRes.data.data
-        setPendingUsers(pending)
-        
-        // Hiển thị thông báo nếu có user đăng ký mới
-        if (pending.length > 0) {
-          setShowNotification(true)
-          setTimeout(() => setShowNotification(false), 5000)
-        }
+      if (response.data.success) {
+        setUsers(response.data.data || [])
+      } else {
+        toast.error('Không thể tải danh sách người dùng')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading users:', error)
-      toast.error('Không thể tải danh sách người dùng')
+      toast.error(error.response?.data?.message || 'Không thể tải danh sách người dùng')
     } finally {
       setLoading(false)
     }
@@ -42,87 +37,78 @@ const UsersPage = () => {
 
   useEffect(() => {
     loadUsers()
-    
-    // Refresh danh sách mỗi 30 giây để kiểm tra user mới
-    const interval = setInterval(loadUsers, 30000)
-    return () => clearInterval(interval)
   }, [])
 
-  const handleApprove = async (user: User) => {
-    try {
-      const response = await userService.approve(user.id)
-      if (response.data.success) {
-        toast.success(`Đã duyệt người dùng "${user.fullName}"`)
-        loadUsers()
-      } else {
-        toast.error('Không thể duyệt người dùng')
-      }
-    } catch (error) {
-      console.error('Error approving user:', error)
-      toast.error('Lỗi khi duyệt người dùng')
-    }
-  }
-
-  const handleReject = async (user: User) => {
-    if (!confirm(`Bạn có chắc chắn muốn từ chối "${user.fullName}"?`)) {
-      return
-    }
-
-    try {
-      const response = await userService.reject(user.id)
-      if (response.data.success) {
-        toast.success(`Đã từ chối người dùng "${user.fullName}"`)
-        loadUsers()
-      } else {
-        toast.error('Không thể từ chối người dùng')
-      }
-    } catch (error) {
-      console.error('Error rejecting user:', error)
-      toast.error('Lỗi khi từ chối người dùng')
-    }
+  const handleToggleStatus = async (user: User) => {
+    setSelectedUser(user)
+    setModalAction('toggle')
+    setShowModal(true)
   }
 
   const handleDelete = async (user: User) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa người dùng "${user.fullName}"?`)) {
-      return
+    setSelectedUser(user)
+    setModalAction('delete')
+    setShowModal(true)
+  }
+
+  const confirmAction = async () => {
+    if (!selectedUser) return
+
+    if (modalAction === 'toggle') {
+      const newStatus = !selectedUser.enabled
+      const action = newStatus ? 'kích hoạt' : 'vô hiệu hóa'
+      
+      try {
+        const response = await userService.toggleStatus(selectedUser.id, newStatus)
+        if (response.data.success) {
+          toast.success(`Đã ${action} người dùng "${selectedUser.username}"`)
+          loadUsers()
+        } else {
+          toast.error(`Không thể ${action} người dùng`)
+        }
+      } catch (error: any) {
+        console.error('Error toggling user status:', error)
+        toast.error(error.response?.data?.message || `Lỗi khi ${action} người dùng`)
+      }
+    } else if (modalAction === 'delete') {
+      try {
+        const response = await userService.delete(selectedUser.id)
+        if (response.data.success) {
+          toast.success(`Đã xóa người dùng "${selectedUser.username}"`)
+          loadUsers()
+        } else {
+          toast.error('Không thể xóa người dùng')
+        }
+      } catch (error: any) {
+        console.error('Error deleting user:', error)
+        toast.error(error.response?.data?.message || 'Lỗi khi xóa người dùng')
+      }
     }
 
-    try {
-      const response = await userService.delete(user.id)
-      if (response.data.success) {
-        toast.success(`Đã xóa người dùng "${user.fullName}"`)
-        loadUsers()
-      } else {
-        toast.error('Không thể xóa người dùng')
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error)
-      toast.error('Lỗi khi xóa người dùng')
-    }
+    setShowModal(false)
+    setSelectedUser(null)
+  }
+
+  const cancelAction = () => {
+    setShowModal(false)
+    setSelectedUser(null)
   }
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('vi-VN')
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   const getRoleBadge = (role: string) => {
     return role === 'ADMIN' 
       ? 'bg-purple-100 text-purple-800' 
       : 'bg-blue-100 text-blue-800'
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-800'
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'INACTIVE':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
   }
 
   if (loading) {
@@ -136,241 +122,333 @@ const UsersPage = () => {
     )
   }
 
+  // Filter users based on status
+  const filteredUsers = users.filter((user) => {
+    if (statusFilter === 'enabled') return user.enabled
+    if (statusFilter === 'disabled') return !user.enabled
+    return true // 'all'
+  })
+
   return (
     <div className="space-y-6">
-      {/* Notification */}
-      {showNotification && pendingUsers.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-4">
-          <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-yellow-900">Có người dùng mới cần duyệt</h3>
-            <p className="text-sm text-yellow-800 mt-1">
-              Có {pendingUsers.length} người dùng đang chờ duyệt. Vui lòng kiểm tra tab "Chờ duyệt" để duyệt.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-6 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold mb-2">Quản lý người dùng</h1>
-            <p className="text-red-100">Quản lý danh sách người dùng và duyệt đăng ký mới</p>
+            <p className="text-red-100">Quản lý danh sách người dùng và phân quyền</p>
           </div>
           <Users className="w-12 h-12 opacity-20" />
         </div>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-600 text-sm font-medium">Tổng người dùng</p>
-              <p className="text-2xl font-bold text-gray-900">{allUsers.length}</p>
+      {/* Filter and Statistics */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Filter */}
+        <div className="lg:w-64">
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="w-5 h-5 text-gray-600" />
+              <h3 className="font-semibold text-gray-900">Bộ lọc</h3>
             </div>
-            <Users className="w-8 h-8 text-blue-500" />
+            <div className="space-y-2">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                  statusFilter === 'all'
+                    ? 'bg-red-50 text-red-700 font-semibold border-l-4 border-red-600'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span>Tất cả</span>
+                  <span className="text-sm font-semibold bg-gray-100 px-2 py-0.5 rounded-full">
+                    {users.length}
+                  </span>
+                </div>
+              </button>
+              <button
+                onClick={() => setStatusFilter('enabled')}
+                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                  statusFilter === 'enabled'
+                    ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-600'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Đang hoạt động
+                  </span>
+                  <span className="text-sm font-semibold bg-green-100 px-2 py-0.5 rounded-full">
+                    {users.filter((u) => u.enabled).length}
+                  </span>
+                </div>
+              </button>
+              <button
+                onClick={() => setStatusFilter('disabled')}
+                className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                  statusFilter === 'disabled'
+                    ? 'bg-red-50 text-red-700 font-semibold border-l-4 border-red-600'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    Bị vô hiệu hóa
+                  </span>
+                  <span className="text-sm font-semibold bg-red-100 px-2 py-0.5 rounded-full">
+                    {users.filter((u) => !u.enabled).length}
+                  </span>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-600 text-sm font-medium">Người dùng hoạt động</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {allUsers.filter(u => u.status === 'ACTIVE').length}
+        {/* Statistics */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-600 text-sm font-medium">Tổng người dùng</p>
+                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              </div>
+              <Users className="w-8 h-8 text-blue-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 text-sm font-medium">Đang hoạt động</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {users.filter((u: User) => u.enabled).length}
+                </p>
+              </div>
+              <CheckCircle className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-600 text-sm font-medium">Bị vô hiệu hóa</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {users.filter((u: User) => !u.enabled).length}
+                </p>
+              </div>
+              <XCircle className="w-8 h-8 text-red-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Users Table */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Danh sách người dùng
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              ({filteredUsers.length} {statusFilter === 'all' ? 'tổng' : statusFilter === 'enabled' ? 'đang hoạt động' : 'bị vô hiệu hóa'})
+            </span>
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          {filteredUsers.length === 0 ? (
+            <div className="p-6 text-center text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg mb-2">
+                {statusFilter === 'all' 
+                  ? 'Chưa có người dùng nào' 
+                  : statusFilter === 'enabled'
+                  ? 'Không có người dùng nào đang hoạt động'
+                  : 'Không có người dùng nào bị vô hiệu hóa'
+                }
               </p>
             </div>
-            <CheckCircle className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-yellow-600 text-sm font-medium">Chờ duyệt</p>
-              <p className="text-2xl font-bold text-gray-900">{pendingUsers.length}</p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-500" />
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="flex border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`flex-1 px-6 py-4 font-semibold text-center transition-colors ${
-              activeTab === 'all'
-                ? 'bg-red-50 text-red-600 border-b-2 border-red-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Users className="w-5 h-5 inline mr-2" />
-            Tất cả người dùng ({allUsers.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`flex-1 px-6 py-4 font-semibold text-center transition-colors ${
-              activeTab === 'pending'
-                ? 'bg-red-50 text-red-600 border-b-2 border-red-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Clock className="w-5 h-5 inline mr-2" />
-            Chờ duyệt ({pendingUsers.length})
-          </button>
-        </div>
-
-        {/* All Users Tab */}
-        {activeTab === 'all' && (
-          <div className="overflow-x-auto">
-            {allUsers.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg mb-2">Chưa có người dùng nào</p>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tên đăng nhập
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Họ tên
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vai trò
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Trạng thái
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ngày tạo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Thao tác
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {allUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.fullName}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadge(user.role)}`}>
-                          {user.role}
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tên đăng nhập
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Họ tên
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vai trò
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ngày tạo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.fullName}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadge(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {user.enabled ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Hoạt động
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(user.status)}`}>
-                          {user.status === 'ACTIVE' ? 'Hoạt động' : user.status === 'INACTIVE' ? 'Không hoạt động' : 'Chờ duyệt'}
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Vô hiệu hóa
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formatDate(user.createdAt)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{formatDate(user.createdAt)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-3">
+                        {/* Toggle Switch */}
+                        <button
+                          onClick={() => handleToggleStatus(user)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                            user.enabled
+                              ? 'bg-green-600 focus:ring-green-500'
+                              : 'bg-gray-300 focus:ring-gray-400'
+                          }`}
+                          title={user.enabled ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              user.enabled ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                        
+                        {/* Delete Button */}
                         <button
                           onClick={() => handleDelete(user)}
-                          className="text-red-600 hover:text-red-900 transition-colors"
+                          className="text-red-600 hover:text-red-900 transition-colors p-1 hover:bg-red-50 rounded"
                           title="Xóa"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
-        {/* Pending Users Tab */}
-        {activeTab === 'pending' && (
-          <div className="overflow-x-auto">
-            {pendingUsers.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg mb-2">Không có yêu cầu đăng ký mới</p>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tên đăng nhập
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Họ tên
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ngày đăng ký
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Thao tác
-                    </th>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {pendingUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.fullName}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{user.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formatDate(user.createdAt)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleApprove(user)}
-                            className="text-green-600 hover:text-green-900 transition-colors p-1 hover:bg-green-50 rounded"
-                            title="Duyệt"
-                          >
-                            <CheckCircle className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleReject(user)}
-                            className="text-red-600 hover:text-red-900 transition-colors p-1 hover:bg-red-50 rounded"
-                            title="Từ chối"
-                          >
-                            <XCircle className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showModal && selectedUser && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={cancelAction}
+            ></div>
+
+            {/* Modal panel */}
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${
+                    modalAction === 'delete' ? 'bg-red-100' : 'bg-yellow-100'
+                  } sm:mx-0 sm:h-10 sm:w-10`}>
+                    {modalAction === 'delete' ? (
+                      <Trash2 className="h-6 w-6 text-red-600" />
+                    ) : (
+                      <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                    )}
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      {modalAction === 'delete' 
+                        ? 'Xác nhận xóa người dùng' 
+                        : `Xác nhận ${selectedUser.enabled ? 'vô hiệu hóa' : 'kích hoạt'} người dùng`
+                      }
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        {modalAction === 'delete' ? (
+                          <>
+                            Bạn có chắc chắn muốn xóa người dùng{' '}
+                            <span className="font-semibold text-gray-900">{selectedUser.username}</span>?{' '}
+                            Hành động này không thể hoàn tác.
+                          </>
+                        ) : (
+                          <>
+                            Bạn có chắc chắn muốn{' '}
+                            <span className="font-semibold text-gray-900">
+                              {selectedUser.enabled ? 'vô hiệu hóa' : 'kích hoạt'}
+                            </span>{' '}
+                            người dùng{' '}
+                            <span className="font-semibold text-gray-900">{selectedUser.username}</span>?
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                <button
+                  type="button"
+                  onClick={confirmAction}
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${
+                    modalAction === 'delete'
+                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                      : selectedUser.enabled
+                      ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500'
+                      : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                  }`}
+                >
+                  {modalAction === 'delete' 
+                    ? 'Xóa' 
+                    : selectedUser.enabled 
+                    ? 'Vô hiệu hóa' 
+                    : 'Kích hoạt'
+                  }
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelAction}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
