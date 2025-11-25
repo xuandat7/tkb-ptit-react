@@ -75,9 +75,46 @@ const RegisterPage = () => {
       } else {
         toast.error(response.data?.message || 'Đăng ký thất bại')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Register error:', error)
-      toast.error('Lỗi kết nối máy chủ')
+      
+      // Handle backend validation errors
+      if (error.response?.data) {
+        const errorData = error.response.data
+        const errorMessage = errorData.message || errorData.error
+        const statusCode = error.response.status
+        
+        // 409 Conflict - Dữ liệu trùng lặp (username/email đã tồn tại)
+        if (statusCode === 409) {
+          if (errorMessage === 'Username đã tồn tại') {
+            toast.error('Tên đăng nhập đã được sử dụng. Vui lòng chọn tên khác.')
+          } else if (errorMessage === 'Email đã tồn tại') {
+            toast.error('Email đã được đăng ký. Vui lòng sử dụng email khác.')
+          } else {
+            toast.error(errorMessage || 'Dữ liệu đã tồn tại trong hệ thống')
+          }
+        }
+        // 400 Bad Request - Dữ liệu không hợp lệ (format sai, thiếu trường)
+        else if (statusCode === 400) {
+          if (errorData.errors) {
+            // Validation errors từ @Valid
+            const firstError = Object.values(errorData.errors)[0] as string
+            toast.error(firstError || 'Dữ liệu không hợp lệ')
+          } else {
+            toast.error(errorMessage || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin.')
+          }
+        }
+        // Other errors
+        else {
+          toast.error(errorMessage || 'Đăng ký thất bại')
+        }
+      } else if (error.request) {
+        // Network error
+        toast.error('Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng.')
+      } else {
+        // Generic error
+        toast.error('Đã xảy ra lỗi. Vui lòng thử lại.')
+      }
     } finally {
       setLoading(false)
     }

@@ -46,11 +46,11 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Không redirect nếu đang ở trang login hoặc đang call API login
-      const isLoginPage = window.location.pathname === '/login'
-      const isLoginRequest = error.config?.url?.includes('/auth/login')
+      // Không redirect nếu đang ở trang login/register hoặc đang call API login/register
+      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register'
+      const isAuthRequest = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register')
       
-      if (!isLoginPage && !isLoginRequest) {
+      if (!isAuthPage && !isAuthRequest) {
         // Token hết hạn hoặc không hợp lệ
         localStorage.removeItem('authToken')
         localStorage.removeItem('user')
