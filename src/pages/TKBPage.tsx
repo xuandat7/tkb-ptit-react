@@ -386,7 +386,7 @@ const TKBPage = () => {
           })
           
           setBatchRows(newRows)
-          toast.success(`Đã tải ${subjects.length} môn học chung từ API`)
+          toast.success(`Tải thành công ${subjects.length} môn học chung`)
         } else {
           toast.error('API trả về lỗi: ' + (response.data.message || 'Không xác định'))
         }
@@ -470,12 +470,12 @@ const TKBPage = () => {
         })
         
         setBatchRows(newRows)
-        toast.success(`Đã tải ${subjects.length} môn học từ API`)
+        toast.success(`Tải thành công ${subjects.length} môn học.`)
       } else {
         toast.error('API trả về lỗi: ' + (response.data.message || 'Không xác định'))
       }
     } catch (error: any) {
-      toast.error('Không thể tải danh sách môn học từ API')
+      toast.error('Không thể tải danh sách môn học!')
       console.error('Error loading subjects by major:', error)
     } finally {
       setLoading(false)

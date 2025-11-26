@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Calendar, Clock, BookOpen, X } from 'lucide-react'
 import { semesterService, Semester, SemesterRequest } from '../services/api'
 import toast from 'react-hot-toast'
+import DatePickerInput from '../components/DatePickerInput'
 
 const SemestersPage = () => {
   const [semesters, setSemesters] = useState<Semester[]>([])
@@ -367,29 +368,23 @@ const SemestersPage = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày bắt đầu <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
+                <DatePickerInput
+                  label="Ngày bắt đầu"
+                  value={formData.startDate || ''}
+                  onChange={(value) => setFormData({ ...formData, startDate: value })}
+                  required
+                  maxDate={formData.endDate || undefined}
+                  placeholder="dd/mm/yyyy"
+                />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ngày kết thúc <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
+                <DatePickerInput
+                  label="Ngày kết thúc"
+                  value={formData.endDate || ''}
+                  onChange={(value) => setFormData({ ...formData, endDate: value })}
+                  required
+                  minDate={formData.startDate || undefined}
+                  placeholder="dd/mm/yyyy"
+                />
               </div>
 
               <div>

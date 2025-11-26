@@ -775,15 +775,15 @@ const SubjectsPage = () => {
               Hiển thị {subjects.length} trên tổng số {totalElements} môn học
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-gray-700">Số bản ghi/trang:</span>
+              <span className="text-gray-700">Số môn học/trang:</span>
               <select
                 value={pageSize}
                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
+                <option value={15}>15</option>
                 <option value={20}>20</option>
+                <option value={25}>25</option>
               </select>
             </div>
           </div>
