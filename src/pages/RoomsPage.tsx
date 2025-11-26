@@ -604,8 +604,25 @@ const RoomsPage = () => {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModal(false)
+              setEditingRoom(null)
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => {
+                setShowModal(false)
+                setEditingRoom(null)
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
             <h2 className="text-2xl font-bold mb-4">{editingRoom ? 'Sửa phòng học' : 'Thêm phòng học mới'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -621,13 +638,19 @@ const RoomsPage = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tòa nhà *</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.building}
                     onChange={(e) => setFormData({ ...formData, building: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                  />
+                  >
+                    <option value="">-- Chọn tòa nhà --</option>
+                    {uniqueBuildings.map((building) => (
+                      <option key={building} value={building}>
+                        {building}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

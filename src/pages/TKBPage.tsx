@@ -34,6 +34,11 @@ interface BatchRowWithCombination extends BatchRow {
   combinations: MajorCombination[]
   isHiddenByCombination: boolean
   hiddenByRowIndex?: number
+  // For common registration (Đăng ký chung)
+  isCommonRegistration?: boolean
+  originalKhoa?: string
+  originalSiso?: number
+  mergedWithIndex?: number
 }
 
 interface TKBResultRow {
@@ -440,6 +445,12 @@ const TKBPage = () => {
       if (response.data.success) {
         const subjects = response.data.data
         
+        // Debug log to check what data we're receiving
+        console.log('Loaded subjects:', subjects)
+        if (subjects.length > 0) {
+          console.log('First subject:', subjects[0])
+        }
+        
         // Map to batch row format with combination fields
         const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => {
           // Tính số tiết = lý thuyết + bài tập + bài tập lớn (projectHours)
@@ -460,8 +471,8 @@ const TKBPage = () => {
             solop: solop, // Tính từ numberOfStudents / studentPerClass
             siso: subject.numberOfStudents,
             siso_mot_lop: studentPerClass,
-            nganh: subject.majorCode,
-            khoa: subject.classYear,
+            nganh: subject.majorCode || '', // Ensure always has value
+            khoa: subject.classYear || '', // Ensure always has value
             he_dac_thu: programType,
             isGrouped: false,
             combinations: [],
@@ -760,6 +771,91 @@ const TKBPage = () => {
         }
       })
     )
+  }
+
+  // Handle "Đăng ký chung" (common registration) - merge rows with different class years
+  const handleCommonRegistration = (rowIndex: number, checked: boolean) => {
+    const currentRow = batchRows[rowIndex]
+    if (!currentRow) return
+
+    if (checked) {
+      // Find another row with same subject code but different class year
+      const matchingRowIndex = batchRows.findIndex(
+        (row, idx) =>
+          idx !== rowIndex &&
+          row.mmh === currentRow.mmh &&
+          row.khoa !== currentRow.khoa &&
+          !row.isHiddenByCombination &&
+          !row.isCommonRegistration
+      )
+
+      if (matchingRowIndex === -1) return // No matching row found
+
+      const matchingRow = batchRows[matchingRowIndex]
+
+      // Extract last 2 digits of class year and sort (smaller first)
+      const year1 = parseInt(currentRow.khoa.slice(-2))
+      const year2 = parseInt(matchingRow.khoa.slice(-2))
+      const sortedYears = [year1, year2].sort((a, b) => a - b)
+      const newKhoa = `${sortedYears[0]}-${sortedYears[1]}`
+
+      // Sum up the student numbers
+      const newSiso = currentRow.siso + matchingRow.siso
+
+      // Update rows
+      const updatedRows = batchRows.map((row, idx) => {
+        if (idx === rowIndex) {
+          return {
+            ...row,
+            isCommonRegistration: true,
+            originalKhoa: currentRow.khoa,
+            originalSiso: currentRow.siso,
+            mergedWithIndex: matchingRowIndex,
+            khoa: newKhoa,
+            siso: newSiso,
+          }
+        }
+        // Hide the matching row and store its original values
+        if (idx === matchingRowIndex) {
+          return {
+            ...row,
+            isHiddenByCombination: true,
+            hiddenByRowIndex: rowIndex,
+          }
+        }
+        return row
+      })
+
+      setBatchRows(updatedRows)
+    } else {
+      // Uncheck - restore original values
+      const mergedIndex = currentRow.mergedWithIndex
+      
+      const updatedRows = batchRows.map((row, idx) => {
+        if (idx === rowIndex) {
+          return {
+            ...row,
+            isCommonRegistration: false,
+            khoa: currentRow.originalKhoa || row.khoa,
+            siso: currentRow.originalSiso || row.siso,
+            originalKhoa: undefined,
+            originalSiso: undefined,
+            mergedWithIndex: undefined,
+          }
+        }
+        // Show the previously hidden row
+        if (idx === mergedIndex) {
+          return {
+            ...row,
+            isHiddenByCombination: false,
+            hiddenByRowIndex: undefined,
+          }
+        }
+        return row
+      })
+
+      setBatchRows(updatedRows)
+    }
   }
 
   const generateTKB = async () => {
@@ -1180,7 +1276,7 @@ const TKBPage = () => {
 
         {/* Batch Table */}
         {batchRows.length > 0 && (
-          <div>
+          <div className="space-y-4 border border-gray-300 rounded-lg p-4 bg-white shadow-sm">
             <table className="w-full text-xs border-collapse table-fixed">
               <thead>
                 <tr className="bg-red-600 text-white">
@@ -1191,7 +1287,9 @@ const TKBPage = () => {
                   <th className="px-2 py-2 border text-xs w-[8%]">Sĩ số/lớp</th>
                   <th className="px-2 py-2 border text-xs w-[6%]">Khóa</th>
                   <th className="px-2 py-2 border text-xs w-[8%]">Ngành</th>
-                  <th className="px-2 py-2 border text-xs w-[6%]">Gộp ngành</th>
+                  {systemType !== 'chung' && (
+                    <th className="px-2 py-2 border text-xs w-[6%]">Gộp ngành</th>
+                  )}
                   <th className="px-2 py-2 border text-xs w-[6%]">Đăng ký chung</th>
                   <th className="px-2 py-2 border text-xs w-[6%]">Xóa</th>
                 </tr>
@@ -1251,22 +1349,34 @@ const TKBPage = () => {
                         <td className="px-2 py-2 border text-center">
                           {row.nganh}
                         </td>
+                        {systemType !== 'chung' && (
+                          <td className="px-2 py-2 border text-center">
+                            <input
+                              type="checkbox"
+                              checked={row.isGrouped || false}
+                              disabled={!hasMultipleMajors(row.mmh)}
+                              onChange={(e) => toggleMajorCombination(index, e.target.checked)}
+                              className="w-3.5 h-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={
+                                !hasMultipleMajors(row.mmh)
+                                  ? 'Môn này chỉ có 1 ngành, không thể gộp'
+                                  : 'Gộp ngành học chung'
+                              }
+                            />
+                          </td>
+                        )}
                         <td className="px-2 py-2 border text-center">
-                          <input
-                            type="checkbox"
-                            checked={row.isGrouped || false}
-                            disabled={!hasMultipleMajors(row.mmh)}
-                            onChange={(e) => toggleMajorCombination(index, e.target.checked)}
-                            className="w-3.5 h-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={
-                              !hasMultipleMajors(row.mmh)
-                                ? 'Môn này chỉ có 1 ngành, không thể gộp'
-                                : 'Gộp ngành học chung'
-                            }
-                          />
-                        </td>
-                        <td className="px-2 py-2 border text-center">
-                          <input type="checkbox" disabled className="w-3.5 h-3.5" />
+                          {systemType === 'chung' ? (
+                            <input
+                              type="checkbox"
+                              checked={row.isCommonRegistration || false}
+                              onChange={(e) => handleCommonRegistration(index, e.target.checked)}
+                              className="w-3.5 h-3.5 cursor-pointer"
+                              title="Gộp với khóa khác cùng môn"
+                            />
+                          ) : (
+                            <input type="checkbox" disabled className="w-3.5 h-3.5" />
+                          )}
                         </td>
                         <td className="px-2 py-2 border text-center">
                           <button
@@ -1417,6 +1527,22 @@ const TKBPage = () => {
                 ))}
               </tbody>
             </table>
+            
+            {/* Generate Button Below Table */}
+            <div className="flex justify-start mt-4">
+              <button
+                onClick={generateTKB}
+                disabled={loading || batchRows.length === 0}
+                className="flex items-center gap-3 bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-semibold text-sm"
+              >
+                {loading ? (
+                  <Loader className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Play className="w-5 h-5" />
+                )}
+                <span>Sinh Thời khoá biểu</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -1585,23 +1711,6 @@ const TKBPage = () => {
         sampleFileName="mau_data_lich_hoc.xlsx"
       />
       
-      {/* Floating Generate Button */}
-      {batchRows.length > 0 && (
-        <div className="fixed bottom-6 left-6 z-50">
-          <button
-            onClick={generateTKB}
-            disabled={loading || batchRows.length === 0}
-            className="flex items-center gap-3 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-          >
-            {loading ? (
-              <Loader className="w-5 h-5 animate-spin" />
-            ) : (
-              <Play className="w-5 h-5" />
-            )}
-            <span className="font-semibold">Sinh TKB Batch</span>
-          </button>
-        </div>
-      )}
     </div>
   )
 }

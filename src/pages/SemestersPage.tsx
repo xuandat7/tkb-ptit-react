@@ -331,12 +331,29 @@ const SemestersPage = () => {
 
       {/* Modal thêm/sửa */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md">
-            <div className="bg-red-600 text-white p-4 rounded-t-lg">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModal(false)
+              setEditingSemester(null)
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-red-600 text-white p-4 rounded-t-lg flex justify-between items-center">
               <h3 className="text-lg font-semibold">
                 {editingSemester ? 'Chỉnh sửa học kỳ' : 'Thêm học kỳ mới'}
               </h3>
+              <button
+                onClick={() => {
+                  setShowModal(false)
+                  setEditingSemester(null)
+                }}
+                className="text-white hover:text-gray-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="p-6 space-y-4">
