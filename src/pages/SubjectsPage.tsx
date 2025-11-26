@@ -1246,7 +1246,7 @@ const SubjectsPage = () => {
                           // Delay để cho phép click vào dropdown item
                           setTimeout(() => setShowMajorDropdown(false), 200)
                         }}
-                        className="w-full px-3 py-1.8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                        className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                         placeholder="Nhập tên hoặc mã ngành để tìm kiếm..."
                       />
                       {showMajorDropdown && (filteredMajors.length > 0 || majorSearchInput.trim()) && (
@@ -1263,7 +1263,7 @@ const SubjectsPage = () => {
                                       handleAddMajor(major)
                                     }
                                   }}
-                                  className={`px-3.5 py-1.8 text-sm cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                                  className={`px-4 py-2.5 text-sm cursor-pointer border-b border-gray-100 last:border-b-0 ${
                                     isSelected 
                                       ? 'bg-gray-50 opacity-60' 
                                       : 'hover:bg-gray-100'
@@ -1277,7 +1277,7 @@ const SubjectsPage = () => {
                               )
                             })
                           ) : (
-                            <div className="px-3.5 py-1.8 text-sm text-gray-500">
+                            <div className="px-4 py-2.5 text-sm text-gray-500">
                               Không tìm thấy ngành nào
                             </div>
                           )}
@@ -1285,10 +1285,10 @@ const SubjectsPage = () => {
                       )}
                     </div>
                     {selectedMajors.length > 0 && (
-                      <div className="mt-1.8 space-y-0.9">
+                      <div className="mt-3 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-gray-500">Các ngành đã chọn:</p>
-                          <div className="flex items-center gap-1.8">
+                          <div className="flex items-center gap-2.5">
                             <input
                               type="checkbox"
                               id="isCommonSubject"
@@ -1299,18 +1299,18 @@ const SubjectsPage = () => {
                                   setSelectedMajors([])
                                 }
                               }}
-                              className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                             />
                             <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                               Môn chung
                             </label>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-1.8">
+                        <div className="flex flex-wrap gap-2.5">
                           {selectedMajors.map((major) => (
                             <span
                               key={major.id}
-                              className="inline-flex items-center gap-1 px-2.7 py-1.35 bg-red-100 text-red-800 rounded-lg text-xs font-medium"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-800 rounded-lg text-xs font-medium"
                             >
                               {major.majorName || major.majorCode}
                               <button
@@ -1326,8 +1326,8 @@ const SubjectsPage = () => {
                       </div>
                     )}
                     {selectedMajors.length === 0 && !isCommonSubject && (
-                      <div className="mt-1.8 flex items-center justify-end">
-                        <div className="flex items-center gap-1.8">
+                      <div className="mt-3 flex items-center justify-end">
+                        <div className="flex items-center gap-2.5">
                           <input
                             type="checkbox"
                             id="isCommonSubject"
@@ -1338,7 +1338,7 @@ const SubjectsPage = () => {
                                 setSelectedMajors([])
                               }
                             }}
-                            className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                           />
                           <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                             Môn chung
@@ -1349,9 +1349,9 @@ const SubjectsPage = () => {
                   </>
                 )}
                 {isCommonSubject && (
-                  <div className="mt-1.8 flex items-center justify-between">
+                  <div className="mt-3 flex items-center justify-between">
                     <p className="text-xs text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
-                    <div className="flex items-center gap-1.8">
+                    <div className="flex items-center gap-2.5">
                       <input
                         type="checkbox"
                         id="isCommonSubjectBottom"
@@ -1362,7 +1362,7 @@ const SubjectsPage = () => {
                             setSelectedMajors([])
                           }
                         }}
-                        className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                       />
                       <label htmlFor="isCommonSubjectBottom" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                         Môn chung
@@ -1371,7 +1371,7 @@ const SubjectsPage = () => {
                   </div>
                 )}
               </div>
-              <div className="flex gap-3.5">
+              <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={() => {
@@ -1379,11 +1379,11 @@ const SubjectsPage = () => {
                     setEditingSubject(null)
                     resetForm()
                   }}
-                  className="flex-1 px-3.5 py-1.8 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
                 >
                   Hủy
                 </button>
-                <button type="submit" className="flex-1 px-3.5 py-1.8 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+                <button type="submit" className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
                   {editingSubject ? 'Cập nhật' : 'Tạo mới'}
                 </button>
               </div>
