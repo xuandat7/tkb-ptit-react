@@ -28,7 +28,7 @@ const SubjectsPage = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(15)
   const [totalElements, setTotalElements] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedSemesterName, setSelectedSemesterName] = useState('')
@@ -69,7 +69,7 @@ const SubjectsPage = () => {
     const timer = setTimeout(() => {
       setSearchTerm(searchInput)
       setCurrentPage(1) // Reset to first page when search changes
-    }, 500) // 500ms delay
+    }, 1500) // 1000ms delay - tăng lên để người dùng gõ liên tục không bị load liên tục
 
     return () => clearTimeout(timer)
   }, [searchInput])
@@ -377,22 +377,6 @@ const SubjectsPage = () => {
     setIdsToDelete([])
   }
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedSubjectIds(subjects.map(s => s.id))
-    } else {
-      setSelectedSubjectIds([])
-    }
-  }
-
-  const handleSelectSubject = (id: number, checked: boolean) => {
-    if (checked) {
-      setSelectedSubjectIds([...selectedSubjectIds, id])
-    } else {
-      setSelectedSubjectIds(selectedSubjectIds.filter(sId => sId !== id))
-    }
-  }
-
   const handleFileImportConfirm = async (file: File, semester?: string) => {
     if (!semester) {
       toast.error('Vui lòng chọn học kỳ trước khi import')
@@ -520,14 +504,29 @@ const SubjectsPage = () => {
       <div className="bg-white rounded-lg shadow-md p-6 flex-1 flex flex-col overflow-hidden mt-4">
         <div className="flex items-center gap-2 mb-4 flex-wrap flex-shrink-0">
           <div className="flex-1 relative min-w-[160px]">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Tìm kiếm môn học..."
+              placeholder="Tìm theo mã hoặc tên môn học..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setSearchTerm(searchInput)
+                  setCurrentPage(1)
+                }
+              }}
+              className="w-full pl-10 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 hover:border-gray-400"
             />
+            {searchInput && (
+              <button
+                onClick={() => setSearchInput('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <select
             value={filterAcademicYear}
@@ -595,7 +594,7 @@ const SubjectsPage = () => {
         </div>
 
         {/* Filter Tags - Hiển thị các filter đang active DƯỚI hàng filter */}
-        {(filterAcademicYear || filterSemesterName || filterClassYear || filterMajor || filterProgramType || searchTerm) && (
+        {(filterAcademicYear || filterSemesterName || filterClassYear || filterMajor || filterProgramType) && (
           <div className="mb-4 flex items-center gap-2 flex-wrap">
             {filterAcademicYear && (
               <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
@@ -652,20 +651,6 @@ const SubjectsPage = () => {
                 </button>
               </div>
             )}
-            {searchTerm && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                <span>"{searchTerm}"</span>
-                <button
-                  onClick={() => {
-                    setSearchInput('')
-                    setSearchTerm('')
-                  }}
-                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                >
-                  <X className="w-3 h-3" />
-            </button>
-              </div>
-            )}
             <button
               onClick={() => {
                 setFilterAcademicYear('')
@@ -673,8 +658,6 @@ const SubjectsPage = () => {
                 setFilterClassYear('')
                 setFilterMajor('')
                 setFilterProgramType('')
-                setSearchInput('')
-                setSearchTerm('')
               }}
               className="px-2 py-1 text-xs text-red-600 hover:text-red-800 font-medium underline"
             >
@@ -703,14 +686,6 @@ const SubjectsPage = () => {
           <table className="w-full border-collapse text-xs">
             <thead className="bg-red-600">
               <tr>
-                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 w-8">
-                  <input
-                    type="checkbox"
-                    checked={subjects.length > 0 && selectedSubjectIds.length === subjects.length}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                  />
-                </th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã môn</th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
@@ -727,14 +702,6 @@ const SubjectsPage = () => {
             <tbody className="bg-white">
               {subjects.map((subject) => (
                 <tr key={subject.id} className="hover:bg-red-50 border-b border-gray-200">
-                  <td className="px-1.5 py-1.5 text-center border-r border-gray-200">
-                    <input
-                      type="checkbox"
-                      checked={selectedSubjectIds.includes(subject.id)}
-                      onChange={(e) => handleSelectSubject(subject.id, e.target.checked)}
-                      className="w-3.5 h-3.5 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                    />
-                  </td>
                   <td className="px-1.5 py-1.5 text-xs text-gray-900 border-r border-gray-200">{subject.subjectCode}</td>
                   <td className="px-1.5 py-1.5 text-xs font-medium text-gray-900 border-r border-gray-200">{subject.subjectName}</td>
                   <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.classYear}</td>
