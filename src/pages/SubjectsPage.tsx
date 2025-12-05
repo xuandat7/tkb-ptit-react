@@ -357,8 +357,10 @@ const SubjectsPage = () => {
       toast.success(`Đã xóa ${ids.length} môn học thành công`, { duration: 5000 })
       setSelectedSubjectIds([])
       fetchSubjects()
-    } catch (error) {
-      toast.error('Không thể xóa môn học')
+    } catch (error: any) {
+      console.error('Delete error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Không thể xóa môn học'
+      toast.error(errorMessage)
     }
   }
 
@@ -1362,8 +1364,7 @@ const SubjectsPage = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmModal && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
-          style={{ margin: 0, padding: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowDeleteConfirmModal(false)
@@ -1371,31 +1372,53 @@ const SubjectsPage = () => {
             }
           }}
         >
-          <div className="bg-white rounded-lg p-5.5 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-1.6xl font-bold mb-3.5 text-gray-900">Xác nhận xóa</h3>
-            <p className="text-sm text-gray-700 mb-5.5">
-              {idsToDelete.length === 1 
-                ? 'Bạn có chắc chắn muốn xóa môn học này không?'
-                : `Bạn có chắc chắn muốn xóa ${idsToDelete.length} môn học đã chọn không?`
-              }
-            </p>
-            <div className="flex gap-2.5 justify-end">
+          <div 
+            className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 px-5 py-3 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Xác nhận xóa</h3>
+            </div>
+
+            {/* Body */}
+            <div className="px-5 py-4">
+              <p className="text-gray-700 text-sm">
+                {idsToDelete.length === 1 
+                  ? 'Bạn có chắc chắn muốn xóa môn học này không?'
+                  : (
+                    <>
+                      Bạn có chắc chắn muốn xóa <span className="font-bold text-red-600">{idsToDelete.length}</span> môn học đã chọn không?
+                    </>
+                  )
+                }
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Hành động này không thể hoàn tác.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-5 py-3 flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => {
                   setShowDeleteConfirmModal(false)
                   setIdsToDelete([])
                 }}
-                className="px-3.5 py-1.8 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-white text-gray-700 text-sm font-medium transition-colors"
               >
                 Hủy
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
-                className="px-3.5 py-1.8 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium transition-colors"
               >
-                Xóa
+                Xóa ngay
               </button>
             </div>
           </div>
