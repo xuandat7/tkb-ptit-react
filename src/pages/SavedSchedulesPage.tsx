@@ -2,41 +2,61 @@ import React, { useEffect, useState } from 'react'
 import { Trash2, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
-import api, { subjectService, majorService, semesterService, type Major, type Semester } from '../services/api'
+import api, { subjectService, semesterService, type Semester } from '../services/api'
+
+// Semester entity from backend (schedule relationship)
+interface SemesterInfo {
+  id: number
+  semesterName: string
+  academicYear: string
+  startDate?: string
+  endDate?: string
+  isActive?: boolean
+  description?: string
+}
+
+interface MajorInfo {
+  id: number
+  majorCode: string
+  majorName: string
+}
+
+interface SubjectInfo {
+  id: number
+  subjectCode: string
+  subjectName: string
+  credits: number
+  theoryHours: number
+  practiceHours: number
+  semester: SemesterInfo
+  major: MajorInfo
+  classYear: string
+}
+
+interface TKBTemplate {
+  id: number
+  templateId: string
+  totalPeriods: number
+  dayOfWeek: number
+  kip: number
+  startPeriod: number
+  periodLength: number
+  weekSchedule: string // JSON string của List<Integer>
+  totalUsed: number
+  semester: SemesterInfo // Quan hệ với Semester entity
+  rowOrder: number
+}
 
 interface Schedule {
   id: number
   classNumber: number
-  subjectId: string
-  subjectName: string
   studentYear: string
   major: string
   specialSystem: string
-  dayOfWeek: number
-  sessionNumber: number
-  startPeriod: number
-  periodLength: number
+  siSoMotLop: number
   roomNumber: string
-  academicYear?: string
-  semester?: string
-  week1?: string
-  week2?: string
-  week3?: string
-  week4?: string
-  week5?: string
-  week6?: string
-  week7?: string
-  week8?: string
-  week9?: string
-  week10?: string
-  week11?: string
-  week12?: string
-  week13?: string
-  week14?: string
-  week15?: string
-  week16?: string
-  week17?: string
-  week18?: string
+  subject: SubjectInfo // Quan hệ với Subject entity (chứa tất cả thông tin: code, name, major, semester)
+  tkbTemplate?: TKBTemplate // Thông tin template
 }
 
 interface GroupedSchedule {
@@ -117,7 +137,7 @@ const SavedSchedulesPage: React.FC = () => {
     }
   }
 
-  // Group schedules by class (subjectId + major + classNumber)
+  // Group schedules by class (subjectCode + major + classNumber)
   const groupSchedulesByClass = (scheduleList: Schedule[]): GroupedSchedule[] => {
     // Sort by ID to maintain insertion order from database
     const sortedSchedules = [...scheduleList].sort((a, b) => a.id - b.id)
@@ -125,16 +145,18 @@ const SavedSchedulesPage: React.FC = () => {
     const grouped = new Map<string, GroupedSchedule>()
 
     sortedSchedules.forEach((schedule) => {
-      const classKey = `${schedule.subjectId}-${schedule.major}-${schedule.classNumber}`
+      const subjectCode = schedule.subject?.subjectCode || 'N/A'
+      const majorCode = schedule.major || 'N/A' // Lấy từ FE, không phải từ subject
+      const classKey = `${subjectCode}-${majorCode}-${schedule.classNumber}`
       
       if (!grouped.has(classKey)) {
         grouped.set(classKey, {
           classKey,
           classNumber: schedule.classNumber,
-          subjectId: schedule.subjectId,
-          subjectName: schedule.subjectName,
-          studentYear: schedule.studentYear,
-          major: schedule.major,
+          subjectId: subjectCode,
+          subjectName: schedule.subject?.subjectName || 'N/A',
+          studentYear: schedule.studentYear, // Đã đúng - lấy từ FE
+          major: majorCode,
           specialSystem: schedule.specialSystem,
           schedules: [],
         })
@@ -178,7 +200,7 @@ const SavedSchedulesPage: React.FC = () => {
     }
 
     const schedulesToDelete = schedules.filter((s) => 
-      s.academicYear === deleteAllAcademicYear && s.semester === deleteAllSemester
+      s.subject?.semester?.academicYear === deleteAllAcademicYear && s.subject?.semester?.semesterName === deleteAllSemester
     )
 
     if (schedulesToDelete.length === 0) {
@@ -197,7 +219,7 @@ const SavedSchedulesPage: React.FC = () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}')
       const userId = user.id
       if (userId) {
-        await api.delete('/tkb/reset-last-slot-idx-redis', {
+        await api.delete('/schedules/reset-last-slot-idx-redis', {
           params: { userId, academicYear: deleteAllAcademicYear, semester: deleteAllSemester }
         })
       }
@@ -224,7 +246,7 @@ const SavedSchedulesPage: React.FC = () => {
     }
 
     const schedulesToDelete = schedules.filter((s) =>
-      s.major === majorToDelete
+      s.subject?.major?.majorCode === majorToDelete
     )
 
     if (schedulesToDelete.length === 0) {
@@ -266,6 +288,7 @@ const SavedSchedulesPage: React.FC = () => {
       'Kíp',
       'T.BĐ',
       'L',
+      'Sĩ số',
       'Phòng',
       ...Array.from({ length: 17 }, (_, i) => `T${i + 1}`),
       '',
@@ -275,17 +298,18 @@ const SavedSchedulesPage: React.FC = () => {
     const rows = groupedSchedules.flatMap((group) =>
       group.schedules.map((schedule) => [
         schedule.classNumber,
-        schedule.subjectId,
-        schedule.subjectName,
-        schedule.academicYear || '',
-        schedule.semester || '',
+        schedule.subject?.subjectCode || '',
+        schedule.subject?.subjectName || '',
+        schedule.subject?.semester?.academicYear || '',
+        schedule.subject?.semester?.semesterName || '',
         schedule.studentYear,
-        schedule.major,
+        schedule.major || '',
         schedule.specialSystem,
-        schedule.dayOfWeek,
-        schedule.sessionNumber,
-        schedule.startPeriod,
-        schedule.periodLength,
+        schedule.tkbTemplate?.dayOfWeek || 0,
+        schedule.tkbTemplate?.kip || 0,
+        schedule.tkbTemplate?.startPeriod || 0,
+        schedule.tkbTemplate?.periodLength || 0,
+        schedule.siSoMotLop || 0,
         schedule.roomNumber,
         ...Array.from({ length: 18 }, (_, i) => getWeekValue(schedule, i + 1)),
       ])
@@ -309,6 +333,7 @@ const SavedSchedulesPage: React.FC = () => {
       { wch: 6 },  // Kíp
       { wch: 6 },  // T.BĐ
       { wch: 4 },  // L
+      { wch: 7 },  // Sĩ số
       { wch: 10 }, // Phòng
       ...Array.from({ length: 18 }, () => ({ wch: 4 })), // T1-T18
     ]
@@ -321,17 +346,30 @@ const SavedSchedulesPage: React.FC = () => {
   }
 
   const getWeekValue = (schedule: Schedule, weekNum: number): string => {
-    const weekKey = `week${weekNum}` as keyof Schedule
-    const value = schedule[weekKey] as string || ''
-    // Convert to lowercase 'x' for consistency with backend
-    return value.toLowerCase()
+    // Parse weekSchedule từ tkbTemplate (JSON string của List<Integer>)
+    if (!schedule.tkbTemplate?.weekSchedule) {
+      return ''
+    }
+    
+    try {
+      const weekSchedule = JSON.parse(schedule.tkbTemplate.weekSchedule) as number[]
+      const weekIndex = weekNum - 1 // weekNum: 1-18, array index: 0-17
+      
+      if (weekIndex >= 0 && weekIndex < weekSchedule.length) {
+        return weekSchedule[weekIndex] === 1 ? 'x' : ''
+      }
+    } catch (error) {
+      console.error('Error parsing weekSchedule:', error)
+    }
+    
+    return ''
   }
 
   // Get unique values from schedules for dropdown fallback
-  const uniqueMajorsFromSchedules = Array.from(new Set(schedules.map(s => s.major))).filter(Boolean).sort()
+  const uniqueMajorsFromSchedules = Array.from(new Set(schedules.map(s => s.subject?.major?.majorCode))).filter(Boolean).sort()
   const uniqueYearsFromSchedules = Array.from(new Set(schedules.map(s => s.studentYear))).filter(Boolean).sort()
-  const uniqueAcademicYearsFromSchedules = Array.from(new Set(schedules.map(s => s.academicYear))).filter(Boolean).sort()
-  const uniqueSemestersFromSchedules = Array.from(new Set(schedules.map(s => s.semester))).filter(Boolean).sort()
+  const uniqueAcademicYearsFromSchedules = Array.from(new Set(schedules.map(s => s.subject?.semester?.academicYear))).filter(Boolean).sort()
+  const uniqueSemestersFromSchedules = Array.from(new Set(schedules.map(s => s.subject?.semester?.semesterName))).filter(Boolean).sort()
   
   // Use only majors from schedules (not all majors from API)
   const majorOptions = uniqueMajorsFromSchedules.map((code, idx) => ({ 
@@ -345,7 +383,7 @@ const SavedSchedulesPage: React.FC = () => {
   }))
   const yearOptions = classYears.length > 0 ? classYears : uniqueYearsFromSchedules
   const academicYearOptions = academicYears.length > 0 ? academicYears : uniqueAcademicYearsFromSchedules
-  const semesterOptions = semesters.length > 0 
+  const semesterOptions: Semester[] = semesters.length > 0 
     ? semesters.filter(s => !filter.academicYear || s.academicYear === filter.academicYear)
     : uniqueSemestersFromSchedules.map((name, idx) => ({
         id: idx,
@@ -354,14 +392,15 @@ const SavedSchedulesPage: React.FC = () => {
         startDate: '',
         endDate: '',
         isActive: false,
+        description: '',
         subjectCount: 0
       }))
 
-  const filteredSchedules = schedules.filter((s) => {
-    if (filter.major && filter.major !== s.major) return false
+  const filteredSchedules = schedules.filter(s => {
+    if (filter.major && filter.major !== s.subject?.major?.majorCode) return false
     if (filter.studentYear && filter.studentYear !== s.studentYear) return false
-    if (filter.academicYear && filter.academicYear !== s.academicYear) return false
-    if (filter.semester && filter.semester !== s.semester) return false
+    if (filter.academicYear && filter.academicYear !== s.subject?.semester?.academicYear) return false
+    if (filter.semester && filter.semester !== s.subject?.semester?.semesterName) return false
     return true
   })
 
@@ -462,37 +501,38 @@ const SavedSchedulesPage: React.FC = () => {
         <table className="min-w-full text-xs border-collapse" style={{ fontSize: '0.65rem' }}>
           <thead className="sticky top-0 bg-red-600">
             <tr className="bg-red-600 text-white">
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Lớp</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '70px' }}>Mã môn</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '150px' }}>Tên môn</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '80px' }}>Năm học</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '50px' }}>Học kỳ</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '45px' }}>Khóa</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '45px' }}>Ngành</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '70px' }}>Hệ đặc thù</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Thứ</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Kíp</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>T.BĐ</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '25px' }}>L</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '50px' }}>Phòng</th>
-              {Array.from({ length: 18 }, (_, i) => (
-                <th key={i} className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '28px' }}>
-                  {i === 17 ? '' : `T${i + 1}`}
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Lớp</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Mã môn</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '120px', fontSize: '0.6rem' }}>Tên môn</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '65px', fontSize: '0.6rem' }}>Năm học</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '40px', fontSize: '0.6rem' }}>HK</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Khóa</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Ngành</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Hệ ĐT</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Thứ</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Kíp</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>TBĐ</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '22px', fontSize: '0.6rem' }}>L</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Sĩ số</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '42px', fontSize: '0.6rem' }}>Phòng</th>
+              {Array.from({ length: 17 }, (_, i) => (
+                <th key={i} className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '24px', fontSize: '0.6rem' }}>
+                  T{i + 1}
                 </th>
               ))}
-              <th className="px-1 py-1 border border-white text-center" style={{ minWidth: '60px' }}>Xóa</th>
+              <th className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Tổng</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={32} className="text-center py-8">
+                <td colSpan={31} className="text-center py-8">
                   Đang tải...
                 </td>
               </tr>
             ) : groupedSchedules.length === 0 ? (
               <tr>
-                <td colSpan={32} className="text-center py-8">
+                <td colSpan={31} className="text-center py-8">
                   Chưa có lịch học nào được lưu
                 </td>
               </tr>
@@ -503,7 +543,7 @@ const SavedSchedulesPage: React.FC = () => {
 
                 return groupedSchedules.flatMap((group) =>
                   group.schedules.map((schedule, idx) => {
-                    const key = `${schedule.subjectId}|${schedule.classNumber}`
+                    const key = `${schedule.subject?.subjectCode}|${schedule.classNumber}`
                     if (key !== lastKey) {
                       flip = !flip
                       lastKey = key
@@ -513,19 +553,20 @@ const SavedSchedulesPage: React.FC = () => {
                     return (
                       <tr key={schedule.id} className={`hover:bg-gray-100 ${rowClass}`}>
                         <td className="px-1 py-1 border text-center">{schedule.classNumber}</td>
-                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subjectId}</td>
-                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subjectName}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.academicYear || ''}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.semester || ''}</td>
+                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subject?.subjectCode || ''}</td>
+                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subject?.subjectName || ''}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.subject?.semester?.academicYear || ''}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.subject?.semester?.semesterName || ''}</td>
                         <td className="px-1 py-1 border text-center">{schedule.studentYear}</td>
-                        <td className="px-1 py-1 border">{schedule.major}</td>
+                        <td className="px-1 py-1 border">{schedule.major || ''}</td>
                         <td className="px-1 py-1 border">{schedule.specialSystem}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.dayOfWeek}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.sessionNumber}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.startPeriod}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.periodLength}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.dayOfWeek || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.kip || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.startPeriod || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.periodLength || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.siSoMotLop || '-'}</td>
                         <td className="px-1 py-1 border">{schedule.roomNumber}</td>
-                        {Array.from({ length: 18 }, (_, i) => {
+                        {Array.from({ length: 17 }, (_, i) => {
                           const value = getWeekValue(schedule, i + 1)
                           return (
                             <td
@@ -536,17 +577,8 @@ const SavedSchedulesPage: React.FC = () => {
                             </td>
                           )
                         })}
-                        <td className="px-1 py-1 border text-center">
-                          {idx === 0 && (
-                            <button
-                              onClick={() => handleDeleteClass(group)}
-                              className="px-2 py-0.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1 mx-auto"
-                              title={`Xóa lớp ${group.classNumber} (${group.schedules.length} buổi)`}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Xóa
-                            </button>
-                          )}
+                        <td className="px-1 py-1 border text-center font-semibold">
+                          {schedule.tkbTemplate?.totalUsed || 0}
                         </td>
                       </tr>
                     )
@@ -671,7 +703,7 @@ const SavedSchedulesPage: React.FC = () => {
             </div>
           </div>
         </div>
-      )},
+      )}
 
       {/* Modal xóa theo ngành */}
       {showDeleteMajorModal && (

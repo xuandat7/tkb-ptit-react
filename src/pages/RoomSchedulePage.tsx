@@ -184,7 +184,7 @@ const RoomSchedulePage = () => {
           for (const key of possibleKeys) {
             const roomSchedules = schedulesByRoom[key] || []
             if (roomSchedules.some((schedule: any) => 
-              schedule.dayOfWeek === day && schedule.sessionNumber === kip
+              schedule.tkbTemplate?.dayOfWeek === day && schedule.tkbTemplate?.kip === kip
             )) {
               isOccupied = true
               break

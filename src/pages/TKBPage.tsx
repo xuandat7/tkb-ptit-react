@@ -48,6 +48,7 @@ interface TKBResultRow {
   khoa?: string
   nganh?: string
   he_dac_thu?: string
+  si_so_mot_lop?: number
   thu?: string
   kip?: string
   tiet_bd?: string
@@ -58,6 +59,8 @@ interface TKBResultRow {
   student_year?: string
   academic_year?: string
   semester?: string
+  template_database_id?: number
+  subject_database_id?: number // ID của Subject từ database
 }
 
 interface SavedResult {
@@ -918,7 +921,7 @@ const TKBPage = () => {
         }
       })
 
-      const response = await api.post('/tkb/generate-batch', { items })
+      const response = await api.post('/schedules/generate-batch', { items })
       
       if (response.data?.items && response.data.items.length > 0) {
         const allRows = response.data.items.flatMap((item: any) => item.rows || [])
@@ -975,30 +978,23 @@ const TKBPage = () => {
       
       // Transform TKBResultRow to backend Schedule format
       const schedules = results.map((row) => {
-        // Create week fields from o_to_AG array and ah
-        const weekFields: any = {}
-        for (let i = 0; i < 17; i++) {
-          weekFields[`week${i + 1}`] = row.o_to_AG?.[i] || ''
+        // Convert to SaveScheduleRequest DTO - sử dụng subject_database_id từ backend
+        if (!row.subject_database_id) {
+          console.warn('⚠️ Row missing subject_database_id:', row)
+          return null
         }
-        weekFields.week18 = row.ah || ''
         
         return {
-          classNumber: parseInt(row.lop || '1') || 1,
-          subjectId: row.ma_mon || '',
-          subjectName: row.ten_mon || '',
-          studentYear: row.khoa || row.student_year || '',
+          subject_id: row.subject_database_id, // Long ID từ database Subject
+          class_number: parseInt(row.lop || '1') || 1,
+          student_year: row.khoa || row.student_year || '',
           major: row.nganh || '',
-          specialSystem: row.he_dac_thu || '',
-          dayOfWeek: parseInt(row.thu || '0') || 0,
-          sessionNumber: parseInt(row.kip || '0') || 0,
-          startPeriod: parseInt(row.tiet_bd || '0') || 0,
-          periodLength: parseInt(row.l || '0') || 0,
-          roomNumber: row.phong || null,
-          academicYear: academicYear,
-          semester: semester,
-          ...weekFields
+          special_system: row.he_dac_thu || '',
+          si_so_mot_lop: row.si_so_mot_lop || null,
+          room_number: row.phong || null,
+          template_database_id: row.template_database_id || null
         }
-      })
+      }).filter(s => s !== null) // Loại bỏ các row không có subject_database_id
       
       // Call API to save batch schedules - send ARRAY, not object
       const response = await api.post('/schedules/save-batch', schedules)
@@ -1086,29 +1082,35 @@ const TKBPage = () => {
     }
   }
 
-  const handleFileImportConfirm = async (file: File) => {
+  const handleFileImportConfirm = async (file: File, semester?: string) => {
     try {
       setImporting(true)
       
-      // Tạm thời chỉ hiển thị thông báo
-      toast.success(`Đã chọn file: ${file.name}. Chức năng import sẽ được tích hợp API sau.`)
+      if (!semester) {
+        toast.error('Vui lòng chọn học kỳ!')
+        return
+      }
       
-      // TODO: Ghép API sau
-      // const formData = new FormData()
-      // formData.append('file', file)
-      // const response = await api.post('/tkb/import-data', formData, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      // })
-      // if (response.data) {
-      //   toast.success('Đã import dữ liệu lịch mẫu thành công!')
-      // }
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('semester', semester)
+      
+      const response = await api.post('/schedules/import-data', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      
+      if (response.data?.success) {
+        const data = response.data.data
+        toast.success(`Đã import dữ liệu lịch mẫu cho ${data.semester} thành công!`)
+      }
     } catch (error: any) {
       console.error('Error importing file:', error)
       toast.error(error.response?.data?.message || 'Không thể import file. Vui lòng thử lại!')
     } finally {
       setImporting(false)
+      setShowImportModal(false)
     }
   }
 
@@ -1212,7 +1214,7 @@ const TKBPage = () => {
                 !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
               }`}
             >
-              <option value="chinh_quy">Hệ thường</option>
+              <option value="chinh_quy">Chính quy</option>
               <option value="he_dac_thu">Hệ đặc thù</option>
               <option value="chung">Chung</option>
             </select>
@@ -1580,27 +1582,29 @@ const TKBPage = () => {
             </div>
           </div>
           <div>
-            <table className="w-full text-xs border-collapse table-fixed">
+            <table className="w-full text-xs border-collapse" style={{ fontSize: '0.65rem' }}>
               <thead>
                 <tr className="bg-red-600 text-white">
-                  <th className="px-1 py-1 border text-xs w-[3%]">Lớp</th>
-                  <th className="px-1 py-1 border text-xs w-[5%]">Mã môn</th>
-                  <th className="px-1 py-1 border text-xs w-[15%]">Tên môn</th>
-                  <th className="px-1 py-1 border text-xs w-[6%]">Năm học</th>
-                  <th className="px-1 py-1 border text-xs w-[4%]">Học kỳ</th>
-                  <th className="px-1 py-1 border text-xs w-[3%]">Khóa</th>
-                  <th className="px-1 py-1 border text-xs w-[4%]">Ngành</th>
-                  <th className="px-1 py-1 border text-xs w-[5%]">Hệ đặc thù</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">Thứ</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">Kíp</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">T.BĐ</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">L</th>
-                  <th className="px-1 py-1 border text-xs w-[4%]">Phòng</th>
-                  {Array.from({ length: 18 }, (_, i) => (
-                    <th key={i} className="px-0.5 py-1 border text-center text-xs w-[2.5%]">
-                      {i === 17 ? '' : `T${i + 1}`}
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Lớp</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Mã môn</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '120px', fontSize: '0.6rem' }}>Tên môn</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '65px', fontSize: '0.6rem' }}>Năm học</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '40px', fontSize: '0.6rem' }}>HK</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Khóa</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Ngành</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Hệ ĐT</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Thứ</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Kíp</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>TBĐ</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '22px', fontSize: '0.6rem' }}>L</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Sĩ số</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '42px', fontSize: '0.6rem' }}>Phòng</th>
+                  {Array.from({ length: 17 }, (_, i) => (
+                    <th key={i} className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '24px', fontSize: '0.6rem' }}>
+                      T{i + 1}
                     </th>
                   ))}
+                  <th className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Tổng</th>
                 </tr>
               </thead>
               <tbody>
@@ -1631,16 +1635,10 @@ const TKBPage = () => {
                         <td className="px-1 py-1 border text-center text-xs">{row.kip || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.tiet_bd || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.l || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.si_so_mot_lop || '-'}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.phong || ''}</td>
-                        {Array.from({ length: 18 }, (_, i) => {
-                          let value = ''
-                          if (i === 17) {
-                            // Tuần 18 hiển thị giá trị ah
-                            value = row.ah || ''
-                          } else {
-                            // Tuần 1-17 hiển thị từ o_to_AG
-                            value = schedule[i] || ''
-                          }
+                        {Array.from({ length: 17 }, (_, i) => {
+                          const value = schedule[i] || ''
                           const isX = value === 'x'
                           return (
                             <td
@@ -1653,6 +1651,7 @@ const TKBPage = () => {
                             </td>
                           )
                         })}
+                        <td className="px-1 py-1 border text-center text-xs font-semibold">{row.ah || 0}</td>
                       </tr>
                     )
                   })
@@ -1709,6 +1708,8 @@ const TKBPage = () => {
         accept=".xlsx,.xls"
         maxSizeMB={10}
         sampleFileName="mau_data_lich_hoc.xlsx"
+        showSemesterSelect={true}
+        isLoading={importing}
       />
       
     </div>
