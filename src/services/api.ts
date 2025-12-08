@@ -196,9 +196,24 @@ export interface RoomRequest {
   building: string
   capacity: number
   roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
-  status?: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
+  status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
   equipment?: string[]
   floor?: number
+}
+
+export interface RoomOccupancy {
+  id: number
+  roomId: number
+  roomName: string
+  building: string
+  semesterId: number
+  semesterName: string
+  academicYear: string
+  dayOfWeek: number
+  dayOfWeekName: string
+  period: number
+  periodName: string
+  note: string | null
 }
 
 export interface RoomApiPayload {
@@ -417,6 +432,8 @@ export const roomService = {
     api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomCodes, status }),
   saveResults: () => 
     api.post<ApiResponse<any>>('/rooms/save-results'),
+  getRoomOccupancies: (roomId: number) => 
+    api.get<RoomOccupancy[]>(`/v1/room-occupancies/room/${roomId}`),
 }
 
 export const curriculumService = {

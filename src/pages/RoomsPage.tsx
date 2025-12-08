@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { roomService, type Room, type RoomRequest, type RoomApiPayload, API_BASE_URL } from '../services/api'
+import { roomService, type Room, type RoomRequest, type RoomApiPayload, type RoomOccupancy } from '../services/api'
 import toast from 'react-hot-toast'
 
 const RoomsPage = () => {
@@ -28,6 +28,10 @@ const RoomsPage = () => {
   })
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [idsToDelete, setIdsToDelete] = useState<number[]>([])
+  const [showOccupanciesModal, setShowOccupanciesModal] = useState(false)
+  const [selectedRoomOccupancies, setSelectedRoomOccupancies] = useState<RoomOccupancy[]>([])
+  const [loadingOccupancies, setLoadingOccupancies] = useState(false)
+  const [selectedRoomInfo, setSelectedRoomInfo] = useState<{ roomCode: string; building: string } | null>(null)
 
   useEffect(() => {
     fetchRooms()
@@ -176,6 +180,21 @@ const RoomsPage = () => {
     handleDelete(idsToDelete)
     setShowDeleteConfirmModal(false)
     setIdsToDelete([])
+  }
+
+  const handleViewOccupancies = async (room: Room) => {
+    try {
+      setLoadingOccupancies(true)
+      setSelectedRoomInfo({ roomCode: room.roomCode, building: room.building })
+      setShowOccupanciesModal(true)
+      const response = await roomService.getRoomOccupancies(room.id)
+      setSelectedRoomOccupancies(response.data)
+    } catch (error) {
+      toast.error('Không thể tải thông tin lịch sử dụng phòng')
+      setShowOccupanciesModal(false)
+    } finally {
+      setLoadingOccupancies(false)
+    }
   }
 
 
@@ -437,7 +456,11 @@ const RoomsPage = () => {
             </thead>
             <tbody className="bg-white">
               {paginatedRooms.map((room) => (
-                <tr key={room.id} className="hover:bg-red-50 border-b border-gray-200">
+                <tr 
+                  key={room.id} 
+                  className="hover:bg-red-50 border-b border-gray-200 cursor-pointer"
+                  onClick={() => handleViewOccupancies(room)}
+                >
                   <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
@@ -447,7 +470,7 @@ const RoomsPage = () => {
                       {room.status === 'AVAILABLE' ? 'Có sẵn' : room.status === 'OCCUPIED' ? 'Đang sử dụng' : 'Không khả dụng'}
                     </span>
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
+                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
                       <Edit className="w-3.5 h-3.5 inline" />
                     </button>
@@ -599,6 +622,81 @@ const RoomsPage = () => {
                 Xóa
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Occupancies Modal */}
+      {showOccupanciesModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowOccupanciesModal(false)
+              setSelectedRoomOccupancies([])
+              setSelectedRoomInfo(null)
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-auto relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => {
+                setShowOccupanciesModal(false)
+                setSelectedRoomOccupancies([])
+                setSelectedRoomInfo(null)
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-2xl font-bold mb-4">
+              Lịch sử dụng phòng {selectedRoomInfo?.roomCode} - {selectedRoomInfo?.building}
+            </h2>
+            
+            {loadingOccupancies ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                <p className="mt-2 text-gray-600">Đang tải...</p>
+              </div>
+            ) : selectedRoomOccupancies.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Không có dữ liệu</h3>
+                <p className="text-gray-600">Phòng học này chưa có lịch sử dụng trong hệ thống.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="bg-red-600">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Năm học</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thứ</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ca học</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ghi chú</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white">
+                    {selectedRoomOccupancies.map((occupancy) => (
+                      <tr key={occupancy.id} className="hover:bg-red-50 border-b border-gray-200">
+                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.semesterName}</td>
+                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.academicYear}</td>
+                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.dayOfWeekName}</td>
+                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.periodName}</td>
+                        <td className="px-3 py-2 text-sm text-gray-500 italic">{occupancy.note || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-4 text-sm text-gray-600">
+                  Tổng số: <span className="font-semibold">{selectedRoomOccupancies.length}</span> lịch sử dụng
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
