@@ -957,8 +957,30 @@ const TKBPage = () => {
         toast.error('Không có dữ liệu trả về')
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo TKB')
-      console.error(error)
+      console.error('Error generating schedule:', error)
+      
+      // Extract detailed error message
+      const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tạo TKB'
+      const errorDetails = error.response?.data?.error || ''
+      
+      // Show more detailed error
+      if (errorMessage.includes('Không tìm thấy phòng')) {
+        toast.error(
+          <div>
+            <div className="font-semibold">Không tìm thấy phòng phù hợp</div>
+            <div className="text-sm mt-1">{errorMessage}</div>
+            <div className="text-xs mt-2 opacity-80">Vui lòng kiểm tra:</div>
+            <ul className="text-xs mt-1 ml-4 list-disc opacity-80">
+              <li>Phòng học có đủ sức chứa</li>
+              <li>Phòng chưa bị trùng lịch</li>
+              <li>Loại phòng phù hợp với môn học</li>
+            </ul>
+          </div>,
+          { duration: 8000 }
+        )
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setLoading(false)
     }

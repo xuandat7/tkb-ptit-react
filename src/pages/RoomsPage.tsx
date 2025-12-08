@@ -41,8 +41,8 @@ const RoomsPage = () => {
       const rawRooms = response.data.data || []
       const mappedRooms = rawRooms.map((room: any) => ({
         id: room.id,
-        roomCode: room.phong || room.roomCode || '',
-        building: room.day || room.building || '',
+        roomCode: room.name || room.phong || room.roomCode || '',
+        building: room.building || room.day || '',
         capacity: room.capacity || 0,
         roomType: mapRoomType(room.type || room.roomType),
         status: room.status || 'AVAILABLE',
@@ -85,8 +85,8 @@ const RoomsPage = () => {
   }
 
   const mapFormDataToPayload = (data: RoomRequest): RoomApiPayload => ({
-    phong: data.roomCode.trim(),
-    day: data.building.trim(),
+    name: data.roomCode.trim(),
+    building: data.building.trim(),
     capacity: data.capacity,
     type: mapUITypeToAPI(data.roomType),
     floor: data.floor,
