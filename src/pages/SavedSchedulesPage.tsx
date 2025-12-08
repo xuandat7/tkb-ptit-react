@@ -47,6 +47,15 @@ interface TKBTemplate {
   rowOrder: number
 }
 
+interface RoomInfo {
+  id: number
+  name: string // Room number
+  capacity: number
+  building: string
+  type: string
+  status: string
+}
+
 interface Schedule {
   id: number
   classNumber: number
@@ -54,7 +63,7 @@ interface Schedule {
   major: string
   specialSystem: string
   siSoMotLop: number
-  roomNumber: string
+  room: RoomInfo | null // Quan hệ với Room entity
   subject: SubjectInfo // Quan hệ với Subject entity (chứa tất cả thông tin: code, name, major, semester)
   tkbTemplate?: TKBTemplate // Thông tin template
 }
@@ -310,7 +319,7 @@ const SavedSchedulesPage: React.FC = () => {
         schedule.tkbTemplate?.startPeriod || 0,
         schedule.tkbTemplate?.periodLength || 0,
         schedule.siSoMotLop || 0,
-        schedule.roomNumber,
+        schedule.room ? `${schedule.room.name}-${schedule.room.building}` : '',
         ...Array.from({ length: 18 }, (_, i) => getWeekValue(schedule, i + 1)),
       ])
     )
@@ -565,7 +574,7 @@ const SavedSchedulesPage: React.FC = () => {
                         <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.startPeriod || '-'}</td>
                         <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.periodLength || '-'}</td>
                         <td className="px-1 py-1 border text-center">{schedule.siSoMotLop || '-'}</td>
-                        <td className="px-1 py-1 border">{schedule.roomNumber}</td>
+                        <td className="px-1 py-1 border">{schedule.room ? `${schedule.room.name}-${schedule.room.building}` : '-'}</td>
                         {Array.from({ length: 17 }, (_, i) => {
                           const value = getWeekValue(schedule, i + 1)
                           return (
