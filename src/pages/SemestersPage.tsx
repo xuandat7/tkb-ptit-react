@@ -489,6 +489,9 @@ const SemestersPage = () => {
                         Xóa luôn tất cả {semesterToDelete.subjectCount} môn học của học kỳ này
                       </span>
                     </label>
+                    <p className="text-red-600 text-xs mt-2 ml-6">
+                      * Hệ thống cũng sẽ xóa toàn bộ thời khóa biểu đã sinh của học kỳ này
+                    </p>
                   </div>
                 )}
               </div>
