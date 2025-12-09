@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Trash2, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
-import api, { subjectService, semesterService, type Semester } from '../services/api'
+import api, { subjectService, semesterService, roomService, type Semester } from '../services/api'
 
 // Semester entity from backend (schedule relationship)
 interface SemesterInfo {
@@ -223,6 +223,14 @@ const SavedSchedulesPage: React.FC = () => {
     }
 
     try {
+      // Lấy tất cả ID phòng từ schedulesToDelete
+      const allUsedRoomIds = new Set<number>()
+      schedulesToDelete.forEach(schedule => {
+        if (schedule.room?.id) {
+          allUsedRoomIds.add(schedule.room.id)
+        }
+      })
+
       // Delete schedules
       await Promise.all(schedulesToDelete.map((s) => api.delete(`/schedules/${s.id}`)))
       
@@ -234,15 +242,23 @@ const SavedSchedulesPage: React.FC = () => {
           params: { userId, academicYear: deleteAllAcademicYear, semester: deleteAllSemester }
         })
       }
+
+      // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
+      if (allUsedRoomIds.size > 0) {
+        const roomIds = Array.from(allUsedRoomIds)
+        await roomService.updateStatusByRoomIds(roomIds, 'AVAILABLE')
+        toast.success(`Đã xóa ${schedulesToDelete.length} lịch học và giải phóng ${roomIds.length} phòng thành công!`)
+      } else {
+        toast.success(`Đã xóa ${schedulesToDelete.length} lịch học thành công!`)
+      }
       
-      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học thành công!`)
       setShowDeleteAllModal(false)
       setDeleteAllAcademicYear('')
       setDeleteAllSemester('')
       loadSchedules()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting schedules:', error)
-      toast.error('Lỗi khi xóa lịch học')
+      toast.error('Lỗi khi xóa lịch học: ' + (error.response?.data?.message || error.message))
     }
   }
 

@@ -430,6 +430,8 @@ export const roomService = {
   getAvailable: (capacity: number) => api.get<ApiResponse<Room[]>>(`/rooms/available?capacity=${capacity}`),
   updateStatusByRoomCodes: (roomCodes: string[], status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE') => 
     api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomCodes, status }),
+  updateStatusByRoomIds: (roomIds: number[], status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE') => 
+    api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomIds, status }),
   saveResults: () => 
     api.post<ApiResponse<any>>('/rooms/save-results'),
   getRoomOccupancies: (roomId: number) => 

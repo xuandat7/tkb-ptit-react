@@ -22,7 +22,7 @@ const RoomsPage = () => {
     roomCode: '',
     building: '',
     capacity: 0,
-    roomType: 'CLASSROOM',
+    roomType: 'GENERAL',
     status: 'AVAILABLE',
     floor: 1,
   })
@@ -63,27 +63,27 @@ const RoomsPage = () => {
 
   // Helper function to map API type to UI type
   const mapRoomType = (type: string) => {
-    const typeMap: Record<string, 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'> = {
-      GENERAL: 'CLASSROOM',
-      CLC: 'CLASSROOM',
-      KHOA_2024: 'CLASSROOM',
-      ENGLISH_CLASS: 'CLASSROOM',
-      NGOC_TRUC: 'CLASSROOM',
-      CLASSROOM: 'CLASSROOM',
-      LAB: 'LAB',
-      LIBRARY: 'LIBRARY',
-      MEETING: 'MEETING',
+    const typeMap: Record<string, 'CLC' | 'GENERAL' | 'KHOA_2024' | 'NGOC_TRUC'> = {
+      GENERAL: 'GENERAL',
+      CLC: 'CLC',
+      KHOA_2024: 'KHOA_2024',
+      NGOC_TRUC: 'NGOC_TRUC',
+      ENGLISH_CLASS: 'GENERAL',
+      CLASSROOM: 'GENERAL',
+      LAB: 'GENERAL',
+      LIBRARY: 'GENERAL',
+      MEETING: 'GENERAL',
     }
-    return (typeMap[type] || 'CLASSROOM') as 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
+    return (typeMap[type] || 'GENERAL') as 'CLC' | 'GENERAL' | 'KHOA_2024' | 'NGOC_TRUC'
   }
 
   // Helper function to map UI type back to API type
   const mapUITypeToAPI = (uiType: string) => {
     const typeMap: Record<string, string> = {
-      CLASSROOM: 'GENERAL',
-      LAB: 'LAB',
-      LIBRARY: 'LIBRARY',
-      MEETING: 'MEETING',
+      GENERAL: 'GENERAL',
+      CLC: 'CLC',
+      KHOA_2024: 'KHOA_2024',
+      NGOC_TRUC: 'NGOC_TRUC',
     }
     return typeMap[uiType] || 'GENERAL'
   }
@@ -269,14 +269,14 @@ const RoomsPage = () => {
 
   const getRoomTypeText = (type: string) => {
     switch (type) {
-      case 'CLASSROOM':
-        return 'Phòng học'
-      case 'LAB':
-        return 'Phòng Lab'
-      case 'LIBRARY':
-        return 'Thư viện'
-      case 'MEETING':
-        return 'Phòng họp'
+      case 'GENERAL':
+        return 'Phòng thường'
+      case 'CLC':
+        return 'Chất lượng cao'
+      case 'KHOA_2024':
+        return 'Khoá 2024'
+      case 'NGOC_TRUC':
+        return 'Cơ sở Ngọc Trục'
       default:
         return type
     }
@@ -783,10 +783,10 @@ const RoomsPage = () => {
                     onChange={(e) => setFormData({ ...formData, roomType: e.target.value as any })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   >
-                    <option value="CLASSROOM">Phòng học</option>
-                    <option value="LAB">Phòng Lab</option>
-                    <option value="LIBRARY">Thư viện</option>
-                    <option value="MEETING">Phòng họp</option>
+                    <option value="GENERAL">Phòng thường</option>
+                    <option value="CLC">Chất lượng cao</option>
+                    <option value="KHOA_2024">Khoá 2024</option>
+                    <option value="NGOC_TRUC">Cơ sở Ngọc Trục</option>
                   </select>
                 </div>
                 <div>
