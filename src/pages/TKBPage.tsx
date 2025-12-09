@@ -1097,10 +1097,33 @@ const TKBPage = () => {
     }
   }
 
-  const clearAllResults = () => {
+  const clearAllResults = async () => {
     if (confirm('Bạn có chắc muốn xóa tất cả kết quả đã lưu?')) {
-      setSavedResults([])
-      toast.success('Đã xóa tất cả kết quả')
+      try {
+        // Lấy tất cả các phòng từ savedResults
+        const allUsedRooms = new Set<string>()
+        savedResults.forEach(result => {
+          result.data.forEach(row => {
+            if (row.phong) {
+              allUsedRooms.add(row.phong)
+            }
+          })
+        })
+
+        // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
+        if (allUsedRooms.size > 0) {
+          const roomCodes = Array.from(allUsedRooms)
+          await roomService.updateStatusByRoomCodes(roomCodes, 'AVAILABLE')
+          toast.success(`Đã xóa tất cả kết quả và giải phóng ${roomCodes.length} phòng`)
+        } else {
+          toast.success('Đã xóa tất cả kết quả')
+        }
+
+        setSavedResults([])
+      } catch (error: any) {
+        console.error('Lỗi khi xóa kết quả:', error)
+        toast.error('Có lỗi xảy ra khi giải phóng phòng: ' + (error.response?.data?.message || error.message))
+      }
     }
   }
 
