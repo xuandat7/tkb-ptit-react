@@ -90,6 +90,8 @@ const SavedSchedulesPage: React.FC = () => {
   })
   const [showDeleteMajorModal, setShowDeleteMajorModal] = useState(false)
   const [majorToDelete, setMajorToDelete] = useState('')
+  const [deleteMajorAcademicYear, setDeleteMajorAcademicYear] = useState('')
+  const [deleteMajorSemester, setDeleteMajorSemester] = useState('')
   const [deleteAllAcademicYear, setDeleteAllAcademicYear] = useState('')
   const [deleteAllSemester, setDeleteAllSemester] = useState('')
   
@@ -254,22 +256,38 @@ const SavedSchedulesPage: React.FC = () => {
       return
     }
 
+    if (!deleteMajorAcademicYear || deleteMajorAcademicYear.trim() === '') {
+      toast.error('Vui lòng chọn năm học!')
+      return
+    }
+
+    if (!deleteMajorSemester || deleteMajorSemester.trim() === '') {
+      toast.error('Vui lòng chọn học kỳ!')
+      return
+    }
+
     const schedulesToDelete = schedules.filter((s) =>
-      s.subject?.major?.majorCode === majorToDelete
+      s.major === majorToDelete &&
+      s.subject?.semester?.academicYear === deleteMajorAcademicYear &&
+      s.subject?.semester?.semesterName === deleteMajorSemester
     )
 
     if (schedulesToDelete.length === 0) {
-      toast.error('Không tìm thấy lịch học nào của ngành này!')
+      toast.error(`Không tìm thấy lịch học nào của ngành "${majorToDelete}" trong ${deleteMajorAcademicYear} - ${deleteMajorSemester}!`)
       setShowDeleteMajorModal(false)
       setMajorToDelete('')
+      setDeleteMajorAcademicYear('')
+      setDeleteMajorSemester('')
       return
     }
 
     try {
       await Promise.all(schedulesToDelete.map((s) => api.delete(`/schedules/${s.id}`)))
-      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}" thành công!`)
+      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}" (${deleteMajorAcademicYear} - ${deleteMajorSemester}) thành công!`)
       setShowDeleteMajorModal(false)
       setMajorToDelete('')
+      setDeleteMajorAcademicYear('')
+      setDeleteMajorSemester('')
       loadSchedules()
     } catch (error) {
       console.error('Error deleting schedules by major:', error)
@@ -280,6 +298,8 @@ const SavedSchedulesPage: React.FC = () => {
   const cancelDeleteByMajor = () => {
     setShowDeleteMajorModal(false)
     setMajorToDelete('')
+    setDeleteMajorAcademicYear('')
+    setDeleteMajorSemester('')
   }
 
   const exportToExcel = () => {
@@ -716,15 +736,25 @@ const SavedSchedulesPage: React.FC = () => {
 
       {/* Modal xóa theo ngành */}
       {showDeleteMajorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-lg p-6 w-96 shadow-xl relative">
-            <h3 className="text-xl font-bold mb-4">Xóa lịch học theo ngành</h3>
-            <div className="mb-4 relative">
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteMajorModal(false)
+              setMajorToDelete('')
+              setDeleteMajorAcademicYear('')
+              setDeleteMajorSemester('')
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Xóa lịch học theo ngành</h3>
+            <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Chọn ngành cần xóa:</label>
               <select
                 value={majorToDelete}
                 onChange={(e) => setMajorToDelete(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 relative z-[10000]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 autoFocus
               >
                 <option value="">-- Chọn ngành --</option>
@@ -733,14 +763,51 @@ const SavedSchedulesPage: React.FC = () => {
                 ))}
               </select>
             </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Chọn năm học:</label>
+              <select
+                value={deleteMajorAcademicYear}
+                onChange={(e) => {
+                  setDeleteMajorAcademicYear(e.target.value)
+                  setDeleteMajorSemester('')
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="">-- Chọn năm học --</option>
+                {academicYearOptions.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Chọn học kỳ:</label>
+              <select
+                value={deleteMajorSemester}
+                onChange={(e) => setDeleteMajorSemester(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                disabled={!deleteMajorAcademicYear}
+              >
+                <option value="">-- Chọn học kỳ --</option>
+                {semesterOptions
+                  .filter(s => !deleteMajorAcademicYear || s.academicYear === deleteMajorAcademicYear)
+                  .map(sem => (
+                    <option key={sem.id} value={sem.semesterName}>{sem.semesterName}</option>
+                  ))}
+              </select>
+            </div>
+            <p className="text-sm text-red-500 mb-4">
+              Hành động này sẽ xóa tất cả lịch học của ngành đã chọn trong học kỳ này!
+            </p>
             <div className="flex gap-3 justify-end">
               <button
+                type="button"
                 onClick={cancelDeleteByMajor}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={confirmDeleteByMajor}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
