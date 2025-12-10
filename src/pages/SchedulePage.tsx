@@ -54,6 +54,7 @@ interface TKBResultRow {
   tiet_bd?: string
   l?: string
   phong?: string
+  room_id?: number // ID của phòng từ database
   o_to_AG?: string[]
   ah?: string
   student_year?: string
@@ -1022,21 +1023,21 @@ const TKBPage = () => {
       const response = await api.post('/schedules/save-batch', schedules)
       
       if (response.data) {
-        // Lấy danh sách các phòng đã được sử dụng (loại bỏ null và duplicate)
-        const usedRooms = [...new Set(
+        // Lấy danh sách ID phòng từ results (sử dụng room_id nếu có)
+        const usedRoomIds = [...new Set(
           results
-            .map(row => row.phong)
-            .filter(room => room !== null && room !== undefined && room !== '')
-        )] as string[]
+            .map(row => row.room_id)
+            .filter(id => id !== null && id !== undefined)
+        )] as number[]
         
         let successMessage = 'Đã lưu TKB vào database thành công!'
         
         // Update trạng thái phòng thành OCCUPIED
-        if (usedRooms.length > 0) {
+        if (usedRoomIds.length > 0) {
           try {
-            const roomUpdateResponse = await roomService.updateStatusByRoomCodes(usedRooms, 'OCCUPIED')
+            const roomUpdateResponse = await roomService.updateStatusByRoomIds(usedRoomIds, 'OCCUPIED')
             if (roomUpdateResponse.data.success) {
-              successMessage += ` (Cập nhật ${usedRooms.length} phòng)`
+              successMessage += ` (Cập nhật ${usedRoomIds.length} phòng)`
             }
           } catch (roomError: any) {
             console.error('Error updating room status:', roomError)
@@ -1100,21 +1101,22 @@ const TKBPage = () => {
   const clearAllResults = async () => {
     if (confirm('Bạn có chắc muốn xóa tất cả kết quả đã lưu?')) {
       try {
-        // Lấy tất cả các phòng từ savedResults
-        const allUsedRooms = new Set<string>()
+        
+        // Lấy tất cả ID phòng từ savedResults
+        const allUsedRoomIds = new Set<number>()
         savedResults.forEach(result => {
           result.data.forEach(row => {
-            if (row.phong) {
-              allUsedRooms.add(row.phong)
+            if (row.room_id) {
+              allUsedRoomIds.add(row.room_id)
             }
           })
         })
 
         // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
-        if (allUsedRooms.size > 0) {
-          const roomCodes = Array.from(allUsedRooms)
-          await roomService.updateStatusByRoomCodes(roomCodes, 'AVAILABLE')
-          toast.success(`Đã xóa tất cả kết quả và giải phóng ${roomCodes.length} phòng`)
+        if (allUsedRoomIds.size > 0) {
+          const roomIds = Array.from(allUsedRoomIds)
+          await roomService.updateStatusByRoomIds(roomIds, 'AVAILABLE')
+          toast.success(`Đã xóa tất cả kết quả và giải phóng ${roomIds.length} phòng`)
         } else {
           toast.success('Đã xóa tất cả kết quả')
         }

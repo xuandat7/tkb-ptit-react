@@ -464,7 +464,7 @@ const RoomsPage = () => {
                   <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{getRoomTypeText(room.roomType)}</td>
+                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
                   <td className="px-2 py-2 whitespace-nowrap border-r border-gray-200">
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(room.status)}`}>
                       {room.status === 'AVAILABLE' ? 'Có sẵn' : room.status === 'OCCUPIED' ? 'Đang sử dụng' : 'Không khả dụng'}

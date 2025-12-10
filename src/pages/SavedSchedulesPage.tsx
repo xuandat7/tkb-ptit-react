@@ -223,6 +223,30 @@ const SavedSchedulesPage: React.FC = () => {
     }
 
     try {
+      console.log('🔍 Debug - deleteAllAcademicYear:', deleteAllAcademicYear)
+      console.log('🔍 Debug - deleteAllSemester:', deleteAllSemester)
+      console.log('🔍 Debug - semesters array:', semesters)
+      
+      // Tìm semester ID từ deleteAllAcademicYear và deleteAllSemester
+      const currentSemester = semesters.find(
+        s => s.academicYear === deleteAllAcademicYear && s.semesterName === deleteAllSemester
+      )
+
+      console.log('🔍 Debug - Found currentSemester:', currentSemester)
+
+      if (!currentSemester?.id) {
+        console.error('❌ Không tìm thấy semester ID!')
+        toast.error('Không tìm thấy thông tin học kỳ!')
+        return
+      }
+
+      console.log('✅ Debug - Semester ID:', currentSemester.id)
+
+      // Gọi API xóa room occupancies theo semester ID
+      console.log('🚀 Calling DELETE /v1/room-occupancies/semester/' + currentSemester.id)
+      await api.delete(`/v1/room-occupancies/semester/${currentSemester.id}`)
+      console.log('✅ Room occupancies deleted successfully')
+
       // Lấy tất cả ID phòng từ schedulesToDelete
       const allUsedRoomIds = new Set<number>()
       schedulesToDelete.forEach(schedule => {
@@ -231,22 +255,30 @@ const SavedSchedulesPage: React.FC = () => {
         }
       })
 
+      console.log('🔍 Debug - Room IDs to free:', Array.from(allUsedRoomIds))
+
       // Delete schedules
+      console.log('🚀 Deleting', schedulesToDelete.length, 'schedules')
       await Promise.all(schedulesToDelete.map((s) => api.delete(`/schedules/${s.id}`)))
+      console.log('✅ Schedules deleted successfully')
       
       // Reset lastSlotIdx in Redis
       const user = JSON.parse(localStorage.getItem('user') || '{}')
       const userId = user.id
       if (userId) {
+        console.log('🚀 Resetting lastSlotIdx in Redis for userId:', userId)
         await api.delete('/schedules/reset-last-slot-idx-redis', {
           params: { userId, academicYear: deleteAllAcademicYear, semester: deleteAllSemester }
         })
+        console.log('✅ LastSlotIdx reset successfully')
       }
 
       // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
       if (allUsedRoomIds.size > 0) {
         const roomIds = Array.from(allUsedRoomIds)
+        console.log('🚀 Updating room status to AVAILABLE for', roomIds.length, 'rooms')
         await roomService.updateStatusByRoomIds(roomIds, 'AVAILABLE')
+        console.log('✅ Room status updated successfully')
         toast.success(`Đã xóa ${schedulesToDelete.length} lịch học và giải phóng ${roomIds.length} phòng thành công!`)
       } else {
         toast.success(`Đã xóa ${schedulesToDelete.length} lịch học thành công!`)
@@ -298,8 +330,48 @@ const SavedSchedulesPage: React.FC = () => {
     }
 
     try {
+      console.log('🔍 Debug [Delete by Major] - majorToDelete:', majorToDelete)
+      console.log('🔍 Debug [Delete by Major] - deleteMajorAcademicYear:', deleteMajorAcademicYear)
+      console.log('🔍 Debug [Delete by Major] - deleteMajorSemester:', deleteMajorSemester)
+      
+      // Tìm semester ID
+      const currentSemester = semesters.find(
+        s => s.academicYear === deleteMajorAcademicYear && s.semesterName === deleteMajorSemester
+      )
+      
+      console.log('🔍 Debug [Delete by Major] - Found semester:', currentSemester)
+
+      // Lấy tất cả ID phòng từ schedulesToDelete
+      const allUsedRoomIds = new Set<number>()
+      schedulesToDelete.forEach(schedule => {
+        if (schedule.room?.id) {
+          allUsedRoomIds.add(schedule.room.id)
+        }
+      })
+
+      console.log('🔍 Debug [Delete by Major] - Room IDs to free:', Array.from(allUsedRoomIds))
+
+      // Xóa schedules
+      console.log('🚀 Deleting', schedulesToDelete.length, 'schedules for major:', majorToDelete)
       await Promise.all(schedulesToDelete.map((s) => api.delete(`/schedules/${s.id}`)))
-      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}" (${deleteMajorAcademicYear} - ${deleteMajorSemester}) thành công!`)
+      console.log('✅ Schedules deleted successfully')
+
+      // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
+      if (allUsedRoomIds.size > 0) {
+        const roomIds = Array.from(allUsedRoomIds)
+        console.log('🚀 Updating room status to AVAILABLE for', roomIds.length, 'rooms')
+        await roomService.updateStatusByRoomIds(roomIds, 'AVAILABLE')
+        console.log('✅ Room status updated successfully')
+      }
+
+      // Xóa room occupancies nếu có semester ID
+      if (currentSemester?.id) {
+        console.log('🚀 Deleting room occupancies for semester ID:', currentSemester.id)
+        await api.delete(`/v1/room-occupancies/semester/${currentSemester.id}`)
+        console.log('✅ Room occupancies deleted successfully')
+      }
+
+      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}" (${deleteMajorAcademicYear} - ${deleteMajorSemester}) và giải phóng ${allUsedRoomIds.size} phòng thành công!`)
       setShowDeleteMajorModal(false)
       setMajorToDelete('')
       setDeleteMajorAcademicYear('')
