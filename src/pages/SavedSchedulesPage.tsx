@@ -407,29 +407,36 @@ const SavedSchedulesPage: React.FC = () => {
       'L',
       'Sĩ số',
       'Phòng',
-      ...Array.from({ length: 17 }, (_, i) => `T${i + 1}`),
-      '',
+      ...Array.from({ length: 18 }, (_, i) => `T${i + 1}`),
+      'Tổng',
     ]
 
     // Create data rows
     const rows = groupedSchedules.flatMap((group) =>
-      group.schedules.map((schedule) => [
-        schedule.classNumber,
-        schedule.subject?.subjectCode || '',
-        schedule.subject?.subjectName || '',
-        schedule.subject?.semester?.academicYear || '',
-        schedule.subject?.semester?.semesterName || '',
-        schedule.studentYear,
-        schedule.major || '',
-        schedule.specialSystem,
-        schedule.tkbTemplate?.dayOfWeek || 0,
-        schedule.tkbTemplate?.kip || 0,
-        schedule.tkbTemplate?.startPeriod || 0,
-        schedule.tkbTemplate?.periodLength || 0,
-        schedule.siSoMotLop || 0,
-        schedule.room ? `${schedule.room.name}-${schedule.room.building}` : '',
-        ...Array.from({ length: 18 }, (_, i) => getWeekValue(schedule, i + 1)),
-      ])
+      group.schedules.map((schedule) => {
+        const weekValues = Array.from({ length: 18 }, (_, i) => getWeekValue(schedule, i + 1))
+        const periodLength = schedule.tkbTemplate?.periodLength || 0
+        const totalPeriods = weekValues.filter(v => v === 'x').length * periodLength
+        
+        return [
+          schedule.classNumber,
+          schedule.subject?.subjectCode || '',
+          schedule.subject?.subjectName || '',
+          schedule.subject?.semester?.academicYear || '',
+          schedule.subject?.semester?.semesterName || '',
+          schedule.studentYear,
+          schedule.major || '',
+          schedule.specialSystem,
+          schedule.tkbTemplate?.dayOfWeek || 0,
+          schedule.tkbTemplate?.kip || 0,
+          schedule.tkbTemplate?.startPeriod || 0,
+          periodLength,
+          schedule.siSoMotLop || 0,
+          schedule.room ? `${schedule.room.name}-${schedule.room.building}` : '',
+          ...weekValues,
+          totalPeriods,
+        ]
+      })
     )
 
     // Create workbook and worksheet
@@ -453,6 +460,7 @@ const SavedSchedulesPage: React.FC = () => {
       { wch: 7 },  // Sĩ số
       { wch: 10 }, // Phòng
       ...Array.from({ length: 18 }, () => ({ wch: 4 })), // T1-T18
+      { wch: 6 },  // Tổng
     ]
 
     // Add worksheet to workbook
