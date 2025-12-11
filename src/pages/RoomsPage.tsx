@@ -1,15 +1,56 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { roomService, type Room, type RoomRequest, type RoomApiPayload, type RoomOccupancy } from '../services/api'
+import { roomService, type Room, type RoomRequest, type RoomApiPayload, semesterService, type Semester, api } from '../services/api'
 import toast from 'react-hot-toast'
 
+interface OccupiedSlot {
+  dayOfWeek: number
+  dayName: string
+  period: number
+  periodName: string
+  note: string | null
+}
+
+interface RoomOccupancyDetail {
+  id: number
+  roomId: number
+  roomName: string
+  building: string
+  semesterId: number
+  semesterName: string
+  academicYear: string
+  dayOfWeek: number
+  dayOfWeekName: string
+  period: number
+  periodName: string
+  uniqueKey: string
+  note: string | null
+}
+
+interface RoomStatusBySemester {
+  id: number
+  name: string
+  capacity: number
+  building: string
+  type: string
+  typeDisplayName: string
+  semesterId: number
+  semesterName: string
+  academicYear: string
+  totalOccupiedSlots: number
+  totalAvailableSlots: number
+  occupancyRate: number
+  occupancyStatus: 'AVAILABLE' | 'UNAVAILABLE' | 'USED'
+  occupiedSlots: OccupiedSlot[]
+}
+
 const RoomsPage = () => {
+  const [activeTab, setActiveTab] = useState<'list' | 'semester'>('list')
   const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState<string>('ALL')
   const [filterBuilding, setFilterBuilding] = useState<string>('ALL')
   const [filterCapacityMin, setFilterCapacityMin] = useState<string>('')
   const [filterCapacityMax, setFilterCapacityMax] = useState<string>('')
@@ -28,14 +69,48 @@ const RoomsPage = () => {
   })
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [idsToDelete, setIdsToDelete] = useState<number[]>([])
-  const [showOccupanciesModal, setShowOccupanciesModal] = useState(false)
-  const [selectedRoomOccupancies, setSelectedRoomOccupancies] = useState<RoomOccupancy[]>([])
-  const [loadingOccupancies, setLoadingOccupancies] = useState(false)
-  const [selectedRoomInfo, setSelectedRoomInfo] = useState<{ roomCode: string; building: string } | null>(null)
+  
+  // Modal for semester tab occupied slots
+  const [showOccupiedSlotsModal, setShowOccupiedSlotsModal] = useState(false)
+  const [selectedRoomStatus, setSelectedRoomStatus] = useState<RoomStatusBySemester | null>(null)
+  const [roomOccupancyDetails, setRoomOccupancyDetails] = useState<RoomOccupancyDetail[]>([])
+  const [loadingOccupancyDetails, setLoadingOccupancyDetails] = useState(false)
+  const [modalCurrentPage, setModalCurrentPage] = useState(1)
+  const [modalItemsPerPage] = useState(5)
+
+  // Semester tab states
+  const [semesters, setSemesters] = useState<Semester[]>([])
+  const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null)
+  const [roomsStatus, setRoomsStatus] = useState<RoomStatusBySemester[]>([])
+  const [loadingRoomsStatus, setLoadingRoomsStatus] = useState(false)
+  const [semesterCurrentPage, setSemesterCurrentPage] = useState(1)
+  const [semesterItemsPerPage, setSemesterItemsPerPage] = useState(10)
+  const [semesterTotalItems, setSemesterTotalItems] = useState(0)
+  const [semesterSearchTerm, setSemesterSearchTerm] = useState('')
+  const [semesterSortBy, setSemesterSortBy] = useState<'building' | 'name' | 'capacity' | 'occupancyRate'>('building')
+  const [semesterSortDirection, setSemesterSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [semesterFilterStatus, setSemesterFilterStatus] = useState<string>('ALL')
+  const [semesterFilterType, setSemesterFilterType] = useState<string>('ALL')
 
   useEffect(() => {
     fetchRooms()
+    fetchSemesters()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === 'semester' && selectedSemesterId) {
+      fetchRoomsStatus(
+        selectedSemesterId, 
+        semesterCurrentPage, 
+        semesterItemsPerPage,
+        semesterSearchTerm,
+        semesterSortBy,
+        semesterSortDirection,
+        semesterFilterStatus,
+        semesterFilterType
+      )
+    }
+  }, [activeTab, selectedSemesterId, semesterCurrentPage, semesterItemsPerPage, semesterSearchTerm, semesterSortBy, semesterSortDirection, semesterFilterStatus, semesterFilterType])
 
   const fetchRooms = async () => {
     try {
@@ -48,10 +123,12 @@ const RoomsPage = () => {
         roomCode: room.name || room.phong || room.roomCode || '',
         building: room.building || room.day || '',
         capacity: room.capacity || 0,
-        roomType: mapRoomType(room.type || room.roomType),
+        roomType: room.type || room.roomType || 'GENERAL',
         status: room.status || 'AVAILABLE',
         floor: room.floor,
         equipment: room.equipment,
+        typeDisplayName: room.typeDisplayName,
+        statusDisplayName: room.statusDisplayName,
       }))
       setRooms(mappedRooms)
     } catch (error) {
@@ -61,20 +138,60 @@ const RoomsPage = () => {
     }
   }
 
-  // Helper function to map API type to UI type
-  const mapRoomType = (type: string) => {
-    const typeMap: Record<string, 'CLC' | 'GENERAL' | 'KHOA_2024' | 'NGOC_TRUC'> = {
-      GENERAL: 'GENERAL',
-      CLC: 'CLC',
-      KHOA_2024: 'KHOA_2024',
-      NGOC_TRUC: 'NGOC_TRUC',
-      ENGLISH_CLASS: 'GENERAL',
-      CLASSROOM: 'GENERAL',
-      LAB: 'GENERAL',
-      LIBRARY: 'GENERAL',
-      MEETING: 'GENERAL',
+  const fetchSemesters = async () => {
+    try {
+      const response = await semesterService.getAll()
+      const semesterList = response.data.data || []
+      setSemesters(semesterList)
+      if (semesterList.length > 0) {
+        setSelectedSemesterId(semesterList[0].id)
+      }
+    } catch (error) {
+      toast.error('Không thể tải danh sách kì học')
     }
-    return (typeMap[type] || 'GENERAL') as 'CLC' | 'GENERAL' | 'KHOA_2024' | 'NGOC_TRUC'
+  }
+
+  const fetchRoomsStatus = async (
+    semesterId: number, 
+    page: number = 1, 
+    pageSize: number = 10,
+    search: string = '',
+    sortBy: string = 'building',
+    direction: string = 'asc',
+    status: string = 'ALL',
+    type: string = 'ALL'
+  ) => {
+    try {
+      setLoadingRoomsStatus(true)
+      const params: any = {
+        page: page - 1,
+        size: pageSize,
+        sortBy,
+        direction
+      }
+      
+      if (search.trim()) {
+        params.search = search.trim()
+      }
+      
+      if (status !== 'ALL') {
+        params.occupancyStatus = status
+      }
+      
+      if (type !== 'ALL') {
+        params.type = type
+      }
+      
+      const response = await api.get(`/v1/room-occupancies/rooms-status/semester/${semesterId}`, { params })
+      const data = response.data.content || []
+      const total = response.data.total || 0
+      setRoomsStatus(data)
+      setSemesterTotalItems(total)
+    } catch (error) {
+      toast.error('Không thể tải trạng thái phòng học')
+    } finally {
+      setLoadingRoomsStatus(false)
+    }
   }
 
   // Helper function to map UI type back to API type
@@ -182,18 +299,30 @@ const RoomsPage = () => {
     setIdsToDelete([])
   }
 
-  const handleViewOccupancies = async (room: Room) => {
+  const handleViewOccupiedSlots = async (room: RoomStatusBySemester) => {
     try {
-      setLoadingOccupancies(true)
-      setSelectedRoomInfo({ roomCode: room.roomCode, building: room.building })
-      setShowOccupanciesModal(true)
-      const response = await roomService.getRoomOccupancies(room.id)
-      setSelectedRoomOccupancies(response.data)
+      setSelectedRoomStatus(room)
+      setShowOccupiedSlotsModal(true)
+      setLoadingOccupancyDetails(true)
+      setRoomOccupancyDetails([]) // Reset data cũ
+      setModalCurrentPage(1) // Reset trang về 1
+      
+      const response = await api.get(`/v1/room-occupancies/room/${room.id}`)
+      const data = response.data.content || []
+      setRoomOccupancyDetails(data)
     } catch (error) {
-      toast.error('Không thể tải thông tin lịch sử dụng phòng')
-      setShowOccupanciesModal(false)
+      toast.error('Không thể tải lịch sử dụng phòng')
     } finally {
-      setLoadingOccupancies(false)
+      setLoadingOccupancyDetails(false)
+    }
+  }
+
+  const handleSortChange = (column: 'building' | 'name' | 'capacity' | 'occupancyRate') => {
+    if (semesterSortBy === column) {
+      setSemesterSortDirection(semesterSortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSemesterSortBy(column)
+      setSemesterSortDirection('asc')
     }
   }
 
@@ -213,9 +342,6 @@ const RoomsPage = () => {
         (room.roomCode?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (room.building?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       
-      // Status filter
-      const matchesStatus = filterStatus === 'ALL' || room.status === filterStatus
-      
       // Building filter
       const matchesBuilding = filterBuilding === 'ALL' || room.building === filterBuilding
       
@@ -228,9 +354,9 @@ const RoomsPage = () => {
         matchesCapacity = matchesCapacity && room.capacity <= parseInt(filterCapacityMax)
       }
       
-      return matchesSearch && matchesStatus && matchesBuilding && matchesCapacity
+      return matchesSearch && matchesBuilding && matchesCapacity
     })
-  }, [rooms, searchTerm, filterStatus, filterBuilding, filterCapacityMin, filterCapacityMax])
+  }, [rooms, searchTerm, filterBuilding, filterCapacityMin, filterCapacityMax])
 
   // Pagination
   const totalPages = Math.ceil(filteredRooms.length / itemsPerPage)
@@ -243,7 +369,7 @@ const RoomsPage = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, filterStatus, filterBuilding, filterCapacityMin, filterCapacityMax])
+  }, [searchTerm, filterBuilding, filterCapacityMin, filterCapacityMax])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -252,34 +378,6 @@ const RoomsPage = () => {
   const handlePageSizeChange = (newPageSize: number) => {
     setItemsPerPage(newPageSize)
     setCurrentPage(1) // Reset về trang đầu khi thay đổi page size
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE':
-        return 'bg-green-100 text-green-800'
-      case 'OCCUPIED':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'UNAVAILABLE':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getRoomTypeText = (type: string) => {
-    switch (type) {
-      case 'GENERAL':
-        return 'Phòng thường'
-      case 'CLC':
-        return 'Chất lượng cao'
-      case 'KHOA_2024':
-        return 'Khoá 2024'
-      case 'NGOC_TRUC':
-        return 'Cơ sở Ngọc Trục'
-      default:
-        return type
-    }
   }
 
   if (loading) {
@@ -308,79 +406,85 @@ const RoomsPage = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        {/* Search and Filters */}
-        <div className="flex items-center gap-4 mb-4 flex-wrap flex-shrink-0">
-          <div className="flex-1 relative min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm phòng học..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-          </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterStatus && filterStatus !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+      {/* Tabs */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('list')}
+            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'list'
+                ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
             }`}
           >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="AVAILABLE">Có sẵn</option>
-            <option value="OCCUPIED">Đang sử dụng</option>
-            <option value="UNAVAILABLE">Không khả dụng</option>
-          </select>
-          <select
-            value={filterBuilding}
-            onChange={(e) => setFilterBuilding(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            Danh sách phòng học
+          </button>
+          <button
+            onClick={() => setActiveTab('semester')}
+            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === 'semester'
+                ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
             }`}
           >
-            <option value="ALL">Tất cả tòa nhà</option>
-            {uniqueBuildings.map((building) => (
-              <option key={building} value={building}>
-                {building}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            placeholder="Sức chứa tối thiểu"
-            value={filterCapacityMin}
-            onChange={(e) => setFilterCapacityMin(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent min-w-[140px] ${
-              filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
-          />
-          <input
-            type="number"
-            placeholder="Sức chứa tối đa"
-            value={filterCapacityMax}
-            onChange={(e) => setFilterCapacityMax(e.target.value)}
-            className={`px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent min-w-[140px] ${
-              filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
-          />
+            Trạng thái theo kì học
+          </button>
         </div>
 
-        {/* Filter Tags - Hiển thị các filter đang active */}
-        {(filterStatus && filterStatus !== 'ALL') || (filterBuilding && filterBuilding !== 'ALL') || filterCapacityMin || filterCapacityMax || searchTerm ? (
-          <div className="mb-4 flex items-center gap-2 flex-wrap">
-            {filterStatus && filterStatus !== 'ALL' && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                <span>Trạng thái: {filterStatus === 'AVAILABLE' ? 'Có sẵn' : filterStatus === 'OCCUPIED' ? 'Đang sử dụng' : 'Không khả dụng'}</span>
-                <button
-                  onClick={() => setFilterStatus('ALL')}
-                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+        {activeTab === 'list' && (
+          <div className="p-3">
+            {/* Search and Filters */}
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm phòng học..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
               </div>
-            )}
+              
+              <div className="flex items-center gap-2">
+                <select
+                  value={filterBuilding}
+                  onChange={(e) => setFilterBuilding(e.target.value)}
+                  className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="ALL">Tất cả tòa nhà</option>
+                  {uniqueBuildings.map((building) => (
+                    <option key={building} value={building}>
+                      {building}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  placeholder="Sức chứa tối thiểu"
+                  value={filterCapacityMin}
+                  onChange={(e) => setFilterCapacityMin(e.target.value)}
+                  className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                  }`}
+                />
+                <input
+                  type="number"
+                  placeholder="Sức chứa tối đa"
+                  value={filterCapacityMax}
+                  onChange={(e) => setFilterCapacityMax(e.target.value)}
+                  className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                    filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                  }`}
+                />
+              </div>
+            </div>
+
+        {/* Filter Tags - Hiển thị các filter đang active */}
+        {(filterBuilding && filterBuilding !== 'ALL') || filterCapacityMin || filterCapacityMax || searchTerm ? (
+          <div className="mb-4 flex items-center gap-2 flex-wrap">
             {filterBuilding && filterBuilding !== 'ALL' && (
               <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
                 <span>Tòa: {filterBuilding}</span>
@@ -427,7 +531,6 @@ const RoomsPage = () => {
             )}
             <button
               onClick={() => {
-                setFilterStatus('ALL')
                 setFilterBuilding('ALL')
                 setFilterCapacityMin('')
                 setFilterCapacityMax('')
@@ -446,31 +549,26 @@ const RoomsPage = () => {
           <table className="w-full border-collapse text-xs">
             <thead className="bg-red-600">
               <tr>
+                <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700 w-16">STT</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sức chứa</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Trạng thái</th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white">
-              {paginatedRooms.map((room) => (
+              {paginatedRooms.map((room, index) => (
                 <tr 
                   key={room.id} 
-                  className="hover:bg-red-50 border-b border-gray-200 cursor-pointer"
-                  onClick={() => handleViewOccupancies(room)}
+                  className="hover:bg-red-50 border-b border-gray-200"
                 >
+                  <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
-                  <td className="px-2 py-2 whitespace-nowrap border-r border-gray-200">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getStatusColor(room.status)}`}>
-                      {room.status === 'AVAILABLE' ? 'Có sẵn' : room.status === 'OCCUPIED' ? 'Đang sử dụng' : 'Không khả dụng'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
                     <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
                       <Edit className="w-3.5 h-3.5 inline" />
                     </button>
@@ -581,6 +679,263 @@ const RoomsPage = () => {
             </div>
           )}
         </div>
+          </div>
+        )}
+
+        {activeTab === 'semester' && (
+          <div className="p-6">
+            {/* Semester Selector and Filters */}
+            <div className="mb-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">Chọn kì học:</label>
+                <select
+                  value={selectedSemesterId || ''}
+                  onChange={(e) => {
+                    setSelectedSemesterId(Number(e.target.value))
+                    setSemesterCurrentPage(1)
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                >
+                  {semesters.map((semester) => (
+                    <option key={semester.id} value={semester.id}>
+                      {semester.semesterName} - {semester.academicYear}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Search and Filter */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm theo mã phòng..."
+                    value={semesterSearchTerm}
+                    onChange={(e) => {
+                      setSemesterSearchTerm(e.target.value)
+                      setSemesterCurrentPage(1)
+                    }}
+                    className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+
+                <select
+                  value={semesterFilterStatus}
+                  onChange={(e) => {
+                    setSemesterFilterStatus(e.target.value)
+                    setSemesterCurrentPage(1)
+                  }}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                >
+                  <option value="ALL">Tất cả trạng thái</option>
+                  <option value="AVAILABLE">Chưa dùng</option>
+                  <option value="UNAVAILABLE">Không dùng được</option>
+                  <option value="USED">Đã dùng</option>
+                </select>
+
+                <select
+                  value={semesterFilterType}
+                  onChange={(e) => {
+                    setSemesterFilterType(e.target.value)
+                    setSemesterCurrentPage(1)
+                  }}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                >
+                  <option value="ALL">Tất cả loại phòng</option>
+                  <option value="GENERAL">Phòng thường</option>
+                  <option value="CLC">Phòng CLC</option>
+                  <option value="KHOA_2024">Phòng khoá 2024</option>
+                  <option value="NGOC_TRUC">Phòng Ngọc Trục</option>
+                  <option value="ENGLISH_CLASS">Phòng tiếng Anh</option>
+                </select>
+              </div>
+            </div>
+
+            {loadingRoomsStatus ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>Đang tải dữ liệu...</p>
+              </div>
+            ) : roomsStatus.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>Không có dữ liệu phòng học cho kì học này</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-xs">
+                  <thead className="bg-red-600">
+                    <tr>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700 w-16">STT</th>
+                      <th 
+                        className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 cursor-pointer hover:bg-red-700"
+                        onClick={() => handleSortChange('name')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Mã phòng
+                          {semesterSortBy === 'name' && (
+                            <span>{semesterSortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </div>
+                      </th>
+                      <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">
+                        Tòa nhà
+                      </th>
+                      <th 
+                        className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 cursor-pointer hover:bg-red-700"
+                        onClick={() => handleSortChange('capacity')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Sức chứa
+                          {semesterSortBy === 'capacity' && (
+                            <span>{semesterSortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </div>
+                      </th>
+                      <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700">Slot đã dùng</th>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700">Slot còn lại</th>
+                      <th 
+                        className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700 cursor-pointer hover:bg-red-700"
+                        onClick={() => handleSortChange('occupancyRate')}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          Tỷ lệ (%)
+                          {semesterSortBy === 'occupancyRate' && (
+                            <span>{semesterSortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </div>
+                      </th>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white">
+                    {roomsStatus.map((room, index) => (
+                      <tr 
+                        key={room.id} 
+                        className="hover:bg-red-50 border-b border-gray-200 cursor-pointer"
+                        onClick={() => handleViewOccupiedSlots(room)}
+                      >
+                        <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">
+                          {(semesterCurrentPage - 1) * semesterItemsPerPage + index + 1}
+                        </td>
+                        <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.name}</td>
+                        <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
+                        <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
+                        <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
+                        <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{room.totalOccupiedSlots}</td>
+                        <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{room.totalAvailableSlots}</td>
+                        <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{room.occupancyRate.toFixed(2)}%</td>
+                        <td className="px-2 py-2 text-center border-r border-gray-200">
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                            room.occupancyStatus === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
+                            room.occupancyStatus === 'UNAVAILABLE' ? 'bg-gray-100 text-gray-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {room.occupancyStatus === 'AVAILABLE' ? 'Chưa dùng' :
+                             room.occupancyStatus === 'UNAVAILABLE' ? 'Không dùng được' :
+                             'Đã dùng'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                {/* Pagination for Semester Tab */}
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-wrap gap-3">
+                  <div className="flex items-center gap-2 text-xs">
+                    <div className="text-gray-700">
+                      Hiển thị {roomsStatus.length} trên tổng số {semesterTotalItems} phòng học
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-700">Số bản ghi/trang:</span>
+                      <select
+                        value={semesterItemsPerPage}
+                        onChange={(e) => {
+                          setSemesterItemsPerPage(Number(e.target.value))
+                          setSemesterCurrentPage(1)
+                        }}
+                        className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {Math.ceil(semesterTotalItems / semesterItemsPerPage) > 1 && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setSemesterCurrentPage(semesterCurrentPage - 1)}
+                        disabled={semesterCurrentPage === 1}
+                        className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                      </button>
+                      
+                      {(() => {
+                        const totalPages = Math.ceil(semesterTotalItems / semesterItemsPerPage)
+                        const pages: (number | string)[] = []
+                        
+                        if (totalPages <= 7) {
+                          for (let i = 1; i <= totalPages; i++) {
+                            pages.push(i)
+                          }
+                        } else {
+                          if (semesterCurrentPage <= 3) {
+                            for (let i = 1; i <= 5; i++) pages.push(i)
+                            pages.push('...')
+                            pages.push(totalPages)
+                          } else if (semesterCurrentPage >= totalPages - 2) {
+                            pages.push(1)
+                            pages.push('...')
+                            for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
+                          } else {
+                            pages.push(1)
+                            pages.push('...')
+                            for (let i = semesterCurrentPage - 1; i <= semesterCurrentPage + 1; i++) pages.push(i)
+                            pages.push('...')
+                            pages.push(totalPages)
+                          }
+                        }
+                        
+                        return pages.map((page, idx) => 
+                          typeof page === 'number' ? (
+                            <button
+                              key={idx}
+                              onClick={() => setSemesterCurrentPage(page)}
+                              className={`px-2 py-0.5 border rounded text-xs ${
+                                semesterCurrentPage === page
+                                  ? 'bg-red-600 text-white border-red-600'
+                                  : 'border-red-300 text-red-600 hover:bg-red-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ) : (
+                            <span key={idx} className="px-1 text-xs text-gray-400">
+                              {page}
+                            </span>
+                          )
+                        )
+                      })()}
+                      
+                      <button
+                        onClick={() => setSemesterCurrentPage(semesterCurrentPage + 1)}
+                        disabled={semesterCurrentPage === Math.ceil(semesterTotalItems / semesterItemsPerPage)}
+                        className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -622,81 +977,6 @@ const RoomsPage = () => {
                 Xóa
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Room Occupancies Modal */}
-      {showOccupanciesModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowOccupanciesModal(false)
-              setSelectedRoomOccupancies([])
-              setSelectedRoomInfo(null)
-            }
-          }}
-        >
-          <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-auto relative" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => {
-                setShowOccupanciesModal(false)
-                setSelectedRoomOccupancies([])
-                setSelectedRoomInfo(null)
-              }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <h2 className="text-2xl font-bold mb-4">
-              Lịch sử dụng phòng {selectedRoomInfo?.roomCode} - {selectedRoomInfo?.building}
-            </h2>
-            
-            {loadingOccupancies ? (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-                <p className="mt-2 text-gray-600">Đang tải...</p>
-              </div>
-            ) : selectedRoomOccupancies.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
-                  <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Không có dữ liệu</h3>
-                <p className="text-gray-600">Phòng học này chưa có lịch sử dụng trong hệ thống.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead className="bg-red-600">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Năm học</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thứ</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ca học</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white">
-                    {selectedRoomOccupancies.map((occupancy) => (
-                      <tr key={occupancy.id} className="hover:bg-red-50 border-b border-gray-200">
-                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.semesterName}</td>
-                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.academicYear}</td>
-                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.dayOfWeekName}</td>
-                        <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{occupancy.periodName}</td>
-                        <td className="px-3 py-2 text-sm text-gray-500 italic">{occupancy.note || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="mt-4 text-sm text-gray-600">
-                  Tổng số: <span className="font-semibold">{selectedRoomOccupancies.length}</span> lịch sử dụng
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -787,19 +1067,7 @@ const RoomsPage = () => {
                     <option value="CLC">Chất lượng cao</option>
                     <option value="KHOA_2024">Khoá 2024</option>
                     <option value="NGOC_TRUC">Cơ sở Ngọc Trục</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái *</label>
-                  <select
-                    required
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                  >
-                    <option value="AVAILABLE">Có sẵn</option>
-                    <option value="OCCUPIED">Đang sử dụng</option>
-                    <option value="UNAVAILABLE">Không khả dụng</option>
+                    <option value="ENGLISH_CLASS">Lớp tiếng Anh</option>
                   </select>
                 </div>
               </div>
@@ -819,6 +1087,171 @@ const RoomsPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Occupied Slots Modal for Semester Tab */}
+      {showOccupiedSlotsModal && selectedRoomStatus && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowOccupiedSlotsModal(false)
+              setSelectedRoomStatus(null)
+              setRoomOccupancyDetails([])
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => {
+                setShowOccupiedSlotsModal(false)
+                setSelectedRoomStatus(null)
+                setRoomOccupancyDetails([])
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            <h2 className="text-2xl font-bold mb-4">
+              Lịch sử dụng phòng {selectedRoomStatus.name} - {selectedRoomStatus.building}
+            </h2>
+            
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-gray-600">Kì học</p>
+                <p className="font-semibold">{selectedRoomStatus.semesterName}</p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-gray-600">Năm học</p>
+                <p className="font-semibold">{selectedRoomStatus.academicYear}</p>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-gray-600">Slot đã dùng</p>
+                <p className="font-semibold text-blue-600">{selectedRoomStatus.totalOccupiedSlots}</p>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg">
+                <p className="text-gray-600">Slot còn lại</p>
+                <p className="font-semibold text-green-600">{selectedRoomStatus.totalAvailableSlots}</p>
+              </div>
+            </div>
+
+            {loadingOccupancyDetails ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>Đang tải dữ liệu...</p>
+              </div>
+            ) : roomOccupancyDetails.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>Phòng này chưa có lịch sử dụng</p>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-lg font-semibold mb-3">
+                  Danh sách các slot đã sử dụng ({roomOccupancyDetails.length})
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead className="bg-red-600">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">STT</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thứ</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Kíp</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ghi chú</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white">
+                      {roomOccupancyDetails
+                        .slice((modalCurrentPage - 1) * modalItemsPerPage, modalCurrentPage * modalItemsPerPage)
+                        .map((detail, index) => (
+                          <tr key={detail.id} className="hover:bg-red-50 border-b border-gray-200">
+                            <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">
+                              {(modalCurrentPage - 1) * modalItemsPerPage + index + 1}
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{detail.dayOfWeekName}</td>
+                            <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-200">{detail.periodName}</td>
+                            <td className="px-3 py-2 text-sm text-gray-500 italic">{detail.note || '-'}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Pagination for Modal */}
+                {Math.ceil(roomOccupancyDetails.length / modalItemsPerPage) > 1 && (
+                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                    <div className="text-xs text-gray-700">
+                      Hiển thị {Math.min(roomOccupancyDetails.length, (modalCurrentPage - 1) * modalItemsPerPage + 1)} - {Math.min(roomOccupancyDetails.length, modalCurrentPage * modalItemsPerPage)} trên tổng số {roomOccupancyDetails.length} slot
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setModalCurrentPage(modalCurrentPage - 1)}
+                        disabled={modalCurrentPage === 1}
+                        className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
+                      >
+                        <ChevronLeft className="w-3 h-3" />
+                      </button>
+                      
+                      {(() => {
+                        const totalPages = Math.ceil(roomOccupancyDetails.length / modalItemsPerPage)
+                        const pages: (number | string)[] = []
+                        
+                        if (totalPages <= 7) {
+                          for (let i = 1; i <= totalPages; i++) {
+                            pages.push(i)
+                          }
+                        } else {
+                          if (modalCurrentPage <= 3) {
+                            for (let i = 1; i <= 5; i++) pages.push(i)
+                            pages.push('...')
+                            pages.push(totalPages)
+                          } else if (modalCurrentPage >= totalPages - 2) {
+                            pages.push(1)
+                            pages.push('...')
+                            for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i)
+                          } else {
+                            pages.push(1)
+                            pages.push('...')
+                            for (let i = modalCurrentPage - 1; i <= modalCurrentPage + 1; i++) pages.push(i)
+                            pages.push('...')
+                            pages.push(totalPages)
+                          }
+                        }
+                        
+                        return pages.map((page, idx) => 
+                          typeof page === 'number' ? (
+                            <button
+                              key={idx}
+                              onClick={() => setModalCurrentPage(page)}
+                              className={`px-2 py-0.5 border rounded text-xs ${
+                                modalCurrentPage === page
+                                  ? 'bg-red-600 text-white border-red-600'
+                                  : 'border-red-300 text-red-600 hover:bg-red-50'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ) : (
+                            <span key={idx} className="px-1 text-xs text-gray-400">
+                              {page}
+                            </span>
+                          )
+                        )
+                      })()}
+                      
+                      <button
+                        onClick={() => setModalCurrentPage(modalCurrentPage + 1)}
+                        disabled={modalCurrentPage === Math.ceil(roomOccupancyDetails.length / modalItemsPerPage)}
+                        className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
+                      >
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

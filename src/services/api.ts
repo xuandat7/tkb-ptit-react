@@ -185,17 +185,19 @@ export interface Room {
   roomCode: string
   building: string
   capacity: number
-  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
+  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING' | 'GENERAL' | 'CLC' | 'KHOA_2024' | 'NGOC_TRUC' | 'ENGLISH_CLASS'
   status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
   equipment?: string[]
   floor?: number
+  typeDisplayName?: string
+  statusDisplayName?: string
 }
 
 export interface RoomRequest {
   roomCode: string
   building: string
   capacity: number
-  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
+  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING' | 'GENERAL' | 'CLC' | 'KHOA_2024' | 'NGOC_TRUC' | 'ENGLISH_CLASS'
   status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
   equipment?: string[]
   floor?: number
