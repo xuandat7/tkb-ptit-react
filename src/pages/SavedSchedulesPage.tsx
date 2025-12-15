@@ -2,41 +2,70 @@ import React, { useEffect, useState } from 'react'
 import { Trash2, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
-import api, { subjectService, majorService, semesterService, type Major, type Semester } from '../services/api'
+import api, { subjectService, semesterService, roomService, type Semester } from '../services/api'
+
+// Semester entity from backend (schedule relationship)
+interface SemesterInfo {
+  id: number
+  semesterName: string
+  academicYear: string
+  startDate?: string
+  endDate?: string
+  isActive?: boolean
+  description?: string
+}
+
+interface MajorInfo {
+  id: number
+  majorCode: string
+  majorName: string
+}
+
+interface SubjectInfo {
+  id: number
+  subjectCode: string
+  subjectName: string
+  credits: number
+  theoryHours: number
+  practiceHours: number
+  semester: SemesterInfo
+  major: MajorInfo
+  classYear: string
+}
+
+interface TKBTemplate {
+  id: number
+  templateId: string
+  totalPeriods: number
+  dayOfWeek: number
+  kip: number
+  startPeriod: number
+  periodLength: number
+  weekSchedule: string // JSON string của List<Integer>
+  totalUsed: number
+  semester: SemesterInfo // Quan hệ với Semester entity
+  rowOrder: number
+}
+
+interface RoomInfo {
+  id: number
+  name: string // Room number
+  capacity: number
+  building: string
+  type: string
+  status: string
+}
 
 interface Schedule {
   id: number
   classNumber: number
-  subjectId: string
-  subjectName: string
   studentYear: string
   major: string
   specialSystem: string
-  dayOfWeek: number
-  sessionNumber: number
-  startPeriod: number
-  periodLength: number
-  roomNumber: string
-  academicYear?: string
-  semester?: string
-  week1?: string
-  week2?: string
-  week3?: string
-  week4?: string
-  week5?: string
-  week6?: string
-  week7?: string
-  week8?: string
-  week9?: string
-  week10?: string
-  week11?: string
-  week12?: string
-  week13?: string
-  week14?: string
-  week15?: string
-  week16?: string
-  week17?: string
-  week18?: string
+  siSoMotLop: number
+  room: RoomInfo | null // Quan hệ với Room entity
+  subject: SubjectInfo // Quan hệ với Subject entity (chứa tất cả thông tin: code, name, major, semester)
+  tkbTemplate?: TKBTemplate // Thông tin template
 }
 
 interface GroupedSchedule {
@@ -61,14 +90,16 @@ const SavedSchedulesPage: React.FC = () => {
   })
   const [showDeleteMajorModal, setShowDeleteMajorModal] = useState(false)
   const [majorToDelete, setMajorToDelete] = useState('')
+  const [deleteMajorAcademicYear, setDeleteMajorAcademicYear] = useState('')
+  const [deleteMajorSemester, setDeleteMajorSemester] = useState('')
   const [deleteAllAcademicYear, setDeleteAllAcademicYear] = useState('')
   const [deleteAllSemester, setDeleteAllSemester] = useState('')
-  
+
   // Dropdown data from API
   const [classYears, setClassYears] = useState<string[]>([])
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [academicYears, setAcademicYears] = useState<string[]>([])
-  
+
   // Delete confirmation modals
   const [showDeleteClassModal, setShowDeleteClassModal] = useState(false)
   const [classToDelete, setClassToDelete] = useState<GroupedSchedule | null>(null)
@@ -106,7 +137,7 @@ const SavedSchedulesPage: React.FC = () => {
       if (semestersRes.data.success) {
         const semesterData = semestersRes.data.data || []
         setSemesters(semesterData)
-        
+
         // Extract unique academic years
         const uniqueYears = Array.from(new Set(semesterData.map((s: Semester) => s.academicYear)))
           .sort((a, b) => b.localeCompare(a))
@@ -117,7 +148,7 @@ const SavedSchedulesPage: React.FC = () => {
     }
   }
 
-  // Group schedules by class (subjectId + major + classNumber)
+  // Group schedules by class (subjectCode + major + classNumber)
   const groupSchedulesByClass = (scheduleList: Schedule[]): GroupedSchedule[] => {
     // Sort by ID to maintain insertion order from database
     const sortedSchedules = [...scheduleList].sort((a, b) => a.id - b.id)
@@ -125,21 +156,23 @@ const SavedSchedulesPage: React.FC = () => {
     const grouped = new Map<string, GroupedSchedule>()
 
     sortedSchedules.forEach((schedule) => {
-      const classKey = `${schedule.subjectId}-${schedule.major}-${schedule.classNumber}`
-      
+      const subjectCode = schedule.subject?.subjectCode || 'N/A'
+      const majorCode = schedule.major || 'N/A' // Lấy từ FE, không phải từ subject
+      const classKey = `${subjectCode}-${majorCode}-${schedule.classNumber}`
+
       if (!grouped.has(classKey)) {
         grouped.set(classKey, {
           classKey,
           classNumber: schedule.classNumber,
-          subjectId: schedule.subjectId,
-          subjectName: schedule.subjectName,
-          studentYear: schedule.studentYear,
-          major: schedule.major,
+          subjectId: subjectCode,
+          subjectName: schedule.subject?.subjectName || 'N/A',
+          studentYear: schedule.studentYear, // Đã đúng - lấy từ FE
+          major: majorCode,
           specialSystem: schedule.specialSystem,
           schedules: [],
         })
       }
-      
+
       grouped.get(classKey)!.schedules.push(schedule)
     })
 
@@ -177,8 +210,8 @@ const SavedSchedulesPage: React.FC = () => {
       return
     }
 
-    const schedulesToDelete = schedules.filter((s) => 
-      s.academicYear === deleteAllAcademicYear && s.semester === deleteAllSemester
+    const schedulesToDelete = schedules.filter((s) =>
+      s.subject?.semester?.academicYear === deleteAllAcademicYear && s.subject?.semester?.semesterName === deleteAllSemester
     )
 
     if (schedulesToDelete.length === 0) {
@@ -190,26 +223,74 @@ const SavedSchedulesPage: React.FC = () => {
     }
 
     try {
+      console.log('🔍 Debug - deleteAllAcademicYear:', deleteAllAcademicYear)
+      console.log('🔍 Debug - deleteAllSemester:', deleteAllSemester)
+      console.log('🔍 Debug - semesters array:', semesters)
+
+      // Tìm semester ID từ deleteAllAcademicYear và deleteAllSemester
+      const currentSemester = semesters.find(
+        s => s.academicYear === deleteAllAcademicYear && s.semesterName === deleteAllSemester
+      )
+
+      console.log('🔍 Debug - Found currentSemester:', currentSemester)
+
+      if (!currentSemester?.id) {
+        console.error('❌ Không tìm thấy semester ID!')
+        toast.error('Không tìm thấy thông tin học kỳ!')
+        return
+      }
+
+      console.log('✅ Debug - Semester ID:', currentSemester.id)
+
+      // Gọi API xóa room occupancies theo semester ID
+      console.log('🚀 Calling DELETE /v1/room-occupancies/semester/' + currentSemester.id)
+      await api.delete(`/v1/room-occupancies/semester/${currentSemester.id}`)
+      console.log('✅ Room occupancies deleted successfully')
+
+      // Lấy tất cả ID phòng từ schedulesToDelete
+      const allUsedRoomIds = new Set<number>()
+      schedulesToDelete.forEach(schedule => {
+        if (schedule.room?.id) {
+          allUsedRoomIds.add(schedule.room.id)
+        }
+      })
+
+      console.log('🔍 Debug - Room IDs to free:', Array.from(allUsedRoomIds))
+
       // Delete schedules
+      console.log('🚀 Deleting', schedulesToDelete.length, 'schedules')
       await Promise.all(schedulesToDelete.map((s) => api.delete(`/schedules/${s.id}`)))
-      
+      console.log('✅ Schedules deleted successfully')
+
       // Reset lastSlotIdx in Redis
       const user = JSON.parse(localStorage.getItem('user') || '{}')
       const userId = user.id
       if (userId) {
-        await api.delete('/tkb/reset-last-slot-idx-redis', {
+        console.log('🚀 Resetting lastSlotIdx in Redis for userId:', userId)
+        await api.delete('/schedules/reset-last-slot-idx-redis', {
           params: { userId, academicYear: deleteAllAcademicYear, semester: deleteAllSemester }
         })
+        console.log('✅ LastSlotIdx reset successfully')
       }
-      
-      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học thành công!`)
+
+      // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
+      if (allUsedRoomIds.size > 0) {
+        const roomIds = Array.from(allUsedRoomIds)
+        console.log('🚀 Updating room status to AVAILABLE for', roomIds.length, 'rooms')
+        await roomService.updateStatusByRoomIds(roomIds, 'AVAILABLE')
+        console.log('✅ Room status updated successfully')
+        toast.success(`Đã xóa ${schedulesToDelete.length} lịch học và giải phóng ${roomIds.length} phòng thành công!`)
+      } else {
+        toast.success(`Đã xóa ${schedulesToDelete.length} lịch học thành công!`)
+      }
+
       setShowDeleteAllModal(false)
       setDeleteAllAcademicYear('')
       setDeleteAllSemester('')
       loadSchedules()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting schedules:', error)
-      toast.error('Lỗi khi xóa lịch học')
+      toast.error('Lỗi khi xóa lịch học: ' + (error.response?.data?.message || error.message))
     }
   }
 
@@ -223,22 +304,78 @@ const SavedSchedulesPage: React.FC = () => {
       return
     }
 
+    if (!deleteMajorAcademicYear || deleteMajorAcademicYear.trim() === '') {
+      toast.error('Vui lòng chọn năm học!')
+      return
+    }
+
+    if (!deleteMajorSemester || deleteMajorSemester.trim() === '') {
+      toast.error('Vui lòng chọn học kỳ!')
+      return
+    }
+
     const schedulesToDelete = schedules.filter((s) =>
-      s.major === majorToDelete
+      s.major === majorToDelete &&
+      s.subject?.semester?.academicYear === deleteMajorAcademicYear &&
+      s.subject?.semester?.semesterName === deleteMajorSemester
     )
 
     if (schedulesToDelete.length === 0) {
-      toast.error('Không tìm thấy lịch học nào của ngành này!')
+      toast.error(`Không tìm thấy lịch học nào của ngành "${majorToDelete}" trong ${deleteMajorAcademicYear} - ${deleteMajorSemester}!`)
       setShowDeleteMajorModal(false)
       setMajorToDelete('')
+      setDeleteMajorAcademicYear('')
+      setDeleteMajorSemester('')
       return
     }
 
     try {
+      console.log('🔍 Debug [Delete by Major] - majorToDelete:', majorToDelete)
+      console.log('🔍 Debug [Delete by Major] - deleteMajorAcademicYear:', deleteMajorAcademicYear)
+      console.log('🔍 Debug [Delete by Major] - deleteMajorSemester:', deleteMajorSemester)
+
+      // Tìm semester ID
+      const currentSemester = semesters.find(
+        s => s.academicYear === deleteMajorAcademicYear && s.semesterName === deleteMajorSemester
+      )
+
+      console.log('🔍 Debug [Delete by Major] - Found semester:', currentSemester)
+
+      // Lấy tất cả ID phòng từ schedulesToDelete
+      const allUsedRoomIds = new Set<number>()
+      schedulesToDelete.forEach(schedule => {
+        if (schedule.room?.id) {
+          allUsedRoomIds.add(schedule.room.id)
+        }
+      })
+
+      console.log('🔍 Debug [Delete by Major] - Room IDs to free:', Array.from(allUsedRoomIds))
+
+      // Xóa schedules
+      console.log('🚀 Deleting', schedulesToDelete.length, 'schedules for major:', majorToDelete)
       await Promise.all(schedulesToDelete.map((s) => api.delete(`/schedules/${s.id}`)))
-      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}" thành công!`)
+      console.log('✅ Schedules deleted successfully')
+
+      // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
+      if (allUsedRoomIds.size > 0) {
+        const roomIds = Array.from(allUsedRoomIds)
+        console.log('🚀 Updating room status to AVAILABLE for', roomIds.length, 'rooms')
+        await roomService.updateStatusByRoomIds(roomIds, 'AVAILABLE')
+        console.log('✅ Room status updated successfully')
+      }
+
+      // Xóa room occupancies nếu có semester ID
+      if (currentSemester?.id) {
+        console.log('🚀 Deleting room occupancies for semester ID:', currentSemester.id)
+        await api.delete(`/v1/room-occupancies/semester/${currentSemester.id}`)
+        console.log('✅ Room occupancies deleted successfully')
+      }
+
+      toast.success(`Đã xóa ${schedulesToDelete.length} lịch học của ngành "${majorToDelete}" (${deleteMajorAcademicYear} - ${deleteMajorSemester}) và giải phóng ${allUsedRoomIds.size} phòng thành công!`)
       setShowDeleteMajorModal(false)
       setMajorToDelete('')
+      setDeleteMajorAcademicYear('')
+      setDeleteMajorSemester('')
       loadSchedules()
     } catch (error) {
       console.error('Error deleting schedules by major:', error)
@@ -249,6 +386,8 @@ const SavedSchedulesPage: React.FC = () => {
   const cancelDeleteByMajor = () => {
     setShowDeleteMajorModal(false)
     setMajorToDelete('')
+    setDeleteMajorAcademicYear('')
+    setDeleteMajorSemester('')
   }
 
   const exportToExcel = () => {
@@ -266,29 +405,38 @@ const SavedSchedulesPage: React.FC = () => {
       'Kíp',
       'T.BĐ',
       'L',
+      'Sĩ số',
       'Phòng',
-      ...Array.from({ length: 17 }, (_, i) => `T${i + 1}`),
-      '',
+      ...Array.from({ length: 18 }, (_, i) => `T${i + 1}`),
+      'Tổng',
     ]
 
     // Create data rows
     const rows = groupedSchedules.flatMap((group) =>
-      group.schedules.map((schedule) => [
-        schedule.classNumber,
-        schedule.subjectId,
-        schedule.subjectName,
-        schedule.academicYear || '',
-        schedule.semester || '',
-        schedule.studentYear,
-        schedule.major,
-        schedule.specialSystem,
-        schedule.dayOfWeek,
-        schedule.sessionNumber,
-        schedule.startPeriod,
-        schedule.periodLength,
-        schedule.roomNumber,
-        ...Array.from({ length: 18 }, (_, i) => getWeekValue(schedule, i + 1)),
-      ])
+      group.schedules.map((schedule) => {
+        const weekValues = Array.from({ length: 18 }, (_, i) => getWeekValue(schedule, i + 1))
+        const periodLength = schedule.tkbTemplate?.periodLength || 0
+        const totalPeriods = weekValues.filter(v => v === 'x').length * periodLength
+
+        return [
+          schedule.classNumber,
+          schedule.subject?.subjectCode || '',
+          schedule.subject?.subjectName || '',
+          schedule.subject?.semester?.academicYear || '',
+          schedule.subject?.semester?.semesterName || '',
+          schedule.studentYear,
+          schedule.major || '',
+          schedule.specialSystem,
+          schedule.tkbTemplate?.dayOfWeek || 0,
+          schedule.tkbTemplate?.kip || 0,
+          schedule.tkbTemplate?.startPeriod || 0,
+          periodLength,
+          schedule.siSoMotLop || 0,
+          schedule.room ? `${schedule.room.name}-${schedule.room.building}` : '',
+          ...weekValues,
+          totalPeriods,
+        ]
+      })
     )
 
     // Create workbook and worksheet
@@ -309,8 +457,10 @@ const SavedSchedulesPage: React.FC = () => {
       { wch: 6 },  // Kíp
       { wch: 6 },  // T.BĐ
       { wch: 4 },  // L
+      { wch: 7 },  // Sĩ số
       { wch: 10 }, // Phòng
       ...Array.from({ length: 18 }, () => ({ wch: 4 })), // T1-T18
+      { wch: 6 },  // Tổng
     ]
 
     // Add worksheet to workbook
@@ -321,22 +471,35 @@ const SavedSchedulesPage: React.FC = () => {
   }
 
   const getWeekValue = (schedule: Schedule, weekNum: number): string => {
-    const weekKey = `week${weekNum}` as keyof Schedule
-    const value = schedule[weekKey] as string || ''
-    // Convert to lowercase 'x' for consistency with backend
-    return value.toLowerCase()
+    // Parse weekSchedule từ tkbTemplate (JSON string của List<Integer>)
+    if (!schedule.tkbTemplate?.weekSchedule) {
+      return ''
+    }
+
+    try {
+      const weekSchedule = JSON.parse(schedule.tkbTemplate.weekSchedule) as number[]
+      const weekIndex = weekNum - 1 // weekNum: 1-18, array index: 0-17
+
+      if (weekIndex >= 0 && weekIndex < weekSchedule.length) {
+        return weekSchedule[weekIndex] === 1 ? 'x' : ''
+      }
+    } catch (error) {
+      console.error('Error parsing weekSchedule:', error)
+    }
+
+    return ''
   }
 
   // Get unique values from schedules for dropdown fallback
-  const uniqueMajorsFromSchedules = Array.from(new Set(schedules.map(s => s.major))).filter(Boolean).sort()
+  const uniqueMajorsFromSchedules = Array.from(new Set(schedules.map(s => s.subject?.major?.majorCode))).filter(Boolean).sort()
   const uniqueYearsFromSchedules = Array.from(new Set(schedules.map(s => s.studentYear))).filter(Boolean).sort()
-  const uniqueAcademicYearsFromSchedules = Array.from(new Set(schedules.map(s => s.academicYear))).filter(Boolean).sort()
-  const uniqueSemestersFromSchedules = Array.from(new Set(schedules.map(s => s.semester))).filter(Boolean).sort()
-  
+  const uniqueAcademicYearsFromSchedules = Array.from(new Set(schedules.map(s => s.subject?.semester?.academicYear))).filter(Boolean).sort()
+  const uniqueSemestersFromSchedules = Array.from(new Set(schedules.map(s => s.subject?.semester?.semesterName))).filter(Boolean).sort()
+
   // Use only majors from schedules (not all majors from API)
-  const majorOptions = uniqueMajorsFromSchedules.map((code, idx) => ({ 
-    id: idx, 
-    majorCode: code, 
+  const majorOptions = uniqueMajorsFromSchedules.map((code, idx) => ({
+    id: idx,
+    majorCode: code,
     majorName: code,
     numberOfStudents: 0,
     classYear: '',
@@ -345,23 +508,24 @@ const SavedSchedulesPage: React.FC = () => {
   }))
   const yearOptions = classYears.length > 0 ? classYears : uniqueYearsFromSchedules
   const academicYearOptions = academicYears.length > 0 ? academicYears : uniqueAcademicYearsFromSchedules
-  const semesterOptions = semesters.length > 0 
+  const semesterOptions: Semester[] = semesters.length > 0
     ? semesters.filter(s => !filter.academicYear || s.academicYear === filter.academicYear)
     : uniqueSemestersFromSchedules.map((name, idx) => ({
-        id: idx,
-        semesterName: name,
-        academicYear: '',
-        startDate: '',
-        endDate: '',
-        isActive: false,
-        subjectCount: 0
-      }))
+      id: idx,
+      semesterName: name,
+      academicYear: '',
+      startDate: '',
+      endDate: '',
+      isActive: false,
+      description: '',
+      subjectCount: 0
+    }))
 
-  const filteredSchedules = schedules.filter((s) => {
-    if (filter.major && filter.major !== s.major) return false
+  const filteredSchedules = schedules.filter(s => {
+    if (filter.major && filter.major !== s.subject?.major?.majorCode) return false
     if (filter.studentYear && filter.studentYear !== s.studentYear) return false
-    if (filter.academicYear && filter.academicYear !== s.academicYear) return false
-    if (filter.semester && filter.semester !== s.semester) return false
+    if (filter.academicYear && filter.academicYear !== s.subject?.semester?.academicYear) return false
+    if (filter.semester && filter.semester !== s.subject?.semester?.semesterName) return false
     return true
   })
 
@@ -392,9 +556,8 @@ const SavedSchedulesPage: React.FC = () => {
           <select
             value={filter.academicYear}
             onChange={(e) => setFilter({ ...filter, academicYear: e.target.value, semester: '' })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
-              filter.academicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.academicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả năm học</option>
             {academicYearOptions.map(year => (
@@ -404,9 +567,8 @@ const SavedSchedulesPage: React.FC = () => {
           <select
             value={filter.semester}
             onChange={(e) => setFilter({ ...filter, semester: e.target.value })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
-              filter.semester ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.semester ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả học kỳ</option>
             {semesterOptions.map(sem => (
@@ -416,9 +578,8 @@ const SavedSchedulesPage: React.FC = () => {
           <select
             value={filter.studentYear}
             onChange={(e) => setFilter({ ...filter, studentYear: e.target.value })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
-              filter.studentYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.studentYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả khóa</option>
             {yearOptions.map(year => (
@@ -428,9 +589,8 @@ const SavedSchedulesPage: React.FC = () => {
           <select
             value={filter.major}
             onChange={(e) => setFilter({ ...filter, major: e.target.value })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${
-              filter.major ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.major ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả ngành</option>
             {majorOptions.map(major => (
@@ -462,37 +622,38 @@ const SavedSchedulesPage: React.FC = () => {
         <table className="min-w-full text-xs border-collapse" style={{ fontSize: '0.65rem' }}>
           <thead className="sticky top-0 bg-red-600">
             <tr className="bg-red-600 text-white">
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Lớp</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '70px' }}>Mã môn</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '150px' }}>Tên môn</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '80px' }}>Năm học</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '50px' }}>Học kỳ</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '45px' }}>Khóa</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '45px' }}>Ngành</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '70px' }}>Hệ đặc thù</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Thứ</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>Kíp</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '35px' }}>T.BĐ</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '25px' }}>L</th>
-              <th className="px-1 py-1 border border-white" style={{ minWidth: '50px' }}>Phòng</th>
-              {Array.from({ length: 18 }, (_, i) => (
-                <th key={i} className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '28px' }}>
-                  {i === 17 ? '' : `T${i + 1}`}
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Lớp</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Mã môn</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '120px', fontSize: '0.6rem' }}>Tên môn</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '65px', fontSize: '0.6rem' }}>Năm học</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '40px', fontSize: '0.6rem' }}>HK</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Khóa</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Ngành</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Hệ ĐT</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Thứ</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Kíp</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>TBĐ</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '22px', fontSize: '0.6rem' }}>L</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Sĩ số</th>
+              <th className="px-0.5 py-1 border border-white" style={{ minWidth: '42px', fontSize: '0.6rem' }}>Phòng</th>
+              {Array.from({ length: 17 }, (_, i) => (
+                <th key={i} className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '24px', fontSize: '0.6rem' }}>
+                  T{i + 1}
                 </th>
               ))}
-              <th className="px-1 py-1 border border-white text-center" style={{ minWidth: '60px' }}>Xóa</th>
+              <th className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Tổng</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={32} className="text-center py-8">
+                <td colSpan={31} className="text-center py-8">
                   Đang tải...
                 </td>
               </tr>
             ) : groupedSchedules.length === 0 ? (
               <tr>
-                <td colSpan={32} className="text-center py-8">
+                <td colSpan={31} className="text-center py-8">
                   Chưa có lịch học nào được lưu
                 </td>
               </tr>
@@ -503,7 +664,7 @@ const SavedSchedulesPage: React.FC = () => {
 
                 return groupedSchedules.flatMap((group) =>
                   group.schedules.map((schedule, idx) => {
-                    const key = `${schedule.subjectId}|${schedule.classNumber}`
+                    const key = `${schedule.subject?.subjectCode}|${schedule.classNumber}`
                     if (key !== lastKey) {
                       flip = !flip
                       lastKey = key
@@ -513,19 +674,20 @@ const SavedSchedulesPage: React.FC = () => {
                     return (
                       <tr key={schedule.id} className={`hover:bg-gray-100 ${rowClass}`}>
                         <td className="px-1 py-1 border text-center">{schedule.classNumber}</td>
-                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subjectId}</td>
-                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subjectName}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.academicYear || ''}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.semester || ''}</td>
+                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subject?.subjectCode || ''}</td>
+                        <td className="px-1 py-1 border whitespace-normal break-words">{schedule.subject?.subjectName || ''}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.subject?.semester?.academicYear || ''}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.subject?.semester?.semesterName || ''}</td>
                         <td className="px-1 py-1 border text-center">{schedule.studentYear}</td>
-                        <td className="px-1 py-1 border">{schedule.major}</td>
+                        <td className="px-1 py-1 border">{schedule.major || ''}</td>
                         <td className="px-1 py-1 border">{schedule.specialSystem}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.dayOfWeek}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.sessionNumber}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.startPeriod}</td>
-                        <td className="px-1 py-1 border text-center">{schedule.periodLength}</td>
-                        <td className="px-1 py-1 border">{schedule.roomNumber}</td>
-                        {Array.from({ length: 18 }, (_, i) => {
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.dayOfWeek || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.kip || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.startPeriod || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.periodLength || '-'}</td>
+                        <td className="px-1 py-1 border text-center">{schedule.siSoMotLop || '-'}</td>
+                        <td className="px-1 py-1 border">{schedule.room ? `${schedule.room.name}-${schedule.room.building}` : '-'}</td>
+                        {Array.from({ length: 17 }, (_, i) => {
                           const value = getWeekValue(schedule, i + 1)
                           return (
                             <td
@@ -536,17 +698,8 @@ const SavedSchedulesPage: React.FC = () => {
                             </td>
                           )
                         })}
-                        <td className="px-1 py-1 border text-center">
-                          {idx === 0 && (
-                            <button
-                              onClick={() => handleDeleteClass(group)}
-                              className="px-2 py-0.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs flex items-center gap-1 mx-auto"
-                              title={`Xóa lớp ${group.classNumber} (${group.schedules.length} buổi)`}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Xóa
-                            </button>
-                          )}
+                        <td className="px-1 py-1 border text-center font-semibold">
+                          {schedule.tkbTemplate?.totalUsed || 0}
                         </td>
                       </tr>
                     )
@@ -560,7 +713,7 @@ const SavedSchedulesPage: React.FC = () => {
 
       {/* Modal xóa lớp học */}
       {showDeleteClassModal && classToDelete && (
-        <div 
+        <div
           className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -602,7 +755,7 @@ const SavedSchedulesPage: React.FC = () => {
 
       {/* Modal xóa tất cả */}
       {showDeleteAllModal && (
-        <div 
+        <div
           className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -671,20 +824,61 @@ const SavedSchedulesPage: React.FC = () => {
             </div>
           </div>
         </div>
-      )},
+      )}
 
       {/* Modal xóa theo ngành */}
       {showDeleteMajorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-lg p-6 w-96 shadow-xl relative">
-            <h3 className="text-xl font-bold mb-4">Xóa lịch học theo ngành</h3>
-            <div className="mb-4 relative">
+        <div
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteMajorModal(false)
+              setMajorToDelete('')
+              setDeleteMajorAcademicYear('')
+              setDeleteMajorSemester('')
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Xóa lịch học theo ngành</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Chọn năm học:</label>
+              <select
+                value={deleteMajorAcademicYear}
+                onChange={(e) => {
+                  setDeleteMajorAcademicYear(e.target.value)
+                  setDeleteMajorSemester('')
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="">-- Chọn năm học --</option>
+                {academicYearOptions.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Chọn học kỳ:</label>
+              <select
+                value={deleteMajorSemester}
+                onChange={(e) => setDeleteMajorSemester(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                disabled={!deleteMajorAcademicYear}
+              >
+                <option value="">-- Chọn học kỳ --</option>
+                {semesterOptions
+                  .filter(s => !deleteMajorAcademicYear || s.academicYear === deleteMajorAcademicYear)
+                  .map(sem => (
+                    <option key={sem.id} value={sem.semesterName}>{sem.semesterName}</option>
+                  ))}
+              </select>
+            </div>
+            <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Chọn ngành cần xóa:</label>
               <select
                 value={majorToDelete}
                 onChange={(e) => setMajorToDelete(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 relative z-[10000]"
-                autoFocus
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500"
               >
                 <option value="">-- Chọn ngành --</option>
                 {majorOptions.map(major => (
@@ -692,14 +886,19 @@ const SavedSchedulesPage: React.FC = () => {
                 ))}
               </select>
             </div>
+            <p className="text-sm text-red-500 mb-4">
+              Hành động này sẽ xóa tất cả lịch học của ngành đã chọn trong học kỳ này!
+            </p>
             <div className="flex gap-3 justify-end">
               <button
+                type="button"
                 onClick={cancelDeleteByMajor}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={confirmDeleteByMajor}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >

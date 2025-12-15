@@ -48,16 +48,20 @@ interface TKBResultRow {
   khoa?: string
   nganh?: string
   he_dac_thu?: string
+  si_so_mot_lop?: number
   thu?: string
   kip?: string
   tiet_bd?: string
   l?: string
   phong?: string
+  room_id?: number // ID của phòng từ database
   o_to_AG?: string[]
   ah?: string
   student_year?: string
   academic_year?: string
   semester?: string
+  template_database_id?: number
+  subject_database_id?: number // ID của Subject từ database
 }
 
 interface SavedResult {
@@ -120,6 +124,7 @@ const TKBPage = () => {
   const [failedSubjects, setFailedSubjects] = useState<FailedSubject[]>(persistedState?.failedSubjects || [])
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [assigningRooms, setAssigningRooms] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
 
   // Persist state to localStorage whenever it changes
@@ -178,7 +183,7 @@ const TKBPage = () => {
       if (response.data.success) {
         const semesterData = response.data.data || []
         setAllSemesters(semesterData)
-        
+
         // Extract unique academic years and sort descending
         const uniqueYears = Array.from(new Set(semesterData.map(s => s.academicYear)))
           .sort((a, b) => b.localeCompare(a))
@@ -188,27 +193,27 @@ const TKBPage = () => {
       console.error('Lỗi khi tải danh sách học kỳ:', error)
       // Fallback to hardcoded data if API fails
       setAllSemesters([
-        { 
-          id: 1, 
-          semesterName: 'Học kỳ 1', 
+        {
+          id: 1,
+          semesterName: 'Học kỳ 1',
           academicYear: '2024-2025',
           startDate: '2024-09-01',
           endDate: '2025-01-15',
           isActive: true,
           subjectCount: 0
         },
-        { 
-          id: 2, 
-          semesterName: 'Học kỳ 2', 
+        {
+          id: 2,
+          semesterName: 'Học kỳ 2',
           academicYear: '2024-2025',
           startDate: '2025-01-20',
           endDate: '2025-05-30',
           isActive: false,
           subjectCount: 0
         },
-        { 
-          id: 3, 
-          semesterName: 'Học kỳ 3', 
+        {
+          id: 3,
+          semesterName: 'Học kỳ 3',
           academicYear: '2024-2025',
           startDate: '2025-06-01',
           endDate: '2025-08-20',
@@ -227,7 +232,7 @@ const TKBPage = () => {
 
     try {
       setLoading(true)
-      
+
       // Map systemType to programType for API
       let programType = ''
       if (systemType === 'chinh_quy') {
@@ -244,7 +249,7 @@ const TKBPage = () => {
           programType: programType
         }
       })
-      
+
       if (response.data.success) {
         const years = response.data.data || []
         setClassYears(years)
@@ -271,7 +276,7 @@ const TKBPage = () => {
           academicYear: academicYear
         }
       })
-      
+
       if (response.data.success) {
         const types = response.data.data || []
         setProgramTypes(types)
@@ -309,7 +314,7 @@ const TKBPage = () => {
 
     try {
       setLoading(true)
-      
+
       // Map systemType to programType for API
       let programType = ''
       if (systemType === 'chinh_quy') {
@@ -320,10 +325,10 @@ const TKBPage = () => {
         // Default fallback
         programType = 'Chính quy'
       }
-      
+
       // Call API to get major groups với semesterName và academicYear
       const response = await subjectService.getGroupMajors(semester, academicYear, classYear, programType)
-      
+
       if (response.data.success) {
         // Convert array of arrays to string array (join with dash)
         const groups = response.data.data.map((group: string[]) => group.join('-'))
@@ -354,18 +359,18 @@ const TKBPage = () => {
 
       try {
         setLoading(true)
-        
+
         // Call API to get all common subjects với semesterName và academicYear
         const response = await subjectService.getCommonSubjects(semester, academicYear)
-        
+
         if (response.data.success) {
           const subjects = response.data.data
-          
+
           // Map to batch row format with combination fields
           const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => {
             // Tính số tiết = lý thuyết + bài tập + bài tập lớn (projectHours)
             const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.projectHours || 0)
-            
+
             // Tính số lớp dựa trên sĩ số
             let studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
             // Nếu sĩ số nhỏ hơn 1 lớp thì lấy giá trị đó làm giá trị sĩ số 1 lớp luôn
@@ -373,7 +378,7 @@ const TKBPage = () => {
               studentPerClass = subject.numberOfStudents
             }
             const solop = Math.ceil(subject.numberOfStudents / studentPerClass)
-            
+
             return {
               mmh: subject.subjectCode,
               tmh: subject.subjectName,
@@ -389,7 +394,7 @@ const TKBPage = () => {
               isHiddenByCombination: false,
             }
           })
-          
+
           setBatchRows(newRows)
           toast.success(`Tải thành công ${subjects.length} môn học chung`)
         } else {
@@ -412,7 +417,7 @@ const TKBPage = () => {
 
     try {
       setLoading(true)
-      
+
       // Map systemType to programType for API
       let programType = ''
       if (systemType === 'chinh_quy') {
@@ -424,10 +429,10 @@ const TKBPage = () => {
       } else {
         programType = 'Chính quy'
       }
-      
+
       // Process selected major group to handle E-* majors correctly
       let majorCodes: string[] = []
-      
+
       if (selectedMajorGroup.startsWith('E-')) {
         // If it's an E-* major, keep it as a single major
         majorCodes = [selectedMajorGroup]
@@ -435,27 +440,27 @@ const TKBPage = () => {
         // For other majors like AT-CN-KH, split into individual majors
         majorCodes = selectedMajorGroup.split('-')
       }
-      
+
       // Filter out empty codes
       const processedMajorCodes = majorCodes.filter((code: string) => code.trim() !== '')
 
       // Call API to get subjects by majors với semesterName và academicYear
       const response = await subjectService.getByMajors(semester, academicYear, classYear, programType, processedMajorCodes)
-      
+
       if (response.data.success) {
         const subjects = response.data.data
-        
+
         // Debug log to check what data we're receiving
         console.log('Loaded subjects:', subjects)
         if (subjects.length > 0) {
           console.log('First subject:', subjects[0])
         }
-        
+
         // Map to batch row format with combination fields
         const newRows: BatchRowWithCombination[] = subjects.map((subject: SubjectByMajor) => {
           // Tính số tiết = lý thuyết + bài tập + bài tập lớn (projectHours)
           const sotiet = (subject.theoryHours || 0) + (subject.exerciseHours || 0) + (subject.projectHours || 0)
-          
+
           // Tính số lớp dựa trên sĩ số
           let studentPerClass = subject.studentPerClass || 60 // Mặc định 60 nếu null
           // Nếu sĩ số nhỏ hơn 1 lớp thì lấy giá trị đó làm giá trị sĩ số 1 lớp luôn
@@ -463,7 +468,7 @@ const TKBPage = () => {
             studentPerClass = subject.numberOfStudents
           }
           const solop = Math.ceil(subject.numberOfStudents / studentPerClass)
-          
+
           return {
             mmh: subject.subjectCode,
             tmh: subject.subjectName,
@@ -479,7 +484,7 @@ const TKBPage = () => {
             isHiddenByCombination: false,
           }
         })
-        
+
         setBatchRows(newRows)
         toast.success(`Tải thành công ${subjects.length} môn học.`)
       } else {
@@ -556,7 +561,7 @@ const TKBPage = () => {
       setBatchRows((prevRows) =>
         prevRows.map((row, idx) => {
           if (idx !== rowIndex) return row
-          
+
           return {
             ...row,
             isGrouped: true,
@@ -590,7 +595,7 @@ const TKBPage = () => {
               combinations: [],
             }
           }
-          
+
           // Show rows hidden by this row
           if (row.hiddenByRowIndex === rowIndex) {
             return {
@@ -599,7 +604,7 @@ const TKBPage = () => {
               hiddenByRowIndex: undefined,
             }
           }
-          
+
           return row
         })
       )
@@ -611,7 +616,7 @@ const TKBPage = () => {
     setBatchRows((prevRows) =>
       prevRows.map((row, idx) => {
         if (idx !== rowIndex) return row
-        
+
         const newCombination: MajorCombination = {
           id: `${rowIndex}_${Date.now()}_${Math.random()}`,
           nganh1: row.nganh,
@@ -620,7 +625,7 @@ const TKBPage = () => {
           totalSiso: row.siso,
           sisoMotLop: row.siso_mot_lop,
         }
-        
+
         return {
           ...row,
           combinations: [...row.combinations, newCombination],
@@ -634,19 +639,19 @@ const TKBPage = () => {
     setBatchRows((prevRows) => {
       const updatedRows = prevRows.map((row, idx) => {
         if (idx !== rowIndex) return row
-        
+
         return {
           ...row,
           combinations: row.combinations.filter((c) => c.id !== combinationId),
         }
       })
-      
+
       // If no combinations left, uncheck checkbox
       if (updatedRows[rowIndex].combinations.length === 0) {
         // Need to call toggleMajorCombination separately after setState
         setTimeout(() => toggleMajorCombination(rowIndex, false), 0)
       }
-      
+
       return updatedRows
     })
   }
@@ -662,13 +667,13 @@ const TKBPage = () => {
       // Create completely new array
       const newRows = prevRows.map((row, idx) => {
         if (idx !== rowIndex) return row
-        
+
         // Create new row with updated combinations
         return {
           ...row,
           combinations: row.combinations.map((c) => {
             if (c.id !== combinationId) return c
-            
+
             // Create new combination object with updated field
             const updatedCombo = {
               ...c,
@@ -689,7 +694,7 @@ const TKBPage = () => {
                 totalSiso += foundRow.siso
               }
             })
-            
+
             updatedCombo.totalSiso = totalSiso
 
             return updatedCombo
@@ -705,7 +710,7 @@ const TKBPage = () => {
           updatedCombo.nganh2,
           updatedCombo.nganh3,
         ].filter((n) => n !== '')
-        
+
         return applyHiddenRows(newRows, rowIndex, selectedNganhs)
       }
 
@@ -755,13 +760,13 @@ const TKBPage = () => {
     setBatchRows((prevRows) =>
       prevRows.map((row, idx) => {
         if (idx !== rowIndex) return row
-        
+
         // Create new row with updated combinations
         return {
           ...row,
           combinations: row.combinations.map((c) => {
             if (c.id !== combinationId) return c
-            
+
             // Create new combination object with updated sisoMotLop
             return {
               ...c,
@@ -830,7 +835,7 @@ const TKBPage = () => {
     } else {
       // Uncheck - restore original values
       const mergedIndex = currentRow.mergedWithIndex
-      
+
       const updatedRows = batchRows.map((row, idx) => {
         if (idx === rowIndex) {
           return {
@@ -866,7 +871,7 @@ const TKBPage = () => {
 
     try {
       setLoading(true)
-      
+
       const items: any[] = []
 
       batchRows.forEach((row) => {
@@ -918,12 +923,12 @@ const TKBPage = () => {
         }
       })
 
-      const response = await api.post('/tkb/generate-batch', { items })
-      
+      const response = await api.post('/schedules/generate-batch', { items })
+
       if (response.data?.items && response.data.items.length > 0) {
         const allRows = response.data.items.flatMap((item: any) => item.rows || [])
         const totalClasses = response.data.totalClasses || response.data.items.filter((item: any) => item.rows && item.rows.length > 0).length
-        
+
         // Phát hiện các môn không sinh được TKB
         const failed = response.data.items
           .filter((item: any) => (!item.rows || item.rows.length === 0) && item.note)
@@ -933,14 +938,14 @@ const TKBPage = () => {
             note: item.note,
             totalPeriods: item.input.sotiet || 0,
           }))
-        
+
         setFailedSubjects(failed)
         setResults(allRows)
-        
+
         if (failed.length > 0) {
           toast(
             `⚠️ Đã sinh ${totalClasses} lớp thành công (${allRows.length} dòng). ${failed.length} môn không sinh được TKB.`,
-            { 
+            {
               duration: 5000,
               icon: '⚠️',
               style: {
@@ -957,8 +962,30 @@ const TKBPage = () => {
         toast.error('Không có dữ liệu trả về')
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo TKB')
-      console.error(error)
+      console.error('Error generating schedule:', error)
+
+      // Extract detailed error message
+      const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi tạo TKB'
+      const errorDetails = error.response?.data?.error || ''
+
+      // Show more detailed error
+      if (errorMessage.includes('Không tìm thấy phòng')) {
+        toast.error(
+          <div>
+            <div className="font-semibold">Không tìm thấy phòng phù hợp</div>
+            <div className="text-sm mt-1">{errorMessage}</div>
+            <div className="text-xs mt-2 opacity-80">Vui lòng kiểm tra:</div>
+            <ul className="text-xs mt-1 ml-4 list-disc opacity-80">
+              <li>Phòng học có đủ sức chứa</li>
+              <li>Phòng chưa bị trùng lịch</li>
+              <li>Loại phòng phù hợp với môn học</li>
+            </ul>
+          </div>,
+          { duration: 8000 }
+        )
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -972,63 +999,56 @@ const TKBPage = () => {
 
     try {
       setLoading(true)
-      
+
       // Transform TKBResultRow to backend Schedule format
       const schedules = results.map((row) => {
-        // Create week fields from o_to_AG array and ah
-        const weekFields: any = {}
-        for (let i = 0; i < 17; i++) {
-          weekFields[`week${i + 1}`] = row.o_to_AG?.[i] || ''
+        // Convert to SaveScheduleRequest DTO - sử dụng subject_database_id từ backend
+        if (!row.subject_database_id) {
+          console.warn('⚠️ Row missing subject_database_id:', row)
+          return null
         }
-        weekFields.week18 = row.ah || ''
-        
+
         return {
-          classNumber: parseInt(row.lop || '1') || 1,
-          subjectId: row.ma_mon || '',
-          subjectName: row.ten_mon || '',
-          studentYear: row.khoa || row.student_year || '',
+          subject_id: row.subject_database_id, // Long ID từ database Subject
+          class_number: parseInt(row.lop || '1') || 1,
+          student_year: row.khoa || row.student_year || '',
           major: row.nganh || '',
-          specialSystem: row.he_dac_thu || '',
-          dayOfWeek: parseInt(row.thu || '0') || 0,
-          sessionNumber: parseInt(row.kip || '0') || 0,
-          startPeriod: parseInt(row.tiet_bd || '0') || 0,
-          periodLength: parseInt(row.l || '0') || 0,
-          roomNumber: row.phong || null,
-          academicYear: academicYear,
-          semester: semester,
-          ...weekFields
+          special_system: row.he_dac_thu || '',
+          si_so_mot_lop: row.si_so_mot_lop || null,
+          room_number: row.phong || null,
+          template_database_id: row.template_database_id || null
         }
-      })
-      
+      }).filter(s => s !== null) // Loại bỏ các row không có subject_database_id
+
       // Call API to save batch schedules - send ARRAY, not object
       const response = await api.post('/schedules/save-batch', schedules)
-      
+
       if (response.data) {
-        // Lấy danh sách các phòng đã được sử dụng (loại bỏ null và duplicate)
-        const usedRooms = [...new Set(
+        // Lấy danh sách ID phòng từ results (sử dụng room_id nếu có)
+        const usedRoomIds = [...new Set(
           results
-            .map(row => row.phong)
-            .filter(room => room !== null && room !== undefined && room !== '')
-        )] as string[]
-        
+            .map(row => row.room_id)
+            .filter(id => id !== null && id !== undefined)
+        )] as number[]
+
         let successMessage = 'Đã lưu TKB vào database thành công!'
-        
+
         // Update trạng thái phòng thành OCCUPIED
-        if (usedRooms.length > 0) {
+        if (usedRoomIds.length > 0) {
           try {
-            const roomUpdateResponse = await roomService.updateStatusByRoomCodes(usedRooms, 'OCCUPIED')
+            const roomUpdateResponse = await roomService.updateStatusByRoomIds(usedRoomIds, 'OCCUPIED')
             if (roomUpdateResponse.data.success) {
-              successMessage += ` (Cập nhật ${usedRooms.length} phòng)`
+              successMessage += ` (Cập nhật ${usedRoomIds.length} phòng)`
             }
           } catch (roomError: any) {
             console.error('Error updating room status:', roomError)
             successMessage += ' (Lưu ý: Không thể cập nhật trạng thái phòng)'
           }
         }
-        
+
         // Show single toast with all information
         toast.success(successMessage, { duration: 4000 })
-        
+
         // Lưu kết quả vào room results
         try {
           await roomService.saveResults()
@@ -1037,11 +1057,11 @@ const TKBPage = () => {
           console.error('Error saving room results:', saveError)
           // Không hiển thị error toast vì đây là secondary action
         }
-        
+
         // Add to local saved results for display
         const timestamp = new Date().toLocaleString('vi-VN')
         const resultId = Date.now()
-        
+
         const savedResult: SavedResult = {
           id: resultId,
           timestamp: timestamp,
@@ -1051,7 +1071,7 @@ const TKBPage = () => {
         }
 
         setSavedResults([...savedResults, savedResult])
-        
+
         // Trigger room schedule update event
         window.dispatchEvent(new Event('roomScheduleUpdate'))
         localStorage.setItem('roomScheduleNeedsReload', Date.now().toString())
@@ -1061,6 +1081,75 @@ const TKBPage = () => {
       toast.error(error.response?.data?.message || 'Không thể lưu TKB vào database')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAssignRooms = async () => {
+    if (results.length === 0) {
+      toast.error('Không có TKB để gán phòng')
+      return
+    }
+
+    if (!semester || !academicYear) {
+      toast.error('Vui lòng chọn năm học và học kỳ')
+      return
+    }
+
+    try {
+      setAssigningRooms(true)
+      toast.loading('Đang gán phòng học...', { id: 'assign-rooms' })
+
+      // Prepare request: group results bysubject
+      const tkbBatchResponse = {
+        items: Object.values(
+          results.reduce((acc: any, row) => {
+            const key = row.ma_mon || 'unknown'
+            if (!acc[key]) {
+              acc[key] = {
+                input: {
+                  ma_mon: row.ma_mon,
+                  ten_mon: row.ten_mon
+                },
+                rows: []
+              }
+            }
+            acc[key].rows.push(row)
+            return acc
+          }, {})
+        )
+      }
+
+      // Call API
+      const response = await api.post('/rooms/assign-rooms', tkbBatchResponse, {
+        params: {
+          academicYear: academicYear,
+          semester: semester
+        }
+      })
+
+      if (response.data.success) {
+        // Flatten response to update results
+        const flatResults: TKBResultRow[] = []
+        response.data.data.items.forEach((item: any) => {
+          item.rows.forEach((row: any) => {
+            flatResults.push(row)
+          })
+        })
+
+        setResults(flatResults)
+        toast.success('Đã gán phòng học thành công!', { id: 'assign-rooms' })
+      } else {
+        toast.error('Không thể gán phòng: ' + (response.data.message || 'Lỗi'), {
+          id: 'assign-rooms'
+        })
+      }
+    } catch (error: any) {
+      console.error('Error assigning rooms:', error)
+      toast.error(error.response?.data?.message || 'Không thể gán phòng học', {
+        id: 'assign-rooms'
+      })
+    } finally {
+      setAssigningRooms(false)
     }
   }
 
@@ -1079,36 +1168,66 @@ const TKBPage = () => {
     }
   }
 
-  const clearAllResults = () => {
+  const clearAllResults = async () => {
     if (confirm('Bạn có chắc muốn xóa tất cả kết quả đã lưu?')) {
-      setSavedResults([])
-      toast.success('Đã xóa tất cả kết quả')
+      try {
+
+        // Lấy tất cả ID phòng từ savedResults
+        const allUsedRoomIds = new Set<number>()
+        savedResults.forEach(result => {
+          result.data.forEach(row => {
+            if (row.room_id) {
+              allUsedRoomIds.add(row.room_id)
+            }
+          })
+        })
+
+        // Cập nhật trạng thái phòng thành AVAILABLE nếu có phòng được sử dụng
+        if (allUsedRoomIds.size > 0) {
+          const roomIds = Array.from(allUsedRoomIds)
+          await roomService.updateStatusByRoomIds(roomIds, 'AVAILABLE')
+          toast.success(`Đã xóa tất cả kết quả và giải phóng ${roomIds.length} phòng`)
+        } else {
+          toast.success('Đã xóa tất cả kết quả')
+        }
+
+        setSavedResults([])
+      } catch (error: any) {
+        console.error('Lỗi khi xóa kết quả:', error)
+        toast.error('Có lỗi xảy ra khi giải phóng phòng: ' + (error.response?.data?.message || error.message))
+      }
     }
   }
 
-  const handleFileImportConfirm = async (file: File) => {
+  const handleFileImportConfirm = async (file: File, semester?: string) => {
     try {
       setImporting(true)
-      
-      // Tạm thời chỉ hiển thị thông báo
-      toast.success(`Đã chọn file: ${file.name}. Chức năng import sẽ được tích hợp API sau.`)
-      
-      // TODO: Ghép API sau
-      // const formData = new FormData()
-      // formData.append('file', file)
-      // const response = await api.post('/tkb/import-data', formData, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      // })
-      // if (response.data) {
-      //   toast.success('Đã import dữ liệu lịch mẫu thành công!')
-      // }
+
+      if (!semester) {
+        toast.error('Vui lòng chọn học kỳ!')
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('semester', semester)
+
+      const response = await api.post('/schedules/import-data', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      if (response.data?.success) {
+        const data = response.data.data
+        toast.success(`Đã import dữ liệu lịch mẫu cho ${data.semester} thành công!`)
+      }
     } catch (error: any) {
       console.error('Error importing file:', error)
       toast.error(error.response?.data?.message || 'Không thể import file. Vui lòng thử lại!')
     } finally {
       setImporting(false)
+      setShowImportModal(false)
     }
   }
 
@@ -1144,7 +1263,7 @@ const TKBPage = () => {
         <div className="mb-4">
           <h2 className="text-xl font-semibold"></h2>
         </div>
-        
+
         {/* System Type and Class Year Selection */}
         <div className="mb-6 flex flex-wrap gap-3 items-end">
           <div className="min-w-[160px]">
@@ -1182,9 +1301,8 @@ const TKBPage = () => {
                 setBatchRows([])
               }}
               disabled={!academicYear}
-              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
-                !academicYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-              }`}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${!academicYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                }`}
             >
               <option value="">-- Chọn học kỳ --</option>
               {allSemesters
@@ -1208,11 +1326,10 @@ const TKBPage = () => {
                 setBatchRows([])
               }}
               disabled={!semester}
-              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
-                !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-              }`}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${!semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                }`}
             >
-              <option value="chinh_quy">Hệ thường</option>
+              <option value="chinh_quy">Chính quy</option>
               <option value="he_dac_thu">Hệ đặc thù</option>
               <option value="chung">Chung</option>
             </select>
@@ -1228,9 +1345,8 @@ const TKBPage = () => {
                 setBatchRows([])
               }}
               disabled={systemType === 'chung' || !systemType || !semester}
-              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
-                systemType === 'chung' || !systemType || !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-              }`}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${systemType === 'chung' || !systemType || !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                }`}
             >
               <option value="">-- Chọn khóa --</option>
               {classYears.map((year) => (
@@ -1250,9 +1366,8 @@ const TKBPage = () => {
                 setBatchRows([])
               }}
               disabled={systemType === 'chung' || !majorGroups.length || !classYear}
-              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
-                systemType === 'chung' || !majorGroups.length || !classYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-              }`}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${systemType === 'chung' || !majorGroups.length || !classYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+                }`}
             >
               <option value="">-- Chọn ngành --</option>
               {majorGroups.map((group, idx) => (
@@ -1404,17 +1519,17 @@ const TKBPage = () => {
                               const allMatchingMajors = batchRows.filter(
                                 (r, idx) => r.mmh === row.mmh && r.nganh !== row.nganh && idx !== index
                               )
-                              
+
                               // For nganh2: show available + already selected nganh2 (if any), exclude nganh3
                               const availableForNganh2 = allMatchingMajors.filter(
                                 (r) => r.nganh !== combo.nganh3 && (!r.isHiddenByCombination || r.nganh === combo.nganh2)
                               )
-                              
+
                               // For nganh3: show available + already selected nganh3 (if any), exclude nganh2
                               const availableForNganh3 = allMatchingMajors.filter(
                                 (r) => r.nganh !== combo.nganh2 && (!r.isHiddenByCombination || r.nganh === combo.nganh3)
                               )
-                              
+
                               return (
                                 <div
                                   key={combo.id}
@@ -1527,7 +1642,7 @@ const TKBPage = () => {
                 ))}
               </tbody>
             </table>
-            
+
             {/* Generate Button Below Table */}
             <div className="flex justify-start mt-4">
               <button
@@ -1553,6 +1668,22 @@ const TKBPage = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Kết quả Thời khóa biểu</h2>
             <div className="flex items-center gap-3">
+              <button
+                onClick={handleAssignRooms}
+                disabled={assigningRooms || loading}
+                className="flex items-center gap-2 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {assigningRooms ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Đang gán phòng...
+                  </>
+                ) : (
+                  <>
+                    Gán phòng
+                  </>
+                )}
+              </button>
               <button
                 onClick={saveToResults}
                 disabled={loading}
@@ -1580,34 +1711,36 @@ const TKBPage = () => {
             </div>
           </div>
           <div>
-            <table className="w-full text-xs border-collapse table-fixed">
+            <table className="w-full text-xs border-collapse" style={{ fontSize: '0.65rem' }}>
               <thead>
                 <tr className="bg-red-600 text-white">
-                  <th className="px-1 py-1 border text-xs w-[3%]">Lớp</th>
-                  <th className="px-1 py-1 border text-xs w-[5%]">Mã môn</th>
-                  <th className="px-1 py-1 border text-xs w-[15%]">Tên môn</th>
-                  <th className="px-1 py-1 border text-xs w-[6%]">Năm học</th>
-                  <th className="px-1 py-1 border text-xs w-[4%]">Học kỳ</th>
-                  <th className="px-1 py-1 border text-xs w-[3%]">Khóa</th>
-                  <th className="px-1 py-1 border text-xs w-[4%]">Ngành</th>
-                  <th className="px-1 py-1 border text-xs w-[5%]">Hệ đặc thù</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">Thứ</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">Kíp</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">T.BĐ</th>
-                  <th className="px-1 py-1 border text-xs w-[2%]">L</th>
-                  <th className="px-1 py-1 border text-xs w-[4%]">Phòng</th>
-                  {Array.from({ length: 18 }, (_, i) => (
-                    <th key={i} className="px-0.5 py-1 border text-center text-xs w-[2.5%]">
-                      {i === 17 ? '' : `T${i + 1}`}
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Lớp</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Mã môn</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '120px', fontSize: '0.6rem' }}>Tên môn</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '65px', fontSize: '0.6rem' }}>Năm học</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '40px', fontSize: '0.6rem' }}>HK</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Khóa</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Ngành</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '55px', fontSize: '0.6rem' }}>Hệ ĐT</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Thứ</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>Kíp</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '28px', fontSize: '0.6rem' }}>TBĐ</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '22px', fontSize: '0.6rem' }}>L</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '35px', fontSize: '0.6rem' }}>Sĩ số</th>
+                  <th className="px-0.5 py-1 border border-white" style={{ minWidth: '42px', fontSize: '0.6rem' }}>Phòng</th>
+                  {Array.from({ length: 17 }, (_, i) => (
+                    <th key={i} className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '24px', fontSize: '0.6rem' }}>
+                      T{i + 1}
                     </th>
                   ))}
+                  <th className="px-0.5 py-1 border border-white text-center" style={{ minWidth: '38px', fontSize: '0.6rem' }}>Tổng</th>
                 </tr>
               </thead>
               <tbody>
                 {(() => {
                   let lastKey: string | null = null
                   let flip = false
-                  
+
                   return results.map((row, idx) => {
                     const schedule = row.o_to_AG || []
                     const key = `${row.ma_mon || ''}|${row.lop || ''}`
@@ -1616,7 +1749,7 @@ const TKBPage = () => {
                       lastKey = key
                     }
                     const rowClass = flip ? 'bg-blue-50' : 'bg-white'
-                    
+
                     return (
                       <tr key={idx} className={`hover:bg-gray-100 ${rowClass}`}>
                         <td className="px-1 py-1 border text-center text-xs">{row.lop || ''}</td>
@@ -1631,28 +1764,22 @@ const TKBPage = () => {
                         <td className="px-1 py-1 border text-center text-xs">{row.kip || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.tiet_bd || ''}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.l || ''}</td>
+                        <td className="px-1 py-1 border text-center text-xs">{row.si_so_mot_lop || '-'}</td>
                         <td className="px-1 py-1 border text-center text-xs">{row.phong || ''}</td>
-                        {Array.from({ length: 18 }, (_, i) => {
-                          let value = ''
-                          if (i === 17) {
-                            // Tuần 18 hiển thị giá trị ah
-                            value = row.ah || ''
-                          } else {
-                            // Tuần 1-17 hiển thị từ o_to_AG
-                            value = schedule[i] || ''
-                          }
+                        {Array.from({ length: 17 }, (_, i) => {
+                          const value = schedule[i] || ''
                           const isX = value === 'x'
                           return (
                             <td
                               key={i}
-                              className={`px-0.5 py-1 border text-center text-xs ${
-                                isX ? 'x-cell' : ''
-                              }`}
+                              className={`px-0.5 py-1 border text-center text-xs ${isX ? 'x-cell' : ''
+                                }`}
                             >
                               {value}
                             </td>
                           )
                         })}
+                        <td className="px-1 py-1 border text-center text-xs font-semibold">{row.ah || 0}</td>
                       </tr>
                     )
                   })
@@ -1684,7 +1811,7 @@ const TKBPage = () => {
                   <div className="flex-1">
                     <div className="font-semibold text-gray-900 text-lg">{item.subjectName}</div>
                     <div className="text-sm text-gray-600 mt-1">
-                      <span className="font-medium">Ngành:</span> {item.major} | 
+                      <span className="font-medium">Ngành:</span> {item.major} |
                       <span className="font-medium ml-2">Số tiết:</span> {item.totalPeriods}
                     </div>
                     <div className="text-sm text-red-600 mt-2 font-medium">
@@ -1698,7 +1825,7 @@ const TKBPage = () => {
         </div>
       )}
 
-      
+
 
       {/* Import File Modal */}
       <ImportFileModal
@@ -1710,7 +1837,7 @@ const TKBPage = () => {
         maxSizeMB={10}
         sampleFileName="data_lich_mau_template.xlsx"
       />
-      
+
     </div>
   )
 }

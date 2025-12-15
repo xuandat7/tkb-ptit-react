@@ -18,7 +18,7 @@ const getApiBaseUrl = () => {
 
 export const API_BASE_URL = getApiBaseUrl()
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -185,25 +185,42 @@ export interface Room {
   roomCode: string
   building: string
   capacity: number
-  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
+  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING' | 'GENERAL' | 'CLC' | 'KHOA_2024' | 'NGOC_TRUC' | 'ENGLISH_CLASS'
   status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
   equipment?: string[]
   floor?: number
+  typeDisplayName?: string
+  statusDisplayName?: string
 }
 
 export interface RoomRequest {
   roomCode: string
   building: string
   capacity: number
-  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING'
-  status?: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
+  roomType: 'CLASSROOM' | 'LAB' | 'LIBRARY' | 'MEETING' | 'GENERAL' | 'CLC' | 'KHOA_2024' | 'NGOC_TRUC' | 'ENGLISH_CLASS'
+  status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
   equipment?: string[]
   floor?: number
 }
 
+export interface RoomOccupancy {
+  id: number
+  roomId: number
+  roomName: string
+  building: string
+  semesterId: number
+  semesterName: string
+  academicYear: string
+  dayOfWeek: number
+  dayOfWeekName: string
+  period: number
+  periodName: string
+  note: string | null
+}
+
 export interface RoomApiPayload {
-  phong: string
-  day: string
+  name: string
+  building: string
   capacity: number
   type: string // Backend accepts: KHOA_2024, ENGLISH_CLASS, CLC, NGOC_TRUC, GENERAL
   status?: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE'
@@ -415,8 +432,12 @@ export const roomService = {
   getAvailable: (capacity: number) => api.get<ApiResponse<Room[]>>(`/rooms/available?capacity=${capacity}`),
   updateStatusByRoomCodes: (roomCodes: string[], status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE') => 
     api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomCodes, status }),
+  updateStatusByRoomIds: (roomIds: number[], status: 'AVAILABLE' | 'OCCUPIED' | 'UNAVAILABLE') => 
+    api.patch<ApiResponse<number>>('/rooms/bulk-status', { roomIds, status }),
   saveResults: () => 
     api.post<ApiResponse<any>>('/rooms/save-results'),
+  getRoomOccupancies: (roomId: number) => 
+    api.get<RoomOccupancy[]>(`/v1/room-occupancies/room/${roomId}`),
 }
 
 export const curriculumService = {

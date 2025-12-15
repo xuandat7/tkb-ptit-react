@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ChevronLeft } from 'lucide-react'
-import { roomService, API_BASE_URL } from '../services/api'
+import { roomService, api, API_BASE_URL } from '../services/api'
 import toast from 'react-hot-toast'
 
 
@@ -72,7 +72,7 @@ const RoomSchedulePage = () => {
       console.log('🏢 Sample raw room from API:', (roomsResponse.data.data || [])[0])
       const mappedRooms = (roomsResponse.data.data || []).map((room: any) => ({
         id: room.id,
-        phong: room.roomCode || room.phong || '',
+        phong: room.name || room.roomCode || room.phong || '',
         day: room.building || room.day || 'A1',
         capacity: room.capacity || 0,
         type: room.roomType || room.type || 'GENERAL',
@@ -84,30 +84,28 @@ const RoomSchedulePage = () => {
       // Load actual schedules from database to determine room occupancy by time slot
       let schedulesByRoom: Record<string, any[]> = {}
       try {
-        const schedulesResponse = await fetch(`${API_BASE_URL}/schedules`)
-        if (schedulesResponse.ok) {
-          const schedulesData = await schedulesResponse.json()
-          console.log('📊 Total schedules loaded:', schedulesData?.length || 0)
-          console.log('📋 Sample schedule:', schedulesData?.[0])
-          
-          // Handle both array and wrapped response
-          const schedules = Array.isArray(schedulesData) ? schedulesData : (schedulesData.data || [])
-          
-          // Group schedules by room number
-          schedulesByRoom = schedules.reduce((acc: any, schedule: any) => {
-            const roomNumber = schedule.roomNumber
-            if (roomNumber) {
-              if (!acc[roomNumber]) {
-                acc[roomNumber] = []
-              }
-              acc[roomNumber].push(schedule)
+        const schedulesResponse = await api.get('/schedules')
+        const schedulesData = schedulesResponse.data
+        console.log('📊 Total schedules loaded:', schedulesData?.length || 0)
+        console.log('📋 Sample schedule:', schedulesData?.[0])
+        
+        // Handle both array and wrapped response
+        const schedules = Array.isArray(schedulesData) ? schedulesData : (schedulesData.data || [])
+        
+        // Group schedules by room number
+        schedulesByRoom = schedules.reduce((acc: any, schedule: any) => {
+          const roomNumber = schedule.roomNumber
+          if (roomNumber) {
+            if (!acc[roomNumber]) {
+              acc[roomNumber] = []
             }
-            return acc
-          }, {})
-          
-          console.log('🏢 Schedules grouped by room:', Object.keys(schedulesByRoom).length, 'rooms')
-          console.log('📍 Sample room schedules:', Object.entries(schedulesByRoom).slice(0, 2))
-        }
+            acc[roomNumber].push(schedule)
+          }
+          return acc
+        }, {})
+        
+        console.log('🏢 Schedules grouped by room:', Object.keys(schedulesByRoom).length, 'rooms')
+        console.log('📍 Sample room schedules:', Object.entries(schedulesByRoom).slice(0, 2))
       } catch (error) {
         console.error('Error loading schedules:', error)
       }
@@ -184,7 +182,7 @@ const RoomSchedulePage = () => {
           for (const key of possibleKeys) {
             const roomSchedules = schedulesByRoom[key] || []
             if (roomSchedules.some((schedule: any) => 
-              schedule.dayOfWeek === day && schedule.sessionNumber === kip
+              schedule.tkbTemplate?.dayOfWeek === day && schedule.tkbTemplate?.kip === kip
             )) {
               isOccupied = true
               break
