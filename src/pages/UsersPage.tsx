@@ -136,7 +136,7 @@ const UsersPage = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold mb-1">Quản lý người dùng</h1>
-            <p className="text-red-100">Quản lý danh sách người dùng và phân quyền</p>
+            <p className="text-red-100 text-sm">Quản lý danh sách người dùng và phân quyền</p>
           </div>
           <Users className="w-12 h-12 opacity-20" />
         </div>

@@ -39,52 +39,63 @@ const Dashboard = () => {
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Tổng quan hệ thống quản lý thời khóa biểu</p>
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
+            <p className="text-red-100 text-sm">Tổng quan hệ thống quản lý thời khóa biểu</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon
           return (
             <div
               key={card.title}
-              className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow"
+              className="bg-white rounded-lg shadow-md p-4 hover:shadow-xl transition-shadow"
             >
-              <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${card.color} text-white mb-4`}>
-                <Icon className="w-6 h-6" />
+              <div className="flex items-center justify-between mb-3">
+                <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${card.color} text-white`}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900">{card.value}</p>
               </div>
               <h3 className="text-sm font-medium text-gray-600">{card.title}</h3>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{card.value}</p>
             </div>
           )
         })}
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Chức năng</h2>
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Chức năng</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-            <h3 className="font-semibold text-gray-900">Quản lý Khoa</h3>
-            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin các khoa</p>
-          </div>
-          <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-            <h3 className="font-semibold text-gray-900">Quản lý Ngành</h3>
-            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin các ngành học</p>
-          </div>
-          <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-            <h3 className="font-semibold text-gray-900">Quản lý Môn học</h3>
-            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin môn học</p>
+            <h3 className="font-semibold text-gray-900">Quản lý Chương trình đào tạo</h3>
+            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin môn học và chương trình đào tạo</p>
           </div>
           <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
             <h3 className="font-semibold text-gray-900">Quản lý Phòng học</h3>
-            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin phòng học</p>
+            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin các phòng học</p>
           </div>
           <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
             <h3 className="font-semibold text-gray-900">Quản lý Học kỳ</h3>
-            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin học kỳ</p>
+            <p className="text-sm text-gray-600 mt-1">Quản lý thông tin các học kỳ trong hệ thống</p>
+          </div>
+          <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <h3 className="font-semibold text-gray-900">Quản lý Thời khóa biểu</h3>
+            <p className="text-sm text-gray-600 mt-1">Lập lịch và quản lý thời khóa biểu</p>
+          </div>
+          <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <h3 className="font-semibold text-gray-900">Hậu kiểm Thời khóa biểu</h3>
+            <p className="text-sm text-gray-600 mt-1">Kiểm tra xung đột phòng học và giảng viên</p>
+          </div>
+          <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <h3 className="font-semibold text-gray-900">Quản lý Người dùng</h3>
+            <p className="text-sm text-gray-600 mt-1">Quản lý tài khoản và phân quyền người dùng</p>
           </div>
         </div>
       </div>

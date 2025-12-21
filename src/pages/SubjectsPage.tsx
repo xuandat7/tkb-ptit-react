@@ -28,7 +28,7 @@ const SubjectsPage = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
+  const [pageSize, setPageSize] = useState(18)
   const [totalElements, setTotalElements] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [selectedSemesterName, setSelectedSemesterName] = useState('')
@@ -468,19 +468,19 @@ const SubjectsPage = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg flex-shrink-0">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg flex-shrink-0">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-1">Quản lý Môn học</h1>
-            <p className="text-red-100 text-base">Quản lý thông tin các môn học</p>
+            <h1 className="text-xl font-bold mb-1">Quản lý Môn học</h1>
+            <p className="text-red-100 text-sm">Quản lý thông tin các môn học của học viện</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowImportModal(true)}
               disabled={importing}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white transition-colors"
             >
-              <Upload className="w-5 h-5" />
+              <Upload className="w-4 h-4" />
               {importing ? 'Đang import...' : 'Import môn học'}
             </button>
             <button
@@ -494,17 +494,17 @@ const SubjectsPage = () => {
                 // Load majors for modal
                 fetchMajorsForModal()
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               Thêm môn học
             </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6 flex-1 flex flex-col overflow-hidden mt-4">
-        <div className="flex items-center gap-2 mb-4 flex-wrap flex-shrink-0">
+      <div className="bg-white rounded-lg shadow-md p-4 flex-1 flex flex-col overflow-hidden mt-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap flex-shrink-0">
           <div className="flex-1 relative min-w-[160px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -738,23 +738,12 @@ const SubjectsPage = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-wrap gap-3 flex-shrink-0">
+        <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200 flex-wrap gap-3 flex-shrink-0">
           <div className="flex items-center gap-2 text-xs">
             <div className="text-gray-700">
               Hiển thị {subjects.length} trên tổng số {totalElements} môn học
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-700">Số môn học/trang:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              >
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-                <option value={25}>25</option>
-              </select>
-            </div>
+            
           </div>
           <div className="flex gap-1">
             <button

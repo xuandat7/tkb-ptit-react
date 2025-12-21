@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Home, Calendar, CheckCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, GraduationCap, LogOut, User, Users } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Home, CheckCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, GraduationCap, LogOut, User, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const Layout = () => {
@@ -16,17 +16,18 @@ const Layout = () => {
       { path: '/subjects', label: 'CT Đào tạo', icon: BookOpen },
       { path: '/rooms', label: 'Phòng học', icon: Home },
       { path: '/semesters', label: 'Học kỳ', icon: GraduationCap },
-      { path: '/room-schedule', label: 'Lịch phòng', icon: Calendar },
-      { path: '/tkb', label: 'Thời khóa biểu', icon: LayoutDashboard },
-      { path: '/saved-schedules', label: 'TKB đã lưu', icon: FileText },
-      { path: '/schedule-validation', label: 'Hậu kiểm TKB', icon: CheckCircle },
-      { path: '/tkb-guide', label: 'Hướng dẫn TKB', icon: HelpCircle },
+      { path: '/tkb', label: 'Lập lịch', icon: LayoutDashboard },
+      { path: '/saved-schedules', label: 'Thời khóa biểu', icon: FileText },
+      { path: '/schedule-validation', label: 'Hậu kiểm', icon: CheckCircle },
     ]
     
     // Thêm menu quản lý người dùng nếu là admin
     if (user?.role === 'ADMIN') {
       baseItems.push({ path: '/users', label: 'Quản lý người dùng', icon: Users })
     }
+    
+    // Thêm Hướng dẫn ở cuối cùng
+    baseItems.push({ path: '/tkb-guide', label: 'Hướng dẫn', icon: HelpCircle })
     
     return baseItems
   }, [user?.role])
@@ -155,10 +156,24 @@ const Layout = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`h-screen transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'} ${location.pathname === '/subjects' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        <main className={`h-full p-8 ${location.pathname === '/subjects' ? 'overflow-hidden' : ''}`}>
+      <div className={`min-h-screen flex flex-col transition-all duration-300 ${isCollapsed ? 'ml-20' : 'ml-64'}`}>
+        <main className={`flex-1 p-4 ${location.pathname === '/subjects' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <Outlet />
         </main>
+        
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 py-4 px-4 mt-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-red-600">HỆ THỐNG QUẢN LÝ THỜI KHÓA BIỂU</span>
+              <span className="hidden md:inline">•</span>
+              <span className="hidden md:inline">Học viện Công nghệ Bưu chính Viễn thông</span>
+            </div>
+            <div className="text-xs md:text-sm">
+              © 2025 PTIT. All rights reserved.
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   )

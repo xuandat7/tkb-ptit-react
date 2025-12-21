@@ -172,30 +172,30 @@ const SemestersPage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-4 shadow-lg">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold mb-1">Quản lý học kỳ</h1>
-            <p className="text-red-100 text-sm">Thêm, sửa, xóa và quản lý các học kỳ trong hệ thống</p>
+            <h1 className="text-xl font-bold mb-1">Quản lý học kỳ</h1>
+            <p className="text-red-100 text-sm">Quản lý thông tin các học kỳ trong hệ thống</p>
           </div>
           <button
             onClick={handleAdd}
-            className="bg-white text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2 font-medium"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             Thêm học kỳ
           </button>
         </div>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-blue-500">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-white p-3 rounded-lg shadow-md border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-600 text-xs font-medium">Tổng học kỳ</p>
+              <p className="text-blue-600 font-medium">Tổng học kỳ</p>
               <p className="text-xl font-bold text-gray-900">{semesters.length}</p>
             </div>
             <BookOpen className="w-7 h-7 text-blue-500" />
@@ -205,7 +205,7 @@ const SemestersPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-green-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-600 text-xs font-medium">Học kỳ đang hoạt động</p>
+              <p className="text-green-600 font-medium">Học kỳ đang hoạt động</p>
               <p className="text-xl font-bold text-gray-900">
                 {semesters.filter(s => s.isActive).length}
               </p>
@@ -217,7 +217,7 @@ const SemestersPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-md border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-600 text-xs font-medium">Học kỳ không hoạt động</p>
+              <p className="text-orange-600 font-medium">Học kỳ không hoạt động</p>
               <p className="text-xl font-bold text-gray-900">
                 {semesters.filter(s => !s.isActive).length}
               </p>

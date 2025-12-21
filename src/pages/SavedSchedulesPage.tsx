@@ -532,27 +532,27 @@ const SavedSchedulesPage: React.FC = () => {
   const groupedSchedules = groupSchedulesByClass(filteredSchedules)
 
   return (
-    <div className="space-y-2">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-2 shadow-lg">
+    <div className="space-y-3">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-bold mb-0.5 ml-2">Thời Khóa Biểu Đã Lưu</h2>
-            <p className="text-red-100 text-xs ml-2">Xem và quản lý các thời khóa biểu đã được lưu trong hệ thống</p>
+            <h2 className="text-xl font-bold mb-1">Thời Khóa Biểu</h2>
+            <p className="text-red-100 text-sm">Xem và quản lý các thời khóa biểu đã được lưu trong hệ thống</p>
           </div>
           <button
             onClick={exportToExcel}
             disabled={groupedSchedules.length === 0}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 border-2 border-green-400 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-green-500 disabled:hover:to-green-600 disabled:hover:shadow-lg font-bold text-base transform hover:scale-105"
+            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 border border-green-400 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-500 font-medium"
           >
-            <FileSpreadsheet className="w-5 h-5" />
+            <FileSpreadsheet className="w-4 h-4" />
             Xuất Excel
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-1.5">
+      <div className="bg-white rounded-lg shadow-md p-4">
         {/* Filters and Actions in one row */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap mb-3">
           <select
             value={filter.academicYear}
             onChange={(e) => setFilter({ ...filter, academicYear: e.target.value, semester: '' })}
