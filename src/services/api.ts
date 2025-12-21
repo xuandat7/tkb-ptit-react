@@ -13,7 +13,7 @@ const getApiBaseUrl = () => {
   }
   
   // Production: sử dụng cùng origin với frontend (relative path)
-  return '/api'
+  return '/api/v1'
 }
 
 export const API_BASE_URL = getApiBaseUrl()
@@ -437,7 +437,7 @@ export const roomService = {
   saveResults: () => 
     api.post<ApiResponse<any>>('/rooms/save-results'),
   getRoomOccupancies: (roomId: number) => 
-    api.get<RoomOccupancy[]>(`/v1/room-occupancies/room/${roomId}`),
+    api.get<RoomOccupancy[]>(`/room-occupancies/room/${roomId}`),
 }
 
 export const curriculumService = {

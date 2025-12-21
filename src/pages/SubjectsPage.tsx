@@ -104,10 +104,6 @@ const SubjectsPage = () => {
       } else {
         // Sample data nếu API không trả về
         const sampleMajors: Major[] = [
-          { id: 1, majorCode: 'CNTT', majorName: 'Công nghệ thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
-          { id: 2, majorCode: 'ATTT', majorName: 'An toàn thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
-          { id: 3, majorCode: 'BC', majorName: 'Báo chí', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
-          { id: 4, majorCode: 'TT', majorName: 'Truyền thông', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
         ]
         setMajors(sampleMajors)
       }
