@@ -1835,7 +1835,9 @@ const TKBPage = () => {
         title="Import Data lịch mẫu"
         accept=".xlsx,.xls"
         maxSizeMB={10}
-        sampleFileName="data_lich_mau_template.xlsx"
+        sampleFileName="mau_data_lich_hoc.xlsx"
+        showSemesterSelect={true}
+        isLoading={importing}
       />
 
     </div>
@@ -1843,4 +1845,3 @@ const TKBPage = () => {
 }
 
 export default TKBPage
-
