@@ -13,7 +13,7 @@ const getApiBaseUrl = () => {
   }
   
   // Production: sử dụng cùng origin với frontend (relative path)
-  return '/api/v1'
+  return '/api'
 }
 
 export const API_BASE_URL = getApiBaseUrl()
