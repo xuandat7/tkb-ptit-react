@@ -74,14 +74,28 @@ const SubjectsPage = () => {
     return () => clearTimeout(timer)
   }, [searchInput])
 
-  // Fetch filter data on mount
+  // Fetch filter data on mount and set active semester
   useEffect(() => {
     fetchFilterData()
+    fetchActiveSemester()
   }, [])
 
   useEffect(() => {
     fetchSubjects()
   }, [currentPage, pageSize, searchTerm, filterSemesterName, filterAcademicYear, filterClassYear, filterMajor, filterProgramType])
+
+  const fetchActiveSemester = async () => {
+    try {
+      const response = await semesterService.getActive()
+      if (response.data.success && response.data.data) {
+        const activeSemester = response.data.data
+        setFilterSemesterName(activeSemester.semesterName)
+        setFilterAcademicYear(activeSemester.academicYear)
+      }
+    } catch (error) {
+      console.log('Không có kỳ học active hoặc không thể tải dữ liệu')
+    }
+  }
 
   const fetchFilterData = async () => {
     try {
