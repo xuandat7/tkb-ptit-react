@@ -26,13 +26,24 @@ const AdminRoute = ({ children }: { children: ReactNode }) => {
   return isAuthenticated && user?.role === 'ADMIN' ? children : <Navigate to="/" />
 }
 
+function NotFoundPage() {
+  return (
+    <div style={{ padding: 32 }}>
+      <h1>404 - Page Not Found</h1>
+      <p>Đường dẫn không tồn tại.</p>
+      <a href="/">Về trang chủ</a>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route 
-        path="/" 
+
+      <Route
+        path="/"
         element={
           <ProtectedRoute>
             <Layout />
@@ -48,9 +59,15 @@ function App() {
         <Route path="saved-schedules" element={<SavedSchedulesPage />} />
         <Route path="semesters" element={<SemestersPage />} />
         <Route path="users" element={<AdminRoute><UsersPage /></AdminRoute>} />
+
+        {/* 404 cho các route con kiểu /abc, /x/y */}
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
+
+      {/* 404 cho các route ngoài layout kiểu /dang-nhap */}
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
-  )
+  );
 }
 
 export default App

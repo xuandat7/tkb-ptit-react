@@ -89,7 +89,7 @@ const TKBPage = () => {
         return {
           semester: parsed.semester || '',
           academicYear: parsed.academicYear || '',
-          systemType: parsed.systemType || 'chinh_quy',
+          systemType: parsed.systemType || '',
           classYear: parsed.classYear || '',
           selectedMajorGroup: parsed.selectedMajorGroup || '',
           batchRows: parsed.batchRows || [],
@@ -110,7 +110,7 @@ const TKBPage = () => {
   const [academicYear, setAcademicYear] = useState(persistedState?.academicYear || '')
   const [academicYears, setAcademicYears] = useState<string[]>([])
   const [allSemesters, setAllSemesters] = useState<Semester[]>([])
-  const [systemType, setSystemType] = useState(persistedState?.systemType || 'chinh_quy')
+  const [systemType, setSystemType] = useState(persistedState?.systemType || 'Chính quy')
   const [classYear, setClassYear] = useState(persistedState?.classYear || '')
   const [classYears, setClassYears] = useState<string[]>([])
   const [programTypes, setProgramTypes] = useState<string[]>([])
@@ -143,39 +143,50 @@ const TKBPage = () => {
     localStorage.setItem('tkbPageState', JSON.stringify(stateToSave))
   }, [semester, academicYear, systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
 
-  // Load class years on component mount
+  // Load semesters on component mount
   useEffect(() => {
     loadSemesters()
   }, [])
 
-  // Load program types when semester changes
+  // Load program types when semester and academicYear change
   useEffect(() => {
     if (semester && academicYear) {
       loadProgramTypes()
     } else {
       setProgramTypes([])
-      setSystemType('chinh_quy')
+      // Reset to default value from API if available, or fallback
+      if (systemType && !['Chính quy', 'Đặc thù', 'Chung'].includes(systemType)) {
+        setSystemType('Chính quy')
+      }
     }
   }, [semester, academicYear])
 
-  // Load class years when program type changes  
+  // Load class years when program type changes (but only if semester and year are set)
   useEffect(() => {
-    if (semester && academicYear && systemType && systemType !== 'chung') {
-      loadClassYears()
-    } else {
+    // Skip if systemType is 'Chung' or required fields missing
+    if (!semester || !academicYear || !systemType || systemType === 'Chung') {
       setClassYears([])
-      setClassYear('')
+      if (classYear) setClassYear('')
+      return
     }
+    
+    loadClassYears()
   }, [semester, academicYear, systemType])
 
-  // Load major groups when class year changes
+  // Load major groups when class year changes (but only if all prerequisites are met)
   useEffect(() => {
-    if (systemType && classYear && systemType !== 'chung') {
-      loadMajorGroups()
-    } else if (systemType === 'chung') {
+    // Skip if systemType is 'Chung' or required fields missing
+    if (systemType === 'Chung') {
       setMajorGroups([])
+      return
     }
-  }, [systemType, classYear])
+    
+    if (!semester || !academicYear || !systemType || !classYear) {
+      return
+    }
+    
+    loadMajorGroups()
+  }, [semester, academicYear, systemType, classYear])
 
   const loadSemesters = async () => {
     try {
@@ -191,55 +202,21 @@ const TKBPage = () => {
       }
     } catch (error) {
       console.error('Lỗi khi tải danh sách học kỳ:', error)
-      // Fallback to hardcoded data if API fails
-      setAllSemesters([
-        {
-          id: 1,
-          semesterName: 'Học kỳ 1',
-          academicYear: '2024-2025',
-          startDate: '2024-09-01',
-          endDate: '2025-01-15',
-          isActive: true,
-          subjectCount: 0
-        },
-        {
-          id: 2,
-          semesterName: 'Học kỳ 2',
-          academicYear: '2024-2025',
-          startDate: '2025-01-20',
-          endDate: '2025-05-30',
-          isActive: false,
-          subjectCount: 0
-        },
-        {
-          id: 3,
-          semesterName: 'Học kỳ 3',
-          academicYear: '2024-2025',
-          startDate: '2025-06-01',
-          endDate: '2025-08-20',
-          isActive: false,
-          subjectCount: 0
-        },
-      ])
-      setAcademicYears(['2024-2025'])
+      // Fallback to hardcoded data if API fai
     }
   }
 
   const loadClassYears = async () => {
-    if (!semester || !academicYear || !systemType || systemType === 'chung') {
+    if (!semester || !academicYear || !systemType || systemType === 'Chung') {
       return
     }
 
     try {
       setLoading(true)
 
-      // Map systemType to programType for API
-      let programType = ''
-      if (systemType === 'chinh_quy') {
-        programType = 'Chính quy'
-      } else if (systemType === 'he_dac_thu') {
-        programType = 'Đặc thù'
-      }
+      // systemType is now the actual program type value from API (e.g. "Chính quy", "Đặc thù")
+      // No mapping needed anymore
+      const programType = systemType
 
       // Call API với query parameters
       const response = await api.get('/subjects/class-years', {
@@ -288,20 +265,9 @@ const TKBPage = () => {
     }
   }
 
-  useEffect(() => {
-    // Load major groups when systemType and classYear change
-    // Skip API call for "chung" system type
-    if (systemType && classYear && systemType !== 'chung') {
-      loadMajorGroups()
-    } else if (systemType === 'chung') {
-      // Clear major groups for "chung" system type
-      setMajorGroups([])
-    }
-  }, [systemType, classYear])
-
   const loadMajorGroups = async () => {
-    // Skip API call for "chung" system type
-    if (systemType === 'chung') {
+    // Skip API call for "Chung" system type
+    if (systemType === 'Chung') {
       setMajorGroups([])
       return
     }
@@ -315,16 +281,9 @@ const TKBPage = () => {
     try {
       setLoading(true)
 
-      // Map systemType to programType for API
-      let programType = ''
-      if (systemType === 'chinh_quy') {
-        programType = 'Chính quy'
-      } else if (systemType === 'he_dac_thu') {
-        programType = 'Đặc thù'
-      } else {
-        // Default fallback
-        programType = 'Chính quy'
-      }
+      // systemType is now the actual program type value from API
+      // No mapping needed anymore
+      const programType = systemType
 
       // Call API to get major groups với semesterName và academicYear
       const response = await subjectService.getGroupMajors(semester, academicYear, classYear, programType)
@@ -350,7 +309,7 @@ const TKBPage = () => {
 
   const loadSubjectsByMajorGroup = async () => {
     // For "Chung" system type, call common subjects API
-    if (systemType === 'chung') {
+    if (systemType === 'Chung') {
       // Validate required fields
       if (!semester || !academicYear) {
         toast.error('Vui lòng chọn năm học và học kỳ trước')
@@ -418,17 +377,9 @@ const TKBPage = () => {
     try {
       setLoading(true)
 
-      // Map systemType to programType for API
-      let programType = ''
-      if (systemType === 'chinh_quy') {
-        programType = 'Chính quy'
-      } else if (systemType === 'he_dac_thu') {
-        programType = 'Đặc thù'
-      } else if (systemType === 'chung') {
-        programType = 'Chung'
-      } else {
-        programType = 'Chính quy'
-      }
+      // systemType is now the actual program type value from API
+      // No mapping needed anymore
+      const programType = systemType
 
       // Process selected major group to handle E-* majors correctly
       let majorCodes: string[] = []
@@ -1267,7 +1218,7 @@ const TKBPage = () => {
               onChange={(e) => {
                 setAcademicYear(e.target.value)
                 setSemester('') // Reset semester when year changes
-                setSystemType('chinh_quy') // Reset subsequent filters
+                setSystemType('Chính quy') // Reset subsequent filters
                 setClassYear('')
                 setSelectedMajorGroup('')
                 setBatchRows([])
@@ -1289,7 +1240,7 @@ const TKBPage = () => {
               value={semester}
               onChange={(e) => {
                 setSemester(e.target.value)
-                setSystemType('chinh_quy') // Reset subsequent filters
+                setSystemType('Chính quy') // Reset subsequent filters
                 setClassYear('')
                 setSelectedMajorGroup('')
                 setBatchRows([])
@@ -1319,13 +1270,26 @@ const TKBPage = () => {
                 setSelectedMajorGroup('')
                 setBatchRows([])
               }}
-              disabled={!semester}
-              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${!semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              disabled={!semester || !academicYear}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${!semester || !academicYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
                 }`}
             >
-              <option value="chinh_quy">Chính quy</option>
-              <option value="he_dac_thu">Hệ đặc thù</option>
-              <option value="chung">Chung</option>
+              {programTypes.length === 0 ? (
+                <>
+                  <option value="Chính quy">Chính quy</option>
+                  <option value="Đặc thù">Đặc thù</option>
+                  <option value="Chung">Chung</option>
+                </>
+              ) : (
+                <>
+                  {programTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                  <option value="Chung">Chung</option>
+                </>
+              )}
             </select>
           </div>
 

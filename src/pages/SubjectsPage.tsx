@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, Eye, ChevronLeft, ChevronRight, X, Upload } from 'lucide-react'
-import { subjectService, curriculumService, majorService, semesterService, type Subject, type SubjectRequest, type Major, type Semester } from '../services/api'
+import { subjectService, curriculumService, majorService, facultyService, semesterService, type Subject, type SubjectRequest, type Major, type Faculty, type Semester } from '../services/api'
 import toast from 'react-hot-toast'
 import ImportFileModal from '../components/ImportFileModal'
 
@@ -23,6 +23,7 @@ const SubjectsPage = () => {
   const [programTypes, setProgramTypes] = useState<string[]>([])
   const [classYears, setClassYears] = useState<string[]>([])
   const [majors, setMajors] = useState<Major[]>([])
+  const [faculties, setFaculties] = useState<Faculty[]>([])
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [academicYears, setAcademicYears] = useState<string[]>([])
   
@@ -35,7 +36,7 @@ const SubjectsPage = () => {
   const [importing, setImporting] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
 
-  const [formData, setFormData] = useState<Omit<SubjectRequest, 'majorId' | 'majorName' | 'facultyId' | 'semesterName'>>({
+  const [formData, setFormData] = useState<Omit<SubjectRequest, 'majorId' | 'majorName' | 'facultyId' | 'semesterName' | 'academicYear'>>({
     subjectCode: '',
     subjectName: '',
     credits: 0,
@@ -55,6 +56,7 @@ const SubjectsPage = () => {
   const [isCommonSubject, setIsCommonSubject] = useState(false)
   const [selectedMajors, setSelectedMajors] = useState<Major[]>([])
   const [majorSearchInput, setMajorSearchInput] = useState('')
+  const [selectedFacultyId, setSelectedFacultyId] = useState('')
   const [showMajorDropdown, setShowMajorDropdown] = useState(false)
   
   // Separate state for majors in "Add Subject" modal
@@ -63,6 +65,9 @@ const SubjectsPage = () => {
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([])
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [idsToDelete, setIdsToDelete] = useState<number[]>([])
+  
+  // State for semester selection in form
+  const [selectedFormSemester, setSelectedFormSemester] = useState<string>('')
 
   // Debounce search term
   useEffect(() => {
@@ -85,7 +90,7 @@ const SubjectsPage = () => {
 
   const fetchFilterData = async () => {
     try {
-      // Fetch program types, class years, majors, and semesters in parallel
+      // Fetch program types, class years, majors and semesters in parallel (NOT faculties)
       const [programTypesRes, classYearsRes, majorsRes, semestersRes] = await Promise.all([
         subjectService.getAllProgramTypes(),
         subjectService.getAllClassYears(),
@@ -99,13 +104,8 @@ const SubjectsPage = () => {
       if (classYearsRes.data.success) {
         setClassYears(classYearsRes.data.data)
       }
-      if (majorsRes.data.success && majorsRes.data.data.length > 0) {
+      if (majorsRes.data.success) {
         setMajors(majorsRes.data.data)
-      } else {
-        // Sample data nếu API không trả về
-        const sampleMajors: Major[] = [
-        ]
-        setMajors(sampleMajors)
       }
       if (semestersRes.data.success) {
         setSemesters(semestersRes.data.data)
@@ -117,13 +117,6 @@ const SubjectsPage = () => {
     } catch (error) {
       console.error('Không thể tải dữ liệu filter:', error)
       // Sample data khi có lỗi
-      const sampleMajors: Major[] = [
-        { id: 1, majorCode: 'CNTT', majorName: 'Công nghệ thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
-        { id: 2, majorCode: 'ATTT', majorName: 'An toàn thông tin', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
-        { id: 3, majorCode: 'BC', majorName: 'Báo chí', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
-        { id: 4, majorCode: 'TT', majorName: 'Truyền thông', numberOfStudents: 0, classYear: '', facultyId: '', facultyName: '' },
-      ]
-      setMajors(sampleMajors)
     }
   }
 
@@ -154,10 +147,34 @@ const SubjectsPage = () => {
     }
   }
 
+  const loadFaculties = async () => {
+    try {
+      const response = await facultyService.getAll()
+      console.log('Full faculty response:', response.data)
+      
+      // Handle both wrapped and direct array response
+      let facultyData: Faculty[] = []
+      
+      if (response.data.success && response.data.data) {
+        // Wrapped response: {success: true, data: [...]}
+        facultyData = response.data.data
+      } else if (Array.isArray(response.data)) {
+        // Direct array response: [{id, facultyName}, ...]
+        facultyData = response.data
+      }
+      
+      console.log('Faculties loaded:', facultyData)
+      setFaculties(facultyData)
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách khoa:', error)
+      toast.error('Không thể tải danh sách khoa')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validation
+    // Validation theo backend DTO
     if (!formData.subjectCode.trim()) {
       toast.error('Vui lòng nhập mã môn')
       return
@@ -167,7 +184,7 @@ const SubjectsPage = () => {
       return
     }
     if (!formData.credits || formData.credits <= 0) {
-      toast.error('Vui lòng nhập số tín chỉ hợp lệ')
+      toast.error('Vui lòng nhập số tín chỉ hợp lệ (1-10)')
       return
     }
     if (!formData.classYear.trim()) {
@@ -178,22 +195,18 @@ const SubjectsPage = () => {
       toast.error('Vui lòng nhập số sinh viên hợp lệ')
       return
     }
-    if (!formData.theoryHours || formData.theoryHours < 0) {
-      toast.error('Vui lòng nhập giờ lý thuyết')
+    if (!selectedFacultyId.trim()) {
+      toast.error('Vui lòng chọn khoa')
       return
     }
-    if (!formData.exerciseHours || formData.exerciseHours < 0) {
-      toast.error('Vui lòng nhập giờ bài tập')
-      return
-    }
-    if (selectedMajors.length === 0 && !isCommonSubject) {
-      toast.error('Vui lòng chọn ít nhất một ngành hoặc đánh dấu môn chung')
+    if (!majorSearchInput.trim() && !isCommonSubject) {
+      toast.error('Vui lòng nhập mã ngành hoặc đánh dấu môn chung')
       return
     }
     
     try {
-      // Get major info
-      const selectedMajor = selectedMajors.length > 0 ? selectedMajors[0] : null
+      // Get major code from direct input
+      const majorCodeInput = majorSearchInput.trim()
       
       // Build request body theo API specification
       const submitData: SubjectRequest = {
@@ -212,20 +225,42 @@ const SubjectsPage = () => {
         classYear: formData.classYear,
         programType: formData.programType,
         numberOfStudents: formData.numberOfStudents,
-        // Optional fields - use majorCode instead of id
-        ...(selectedMajor && {
-          majorId: selectedMajor.majorCode, // Use majorCode (e.g. "AT") instead of id
-          majorName: selectedMajor.majorName,
-          facultyId: selectedMajor.facultyId,
+        academicYear: '', // Temporary - will be set below based on create/update mode
+        isCommon: isCommonSubject, // Truyền trạng thái môn chung
+        // Use direct input for major code
+        ...(majorCodeInput && {
+          majorId: majorCodeInput, // Use majorCode from direct input (e.g. "AT", "CN")
+        }),
+        // Use selected faculty ID if available
+        ...(selectedFacultyId && {
+          facultyId: selectedFacultyId,
         }),
       }
       
       if (editingSubject) {
-        // Include semesterName when updating
+        // EDIT MODE: Include semesterName and academicYear when updating
         submitData.semesterName = editingSubject.semesterName
+        // Get academicYear from the semester
+        const semester = semesters.find(s => s.semesterName === editingSubject.semesterName)
+        if (semester) {
+          submitData.academicYear = semester.academicYear
+        }
         await subjectService.update(editingSubject.id, submitData)
         toast.success('Cập nhật môn học thành công', { duration: 5000 })
       } else {
+        // CREATE MODE: When creating new subject, get academicYear from selected semester
+        if (!selectedFormSemester) {
+          toast.error('Vui lòng chọn học kỳ')
+          return
+        }
+        const semester = semesters.find(s => s.semesterName === selectedFormSemester)
+        if (semester) {
+          submitData.academicYear = semester.academicYear
+          submitData.semesterName = selectedFormSemester
+        } else {
+          toast.error('Không tìm thấy thông tin học kỳ')
+          return
+        }
         await subjectService.create(submitData)
         toast.success('Tạo môn học thành công', { duration: 5000 })
       }
@@ -259,7 +294,9 @@ const SubjectsPage = () => {
     setIsCommonSubject(false)
     setSelectedMajors([])
     setMajorSearchInput('')
+    setSelectedFacultyId('')
     setShowMajorDropdown(false)
+    setSelectedFormSemester('')
   }
 
   const handleEdit = (subject: Subject) => {
@@ -290,8 +327,12 @@ const SubjectsPage = () => {
       setSelectedMajors([])
       setMajorSearchInput('')
     }
+    // Set faculty ID from subject
+    setSelectedFacultyId(subject.facultyId || '')
     setIsCommonSubject(false)
     setShowMajorDropdown(false)
+    // Load faculties when opening modal
+    loadFaculties()
     setShowModal(true)
   }
 
@@ -324,17 +365,16 @@ const SubjectsPage = () => {
     }
   }
 
-  // Add major to selected list
+  // Add major to selected list - only allow 1 major
   const handleAddMajor = (major: Major) => {
-    if (!selectedMajors.find(m => m.id === major.id)) {
-      setSelectedMajors([...selectedMajors, major])
-      // Update input to show selected major code
-      setMajorSearchInput(major.majorCode)
-    }
+    // Replace the selected major (only 1 allowed)
+    setSelectedMajors([major])
+    // Update input to show selected major code
+    setMajorSearchInput(major.majorCode)
     setShowMajorDropdown(false)
   }
 
-  // Remove major from selected list
+  // Remove major from selected list - not needed anymore since we only have 1
   const handleRemoveMajor = (majorId: number) => {
     const updatedMajors = selectedMajors.filter(m => m.id !== majorId)
     setSelectedMajors(updatedMajors)
@@ -487,8 +527,9 @@ const SubjectsPage = () => {
                 setMajorSearchInput('')
                 setShowMajorDropdown(false)
                 setShowModal(true)
-                // Load majors for modal
+                // Load majors and faculties for modal
                 fetchMajorsForModal()
+                loadFaculties()
               }}
               className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
             >
@@ -688,6 +729,7 @@ const SubjectsPage = () => {
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tên môn</th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Khóa</th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Học kỳ</th>
+                <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Năm học</th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Ngành</th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Hệ đào tạo</th>
                 <th className="px-1.5 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sĩ số</th>
@@ -705,6 +747,9 @@ const SubjectsPage = () => {
                   <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.classYear}</td>
                   <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">
                     {subject.semesterName || '-'}
+                  </td>
+                  <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">
+                    {subject.academicYear || '-'}
                   </td>
                   <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.majorCode}</td>
                   <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.programType}</td>
@@ -891,7 +936,7 @@ const SubjectsPage = () => {
                   <p className="text-lg text-gray-900">{selectedSubject.exerciseHours}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Giờ đồ án</label>
+                  <label className="block text-sm font-medium text-gray-500">Giờ bài tập lớn</label>
                   <p className="text-lg text-gray-900">{selectedSubject.projectHours}</p>
                 </div>
                 <div>
@@ -977,10 +1022,10 @@ const SubjectsPage = () => {
                     type="number"
                     required
                     min="1"
+                    max="10"
                     value={formData.credits || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1000,7 +1045,7 @@ const SubjectsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hình thức đào tạo *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hệ đào tạo *</label>
                   <input
                     type="text"
                     required
@@ -1018,7 +1063,6 @@ const SubjectsPage = () => {
                     value={formData.numberOfStudents || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1028,15 +1072,14 @@ const SubjectsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số lớp *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số lớp</label>
                   <input
                     type="number"
-                    required
                     min="1"
+                    max="50"
                     value={formData.numberOfClasses || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1052,11 +1095,11 @@ const SubjectsPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sĩ số/lớp</label>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
+                    max="200"
                     value={formData.studentsPerClass || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1066,15 +1109,13 @@ const SubjectsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ lý thuyết *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ lý thuyết</label>
                   <input
                     type="number"
-                    required
                     min="0"
                     value={formData.theoryHours || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1091,7 +1132,6 @@ const SubjectsPage = () => {
                     value={formData.labHours || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1101,15 +1141,13 @@ const SubjectsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ bài tập *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ bài tập</label>
                   <input
                     type="number"
-                    required
                     min="0"
                     value={formData.exerciseHours || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1122,12 +1160,10 @@ const SubjectsPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Giờ tự học</label>
                   <input
                     type="number"
-                    required
                     min="0"
                     value={formData.selfStudyHours || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1137,14 +1173,13 @@ const SubjectsPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đồ án</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ bài tập lớn</label>
                   <input
                     type="number"
                     min="0"
                     value={formData.projectHours || ''}
                     onChange={(e) => {
                       let value = e.target.value
-                      // Loại bỏ số 0 đầu tiên nếu có
                       if (value.length > 1 && value.startsWith('0') && value[1] !== '.') {
                         value = value.replace(/^0+/, '') || '0'
                       }
@@ -1156,130 +1191,91 @@ const SubjectsPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bộ môn *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bộ môn</label>
                   <input
                     type="text"
-                    required
+                    maxLength={100}
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hình thức thi *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hình thức thi</label>
                   <input
                     type="text"
-                    required
+                    maxLength={50}
                     value={formData.examFormat}
                     onChange={(e) => setFormData({ ...formData, examFormat: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-0.9">
-                  Ngành {!isCommonSubject && '*'}
-                </label>
-                {!isCommonSubject && (
-                  <>
-                    <div className="relative" onClick={(e) => e.stopPropagation()}>
+              
+              {/* Semester, Faculty and Major selection - only show when creating new subject */}
+              {!editingSubject && (
+                <div className="grid gap-3 grid-cols-3">
+                  {/* Semester selection */}
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Học kỳ *</label>
+                    <select
+                      required
+                      value={selectedFormSemester}
+                      onChange={(e) => setSelectedFormSemester(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 appearance-auto"
+                      style={{ zIndex: 1000 }}
+                    >
+                      <option value="">-- Chọn học kỳ --</option>
+                      {semesters.map(semester => (
+                        <option key={semester.id} value={semester.semesterName}>
+                          {semester.semesterName} ({semester.academicYear})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Faculty selection */}
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Khoa *
+                    </label>
+                    <select
+                      required
+                      value={selectedFacultyId}
+                      onChange={(e) => {
+                        setSelectedFacultyId(e.target.value)
+                        console.log('Selected faculty:', e.target.value)
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 appearance-auto"
+                      style={{ zIndex: 1000 }}
+                    >
+                      <option value="">-- Chọn khoa --</option>
+                      {faculties.length > 0 ? (
+                        faculties.map((faculty) => (
+                          <option key={faculty.id} value={faculty.id}>
+                            {faculty.id}
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>Đang tải...</option>
+                      )}
+                    </select>
+                  </div>
+                  
+                  {/* Major selection */}
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ngành {!isCommonSubject && '*'}
+                    </label>
+                  {!isCommonSubject && (
+                    <>
                       <input
                         type="text"
                         value={majorSearchInput}
-                        onChange={(e) => {
-                          setMajorSearchInput(e.target.value)
-                          setShowMajorDropdown(true)
-                        }}
-                        onFocus={() => {
-                          setShowMajorDropdown(true)
-                          if (!majorSearchInput.trim() && majors.length > 0) {
-                            // Show suggestions when focused
-                          }
-                        }}
-                        onBlur={() => {
-                          // Delay để cho phép click vào dropdown item
-                          setTimeout(() => setShowMajorDropdown(false), 200)
-                        }}
+                        onChange={(e) => setMajorSearchInput(e.target.value)}
                         className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                        placeholder="Nhập tên hoặc mã ngành để tìm kiếm..."
+                        placeholder="Nhập mã ngành (vd: AT, CN, KH...)"
                       />
-                      {showMajorDropdown && (filteredMajors.length > 0 || majorSearchInput.trim()) && (
-                        <div className="absolute z-10 w-full mt-0.9 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {filteredMajors.length > 0 ? (
-                            filteredMajors.map((major) => {
-                              const isSelected = selectedMajors.some(m => m.id === major.id)
-                              return (
-                                <div
-                                  key={major.id}
-                                  onMouseDown={(e) => {
-                                    e.preventDefault()
-                                    if (!isSelected) {
-                                      handleAddMajor(major)
-                                    }
-                                  }}
-                                  className={`px-4 py-2.5 text-sm cursor-pointer border-b border-gray-100 last:border-b-0 ${
-                                    isSelected 
-                                      ? 'bg-gray-50 opacity-60' 
-                                      : 'hover:bg-gray-100'
-                                  }`}
-                                >
-                                  <div className="font-medium text-gray-900">
-                                    {major.majorCode}
-                                    {isSelected && <span className="ml-2 text-xs text-green-600">(Đã chọn)</span>}
-                                  </div>
-                                </div>
-                              )
-                            })
-                          ) : (
-                            <div className="px-4 py-2.5 text-sm text-gray-500">
-                              Không tìm thấy ngành nào
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    {selectedMajors.length > 0 && (
-                      <div className="mt-3 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-500">Các ngành đã chọn:</p>
-                          <div className="flex items-center gap-2.5">
-                            <input
-                              type="checkbox"
-                              id="isCommonSubject"
-                              checked={isCommonSubject}
-                              onChange={(e) => {
-                                setIsCommonSubject(e.target.checked)
-                                if (e.target.checked) {
-                                  setSelectedMajors([])
-                                }
-                              }}
-                              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                            />
-                            <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
-                              Môn chung
-                            </label>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2.5">
-                          {selectedMajors.map((major) => (
-                            <span
-                              key={major.id}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-800 rounded-lg text-xs font-medium"
-                            >
-                              {major.majorName || major.majorCode}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveMajor(major.id)}
-                                className="ml-1 text-red-600 hover:text-red-800"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {selectedMajors.length === 0 && !isCommonSubject && (
                       <div className="mt-3 flex items-center justify-end">
                         <div className="flex items-center gap-2.5">
                           <input
@@ -1289,7 +1285,7 @@ const SubjectsPage = () => {
                             onChange={(e) => {
                               setIsCommonSubject(e.target.checked)
                               if (e.target.checked) {
-                                setSelectedMajors([])
+                                setMajorSearchInput('')
                               }
                             }}
                             className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
@@ -1299,32 +1295,34 @@ const SubjectsPage = () => {
                           </label>
                         </div>
                       </div>
-                    )}
-                  </>
-                )}
-                {isCommonSubject && (
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-xs text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
-                        id="isCommonSubjectBottom"
-                        checked={isCommonSubject}
-                        onChange={(e) => {
-                          setIsCommonSubject(e.target.checked)
-                          if (e.target.checked) {
-                            setSelectedMajors([])
-                          }
-                        }}
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                      />
-                      <label htmlFor="isCommonSubjectBottom" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
-                        Môn chung
-                      </label>
+                    </>
+                  )}
+                  {isCommonSubject && (
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          id="isCommonSubjectBottom"
+                          checked={isCommonSubject}
+                          onChange={(e) => {
+                            setIsCommonSubject(e.target.checked)
+                            if (!e.target.checked) {
+                              setMajorSearchInput('')
+                            }
+                          }}
+                          className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                        />
+                        <label htmlFor="isCommonSubjectBottom" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                          Môn chung
+                        </label>
+                      </div>
                     </div>
+                  )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+              
               <div className="flex gap-4">
                 <button
                   type="button"
