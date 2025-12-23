@@ -101,6 +101,7 @@ export interface Subject {
   facultyId: string
   facultyName: string | null
   semesterName?: string
+  academicYear?: string
 }
 
 export interface SubjectByMajor {
@@ -122,6 +123,7 @@ export interface SubjectRequest {
   subjectName: string
   studentsPerClass?: number
   numberOfClasses: number
+  academicYear: string
   credits: number
   theoryHours: number
   exerciseHours: number
@@ -137,6 +139,7 @@ export interface SubjectRequest {
   programType: string
   numberOfStudents: number
   semesterName?: string
+  isCommon?: boolean
 }
 
 // Major Types
@@ -150,6 +153,14 @@ export interface Major {
   facultyName: string
   subjectIds?: string[]
   subjectNames?: string[]
+}
+
+// Faculty Types
+export interface Faculty {
+  id: string
+  facultyName: string
+  majorIds?: number[]
+  majorNames?: string[]
 }
 
 // Semester Types
@@ -386,6 +397,10 @@ export const subjectService = {
 
 export const majorService = {
   getAll: () => api.get<ApiResponse<Major[]>>('/majors'),
+}
+
+export const facultyService = {
+  getAll: () => api.get<ApiResponse<Faculty[]>>('/faculties'),
 }
 
 export const semesterService = {

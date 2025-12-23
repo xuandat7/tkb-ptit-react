@@ -303,7 +303,7 @@ const SemestersPage = () => {
                             className="text-green-600 hover:text-green-900 transition-colors"
                             title="Kích hoạt học kỳ"
                           >
-                            <Calendar className="w-4 h-4" />
+                            <Calendar className="w-5.5 h-5.5" />
                           </button>
                         )}
                         <button
@@ -311,14 +311,14 @@ const SemestersPage = () => {
                           className="text-blue-600 hover:text-blue-900 transition-colors"
                           title="Chỉnh sửa"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-5.5 h-5.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(semester)}
                           className="text-red-600 hover:text-red-900 transition-colors"
                           title="Xóa"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-5.5 h-5.5" />
                         </button>
                       </div>
                     </td>

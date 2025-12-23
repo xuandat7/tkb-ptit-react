@@ -385,12 +385,12 @@ const RoomsPage = () => {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg">
+    <div className="space-y-2">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-2 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold mb-1">Quản lý Phòng học</h1>
-            <p className="text-red-100 text-sm">Quản lý thông tin các phòng học của học viện</p>
+            <p className="text-red-80 text-base">Quản lý thông tin các phòng học</p>
           </div>
           <button
             onClick={() => {
@@ -398,9 +398,9 @@ const RoomsPage = () => {
               resetForm()
               setShowModal(true)
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             Thêm phòng học
           </button>
         </div>
@@ -432,10 +432,10 @@ const RoomsPage = () => {
         </div>
 
         {activeTab === 'list' && (
-          <div className="p-4">
-            {/* Search and Filters */}
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="relative flex-1 max-w-xs">
+          <div className="p-3">
+            {/* Search and Filters - All on one row */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
@@ -446,40 +446,40 @@ const RoomsPage = () => {
                 />
               </div>
               
-              <div className="flex items-center gap-2">
-                <select
-                  value={filterBuilding}
-                  onChange={(e) => setFilterBuilding(e.target.value)}
-                  className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="ALL">Tất cả tòa nhà</option>
-                  {uniqueBuildings.map((building) => (
-                    <option key={building} value={building}>
-                      {building}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  placeholder="Sức chứa tối thiểu"
-                  value={filterCapacityMin}
-                  onChange={(e) => setFilterCapacityMin(e.target.value)}
-                  className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                  }`}
-                />
-                <input
-                  type="number"
-                  placeholder="Sức chứa tối đa"
-                  value={filterCapacityMax}
-                  onChange={(e) => setFilterCapacityMax(e.target.value)}
-                  className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                  }`}
-                />
-              </div>
+              <select
+                value={filterBuilding}
+                onChange={(e) => setFilterBuilding(e.target.value)}
+                className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                }`}
+              >
+                <option value="ALL">Tất cả tòa nhà</option>
+                {uniqueBuildings.map((building) => (
+                  <option key={building} value={building}>
+                    {building}
+                  </option>
+                ))}
+              </select>
+              
+              <input
+                type="number"
+                placeholder="Sức chứa tối thiểu"
+                value={filterCapacityMin}
+                onChange={(e) => setFilterCapacityMin(e.target.value)}
+                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                }`}
+              />
+              
+              <input
+                type="number"
+                placeholder="Sức chứa tối đa"
+                value={filterCapacityMax}
+                onChange={(e) => setFilterCapacityMax(e.target.value)}
+                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                }`}
+              />
             </div>
 
         {/* Filter Tags - Hiển thị các filter đang active */}
@@ -570,10 +570,10 @@ const RoomsPage = () => {
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
                   <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
                     <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
-                      <Edit className="w-3.5 h-3.5 inline" />
+                      <Edit className="w-5 h-5 inline" />
                     </button>
                     <button onClick={() => handleDeleteClick(room.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-3.5 h-3.5 inline" />
+                      <Trash2 className="w-5 h-5 inline" />
                     </button>
                   </td>
                 </tr>
@@ -672,10 +672,10 @@ const RoomsPage = () => {
         )}
 
         {activeTab === 'semester' && (
-          <div className="p-6">
-            {/* Semester Selector and Filters - All in one row */}
+          <div className="p-4">
+            {/* Semester Selector and Filters - All on one row */}
             <div className="mb-4">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Chọn kì học:</label>
                 <select
                   value={selectedSemesterId || ''}
