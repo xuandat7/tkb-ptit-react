@@ -139,6 +139,7 @@ export interface SubjectRequest {
   programType: string
   numberOfStudents: number
   semesterName?: string
+  isCommon?: boolean
 }
 
 // Major Types

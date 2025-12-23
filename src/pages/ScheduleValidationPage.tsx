@@ -327,7 +327,7 @@ const ScheduleValidationPage: React.FC = () => {
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-bold mb-1">Hậu kiểm thời khóa biểu</h1>
+            <h1 className="text-xl font-bold mb-1">Hậu kiểm Thời khóa biểu</h1>
             <p className="text-red-100 text-sm">Upload file kiểm tra xung đột phòng học và giảng viên</p>
           </div>
         </div>

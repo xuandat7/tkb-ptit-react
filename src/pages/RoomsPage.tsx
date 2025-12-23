@@ -57,7 +57,7 @@ const RoomsPage = () => {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(14)
 
   const [formData, setFormData] = useState<RoomRequest>({
     roomCode: '',
@@ -84,7 +84,7 @@ const RoomsPage = () => {
   const [roomsStatus, setRoomsStatus] = useState<RoomStatusBySemester[]>([])
   const [loadingRoomsStatus, setLoadingRoomsStatus] = useState(false)
   const [semesterCurrentPage, setSemesterCurrentPage] = useState(1)
-  const [semesterItemsPerPage, setSemesterItemsPerPage] = useState(10)
+  const [semesterItemsPerPage, setSemesterItemsPerPage] = useState(14)
   const [semesterTotalItems, setSemesterTotalItems] = useState(0)
   const [semesterSearchTerm, setSemesterSearchTerm] = useState('')
   const [semesterSortBy, setSemesterSortBy] = useState<'building' | 'name' | 'capacity' | 'occupancyRate'>('building')
@@ -389,7 +389,7 @@ const RoomsPage = () => {
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-2 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold mb-1">Quản lý Phòng học</h1>
+            <h1 className="text-xl font-bold mb-1">Quản lý Phòng học</h1>
             <p className="text-red-80 text-base">Quản lý thông tin các phòng học</p>
           </div>
           <button
@@ -433,9 +433,9 @@ const RoomsPage = () => {
 
         {activeTab === 'list' && (
           <div className="p-3">
-            {/* Search and Filters */}
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="relative flex-1 max-w-xs">
+            {/* Search and Filters - All on one row */}
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
@@ -446,40 +446,40 @@ const RoomsPage = () => {
                 />
               </div>
               
-              <div className="flex items-center gap-2">
-                <select
-                  value={filterBuilding}
-                  onChange={(e) => setFilterBuilding(e.target.value)}
-                  className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="ALL">Tất cả tòa nhà</option>
-                  {uniqueBuildings.map((building) => (
-                    <option key={building} value={building}>
-                      {building}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  placeholder="Sức chứa tối thiểu"
-                  value={filterCapacityMin}
-                  onChange={(e) => setFilterCapacityMin(e.target.value)}
-                  className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                  }`}
-                />
-                <input
-                  type="number"
-                  placeholder="Sức chứa tối đa"
-                  value={filterCapacityMax}
-                  onChange={(e) => setFilterCapacityMax(e.target.value)}
-                  className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                    filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                  }`}
-                />
-              </div>
+              <select
+                value={filterBuilding}
+                onChange={(e) => setFilterBuilding(e.target.value)}
+                className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                }`}
+              >
+                <option value="ALL">Tất cả tòa nhà</option>
+                {uniqueBuildings.map((building) => (
+                  <option key={building} value={building}>
+                    {building}
+                  </option>
+                ))}
+              </select>
+              
+              <input
+                type="number"
+                placeholder="Sức chứa tối thiểu"
+                value={filterCapacityMin}
+                onChange={(e) => setFilterCapacityMin(e.target.value)}
+                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                }`}
+              />
+              
+              <input
+                type="number"
+                placeholder="Sức chứa tối đa"
+                value={filterCapacityMax}
+                onChange={(e) => setFilterCapacityMax(e.target.value)}
+                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
+                  filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                }`}
+              />
             </div>
 
         {/* Filter Tags - Hiển thị các filter đang active */}
@@ -588,18 +588,7 @@ const RoomsPage = () => {
             <div className="text-gray-700">
               Hiển thị {paginatedRooms.length} trên tổng số {filteredRooms.length} phòng học
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-700">Số bản ghi/trang:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
+            
           </div>
           {totalPages > 1 && (
             <div className="flex gap-1">
@@ -684,17 +673,17 @@ const RoomsPage = () => {
 
         {activeTab === 'semester' && (
           <div className="p-4">
-            {/* Semester Selector and Filters */}
-            <div className="mb-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700">Chọn kì học:</label>
+            {/* Semester Selector and Filters - All on one row */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Chọn kì học:</label>
                 <select
                   value={selectedSemesterId || ''}
                   onChange={(e) => {
                     setSelectedSemesterId(Number(e.target.value))
                     setSemesterCurrentPage(1)
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                 >
                   {semesters.map((semester) => (
                     <option key={semester.id} value={semester.id}>
@@ -702,11 +691,8 @@ const RoomsPage = () => {
                     </option>
                   ))}
                 </select>
-              </div>
 
-              {/* Search and Filter */}
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-md">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="text"
@@ -847,22 +833,7 @@ const RoomsPage = () => {
                     <div className="text-gray-700">
                       Hiển thị {roomsStatus.length} trên tổng số {semesterTotalItems} phòng học
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-gray-700">Số bản ghi/trang:</span>
-                      <select
-                        value={semesterItemsPerPage}
-                        onChange={(e) => {
-                          setSemesterItemsPerPage(Number(e.target.value))
-                          setSemesterCurrentPage(1)
-                        }}
-                        className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
+                    
                   </div>
                   
                   {Math.ceil(semesterTotalItems / semesterItemsPerPage) > 1 && (
