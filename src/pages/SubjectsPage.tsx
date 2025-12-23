@@ -477,7 +477,7 @@ const SubjectsPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex flex-col overflow-hidden">
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg flex-shrink-0">
         <div className="flex justify-between items-center">
           <div>
@@ -732,13 +732,13 @@ const SubjectsPage = () => {
                       className="text-green-600 hover:text-green-900 mr-0.5"
                       title="Xem chi tiết"
                     >
-                      <Eye className="w-3 h-3 inline" />
+                      <Eye className="w-5 h-5 inline" />
                     </button>
                     <button onClick={() => handleEdit(subject)} className="text-blue-600 hover:text-blue-900 mr-0.5">
-                      <Edit className="w-3 h-3 inline" />
+                      <Edit className="w-5 h-5 inline" />
                     </button>
                     <button onClick={() => handleDeleteClick(subject.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-3 h-3 inline" />
+                      <Trash2 className="w-5 h-5 inline" />
                     </button>
                   </td>
                 </tr>

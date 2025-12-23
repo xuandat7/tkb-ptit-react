@@ -552,11 +552,11 @@ const SavedSchedulesPage: React.FC = () => {
 
       <div className="bg-white rounded-lg shadow-md p-4">
         {/* Filters and Actions in one row */}
-        <div className="flex items-center gap-2 flex-wrap mb-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={filter.academicYear}
             onChange={(e) => setFilter({ ...filter, academicYear: e.target.value, semester: '' })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.academicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            className={`px-3 py-2 border rounded-lg focus:ring-1 focus:ring-red-500 focus:border-transparent text-sm w-40 ${filter.academicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
               }`}
           >
             <option value="">Tất cả năm học</option>
@@ -567,7 +567,7 @@ const SavedSchedulesPage: React.FC = () => {
           <select
             value={filter.semester}
             onChange={(e) => setFilter({ ...filter, semester: e.target.value })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.semester ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            className={`px-3 py-2 border rounded-lg focus:ring-1 focus:ring-red-500 focus:border-transparent text-sm w-40 ${filter.semester ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
               }`}
           >
             <option value="">Tất cả học kỳ</option>
@@ -578,7 +578,7 @@ const SavedSchedulesPage: React.FC = () => {
           <select
             value={filter.studentYear}
             onChange={(e) => setFilter({ ...filter, studentYear: e.target.value })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.studentYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            className={`px-3 py-2 border rounded-lg focus:ring-1 focus:ring-red-500 focus:border-transparent text-sm w-40 ${filter.studentYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
               }`}
           >
             <option value="">Tất cả khóa</option>
@@ -589,7 +589,7 @@ const SavedSchedulesPage: React.FC = () => {
           <select
             value={filter.major}
             onChange={(e) => setFilter({ ...filter, major: e.target.value })}
-            className={`px-2 py-1 border rounded focus:ring-1 focus:ring-red-500 focus:border-transparent text-xs w-32 ${filter.major ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+            className={`px-3 py-2 border rounded-lg focus:ring-1 focus:ring-red-500 focus:border-transparent text-sm w-40 ${filter.major ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
               }`}
           >
             <option value="">Tất cả ngành</option>
@@ -599,19 +599,19 @@ const SavedSchedulesPage: React.FC = () => {
           </select>
           <button
             onClick={handleDeleteByMajor}
-            className="px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"
+            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 border border-gray-300 transition-colors disabled:opacity-50 text-sm whitespace-nowrap"
             disabled={schedules.length === 0}
           >
             Xóa ngành
           </button>
           <button
             onClick={handleDeleteAll}
-            className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 text-xs whitespace-nowrap"
+            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm whitespace-nowrap"
             disabled={schedules.length === 0}
           >
             Xóa Tất Cả
           </button>
-          <span className="px-2 py-1 bg-gray-100 rounded text-xs whitespace-nowrap">
+          <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm whitespace-nowrap border border-gray-300">
             Tổng: {filteredSchedules.length}
           </span>
         </div>

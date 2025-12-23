@@ -553,6 +553,27 @@ const TKBPage = () => {
     return rows.length > 1;
   }
 
+  // Helper function to check if a subject can be merged with another class year (common registration)
+  const canCommonRegister = (rowIndex: number): boolean => {
+    const currentRow = batchRows[rowIndex];
+    if (!currentRow) return false;
+
+    // If already checked, allow unchecking
+    if (currentRow.isCommonRegistration) return true;
+
+    // Check if there's another row with same subject code but different class year
+    const hasMatchingRow = batchRows.some(
+      (row, idx) =>
+        idx !== rowIndex &&
+        row.mmh === currentRow.mmh &&
+        row.khoa !== currentRow.khoa &&
+        !row.isHiddenByCombination &&
+        !row.isCommonRegistration
+    );
+
+    return hasMatchingRow;
+  }
+
   // Helper function 2: Toggle major combination
   const toggleMajorCombination = (rowIndex: number, checked: boolean) => {
     if (checked) {
@@ -1417,20 +1438,8 @@ const TKBPage = () => {
                             {row.tmh}
                           </div>
                         </td>
-                        <td className="px-2 py-2 border">
-                          {(() => {
-                            const key = getInlineInputKey(index, 'sotiet')
-                            return (
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={inlineInputs[key] ?? (row.sotiet?.toString() || '')}
-                                onChange={(e) => handleInlineInputChange(index, 'sotiet', e.target.value)}
-                                onBlur={() => handleInlineInputBlur(index, 'sotiet')}
-                                className="w-full px-1.5 py-1 text-xs border rounded text-center"
-                              />
-                            )
-                          })()}
+                        <td className="px-2 py-2 border text-center">
+                          {row.sotiet}
                         </td>
                         <td className="px-2 py-2 border text-center">
                           {row.siso}
@@ -1479,12 +1488,22 @@ const TKBPage = () => {
                             <input
                               type="checkbox"
                               checked={row.isCommonRegistration || false}
+                              disabled={!canCommonRegister(index)}
                               onChange={(e) => handleCommonRegistration(index, e.target.checked)}
-                              className="w-3.5 h-3.5 cursor-pointer"
-                              title="Gộp với khóa khác cùng môn"
+                              className="w-3.5 h-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={
+                                !canCommonRegister(index)
+                                  ? 'Môn này không có khóa khác để gộp'
+                                  : 'Gộp với khóa khác cùng môn'
+                              }
                             />
                           ) : (
-                            <input type="checkbox" disabled className="w-3.5 h-3.5" />
+                            <input 
+                              type="checkbox" 
+                              disabled 
+                              className="w-3.5 h-3.5 opacity-50 cursor-not-allowed" 
+                              title="Chỉ áp dụng cho hệ chung"
+                            />
                           )}
                         </td>
                         <td className="px-2 py-2 border text-center">
@@ -1690,7 +1709,7 @@ const TKBPage = () => {
                   </>
                 ) : (
                   <>
-                    Thêm vào kết quả
+                    Lưu thời khóa biểu
                   </>
                 )}
               </button>
@@ -1698,9 +1717,7 @@ const TKBPage = () => {
                 to="/saved-schedules"
                 className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <FileText className="w-5 h-5" />
                 Xem TKB đã lưu
-                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>

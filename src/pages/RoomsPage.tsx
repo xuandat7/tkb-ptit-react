@@ -570,10 +570,10 @@ const RoomsPage = () => {
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
                   <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
                     <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
-                      <Edit className="w-3.5 h-3.5 inline" />
+                      <Edit className="w-5 h-5 inline" />
                     </button>
                     <button onClick={() => handleDeleteClick(room.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-3.5 h-3.5 inline" />
+                      <Trash2 className="w-5 h-5 inline" />
                     </button>
                   </td>
                 </tr>
