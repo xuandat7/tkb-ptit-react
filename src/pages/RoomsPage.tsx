@@ -57,7 +57,7 @@ const RoomsPage = () => {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(14)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   const [formData, setFormData] = useState<RoomRequest>({
     roomCode: '',
@@ -84,7 +84,7 @@ const RoomsPage = () => {
   const [roomsStatus, setRoomsStatus] = useState<RoomStatusBySemester[]>([])
   const [loadingRoomsStatus, setLoadingRoomsStatus] = useState(false)
   const [semesterCurrentPage, setSemesterCurrentPage] = useState(1)
-  const [semesterItemsPerPage, setSemesterItemsPerPage] = useState(14)
+  const [semesterItemsPerPage, setSemesterItemsPerPage] = useState(10)
   const [semesterTotalItems, setSemesterTotalItems] = useState(0)
   const [semesterSearchTerm, setSemesterSearchTerm] = useState('')
   const [semesterSortBy, setSemesterSortBy] = useState<'building' | 'name' | 'capacity' | 'occupancyRate'>('building')
@@ -385,12 +385,12 @@ const RoomsPage = () => {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-3 shadow-lg">
+    <div className="space-y-2">
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg p-2 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-bold mb-1">Quản lý Phòng học</h1>
-            <p className="text-red-100 text-sm">Quản lý thông tin các phòng học của học viện</p>
+            <h1 className="text-2xl font-bold mb-1">Quản lý Phòng học</h1>
+            <p className="text-red-80 text-base">Quản lý thông tin các phòng học</p>
           </div>
           <button
             onClick={() => {
@@ -398,9 +398,9 @@ const RoomsPage = () => {
               resetForm()
               setShowModal(true)
             }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white transition-colors"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             Thêm phòng học
           </button>
         </div>
@@ -432,9 +432,9 @@ const RoomsPage = () => {
         </div>
 
         {activeTab === 'list' && (
-          <div className="p-4">
+          <div className="p-3">
             {/* Search and Filters */}
-            <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
@@ -570,10 +570,10 @@ const RoomsPage = () => {
                   <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
                   <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
                     <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
-                      <Edit className="w-3.5 h-3.5 inline" />
+                      <Edit className="w-5 h-5 inline" />
                     </button>
                     <button onClick={() => handleDeleteClick(room.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-3.5 h-3.5 inline" />
+                      <Trash2 className="w-5 h-5 inline" />
                     </button>
                   </td>
                 </tr>
@@ -588,7 +588,18 @@ const RoomsPage = () => {
             <div className="text-gray-700">
               Hiển thị {paginatedRooms.length} trên tổng số {filteredRooms.length} phòng học
             </div>
-            
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-700">Số bản ghi/trang:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+            </div>
           </div>
           {totalPages > 1 && (
             <div className="flex gap-1">
@@ -672,18 +683,18 @@ const RoomsPage = () => {
         )}
 
         {activeTab === 'semester' && (
-          <div className="p-6">
-            {/* Semester Selector and Filters - All in one row */}
-            <div className="mb-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Chọn kì học:</label>
+          <div className="p-4">
+            {/* Semester Selector and Filters */}
+            <div className="mb-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">Chọn kì học:</label>
                 <select
                   value={selectedSemesterId || ''}
                   onChange={(e) => {
                     setSelectedSemesterId(Number(e.target.value))
                     setSemesterCurrentPage(1)
                   }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                 >
                   {semesters.map((semester) => (
                     <option key={semester.id} value={semester.id}>
@@ -691,8 +702,11 @@ const RoomsPage = () => {
                     </option>
                   ))}
                 </select>
+              </div>
 
-                <div className="relative flex-1 min-w-[200px]">
+              {/* Search and Filter */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="text"
@@ -833,7 +847,22 @@ const RoomsPage = () => {
                     <div className="text-gray-700">
                       Hiển thị {roomsStatus.length} trên tổng số {semesterTotalItems} phòng học
                     </div>
-                    
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-700">Số bản ghi/trang:</span>
+                      <select
+                        value={semesterItemsPerPage}
+                        onChange={(e) => {
+                          setSemesterItemsPerPage(Number(e.target.value))
+                          setSemesterCurrentPage(1)
+                        }}
+                        className="px-2 py-0.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
                   </div>
                   
                   {Math.ceil(semesterTotalItems / semesterItemsPerPage) > 1 && (

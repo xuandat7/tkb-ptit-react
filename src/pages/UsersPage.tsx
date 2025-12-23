@@ -23,7 +23,9 @@ const UsersPage = () => {
       console.log('API Response:', response.data) // Debug
 
       if (response.data.success) {
-        setUsers(response.data.data || [])
+        // Filter out ADMIN users
+        const filteredUsers = (response.data.data || []).filter((user: User) => user.role !== 'ADMIN')
+        setUsers(filteredUsers)
       } else {
         toast.error('Không thể tải danh sách người dùng')
       }
