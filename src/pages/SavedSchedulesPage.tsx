@@ -94,6 +94,10 @@ const SavedSchedulesPage: React.FC = () => {
   const [deleteMajorSemester, setDeleteMajorSemester] = useState('')
   const [deleteAllAcademicYear, setDeleteAllAcademicYear] = useState('')
   const [deleteAllSemester, setDeleteAllSemester] = useState('')
+  // Loading states for delete actions
+  // Loading states for delete actions (giống SubjectsPage)
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false)
+  const [deleteMajorLoading, setDeleteMajorLoading] = useState(false)
 
   // Dropdown data from API
   const [classYears, setClassYears] = useState<string[]>([])
@@ -222,7 +226,9 @@ const SavedSchedulesPage: React.FC = () => {
       return
     }
 
+    setDeleteAllLoading(true)
     try {
+      // ...existing code...
       console.log('🔍 Debug - deleteAllAcademicYear:', deleteAllAcademicYear)
       console.log('🔍 Debug - deleteAllSemester:', deleteAllSemester)
       console.log('🔍 Debug - semesters array:', semesters)
@@ -237,6 +243,7 @@ const SavedSchedulesPage: React.FC = () => {
       if (!currentSemester?.id) {
         console.error('❌ Không tìm thấy semester ID!')
         toast.error('Không tìm thấy thông tin học kỳ!')
+        setDeleteAllLoading(false)
         return
       }
 
@@ -291,6 +298,8 @@ const SavedSchedulesPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error deleting schedules:', error)
       toast.error('Lỗi khi xóa lịch học: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setDeleteAllLoading(false)
     }
   }
 
@@ -329,7 +338,9 @@ const SavedSchedulesPage: React.FC = () => {
       return
     }
 
+    setDeleteMajorLoading(true)
     try {
+      // ...existing code...
       console.log('🔍 Debug [Delete by Major] - majorToDelete:', majorToDelete)
       console.log('🔍 Debug [Delete by Major] - deleteMajorAcademicYear:', deleteMajorAcademicYear)
       console.log('🔍 Debug [Delete by Major] - deleteMajorSemester:', deleteMajorSemester)
@@ -380,6 +391,8 @@ const SavedSchedulesPage: React.FC = () => {
     } catch (error) {
       console.error('Error deleting schedules by major:', error)
       toast.error('Lỗi khi xóa lịch học')
+    } finally {
+      setDeleteMajorLoading(false)
     }
   }
 
@@ -686,7 +699,7 @@ const SavedSchedulesPage: React.FC = () => {
                         <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.startPeriod || '-'}</td>
                         <td className="px-1 py-1 border text-center">{schedule.tkbTemplate?.periodLength || '-'}</td>
                         <td className="px-1 py-1 border text-center">{schedule.siSoMotLop || '-'}</td>
-                        <td className="px-1 py-1 border">{schedule.room ? `${schedule.room.name}-${schedule.room.building}` : '-'}</td>
+                        <td className="px-1 py-1 border">{schedule.room ? `${schedule.room.name}-${schedule.room.building}` : ''}</td>
                         {Array.from({ length: 17 }, (_, i) => {
                           const value = getWeekValue(schedule, i + 1)
                           return (
@@ -817,9 +830,17 @@ const SavedSchedulesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={confirmDeleteAll}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 transition-all ${deleteAllLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                disabled={deleteAllLoading}
               >
-                Xóa tất cả
+                {deleteAllLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    Đang xóa...
+                  </>
+                ) : (
+                  'Xóa tất cả'
+                )}
               </button>
             </div>
           </div>
@@ -900,9 +921,17 @@ const SavedSchedulesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={confirmDeleteByMajor}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 transition-all ${deleteMajorLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                disabled={deleteMajorLoading}
               >
-                Xóa
+                {deleteMajorLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
+                    Đang xóa...
+                  </>
+                ) : (
+                  'Xóa'
+                )}
               </button>
             </div>
           </div>

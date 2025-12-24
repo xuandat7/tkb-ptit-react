@@ -431,7 +431,7 @@ const SubjectsPage = () => {
 
   const handleFileImportConfirm = async (file: File, semester?: string) => {
     if (!semester) {
-      toast.error('Vui lòng chọn học kỳ trước khi import')
+      toast.error('Vui lòng chọn học kỳ trước khi upload')
       return
     }
 
@@ -447,7 +447,7 @@ const SubjectsPage = () => {
         // Hiển thị thông báo thành công
         if (result.successCount > 0) {
           toast.success(
-            `Đã import thành công ${result.successCount} môn học từ file ${file.name}`,
+            `Đã upload thành công ${result.successCount} môn học từ file ${file.name}`,
             { duration: 5000 }
           )
         }
@@ -480,11 +480,11 @@ const SubjectsPage = () => {
         // Đóng modal
         setShowImportModal(false)
       } else {
-        toast.error(response.data.message || 'Không thể import file')
+        toast.error(response.data.message || 'Không thể upload file')
       }
     } catch (error: any) {
-      console.error('Import error:', error)
-      const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi import file'
+      console.error('Upload error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi upload file'
       toast.error(errorMessage)
     } finally {
       setImporting(false)
@@ -531,7 +531,7 @@ const SubjectsPage = () => {
               className="flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white hover:text-red-600 border border-white/30 hover:border-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/20 disabled:hover:text-white transition-colors"
             >
               <Upload className="w-4 h-4" />
-              {importing ? 'Đang import...' : 'Import môn học'}
+              {importing ? 'Đang upload...' : 'Upload môn học'}
             </button>
             <button
               onClick={() => {
@@ -1427,7 +1427,7 @@ const SubjectsPage = () => {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onConfirm={handleFileImportConfirm}
-        title="Import File Môn học"
+        title="Upload File Môn học"
         accept=".xlsx,.xls"
         maxSizeMB={10}
         sampleFileName="mau_ct_dao_tao.xlsx"
