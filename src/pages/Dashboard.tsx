@@ -58,13 +58,15 @@ const Dashboard = () => {
               key={card.title}
               className="bg-white rounded-lg shadow-md p-4 hover:shadow-xl transition-shadow"
             >
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-start justify-between">
                 <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${card.color} text-white`}>
                   <Icon className="w-6 h-6" />
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+                  <h3 className="text-sm font-medium text-gray-600 mt-1">{card.title}</h3>
+                </div>
               </div>
-              <h3 className="text-sm font-medium text-gray-600">{card.title}</h3>
             </div>
           )
         })}

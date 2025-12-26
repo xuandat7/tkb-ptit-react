@@ -55,7 +55,8 @@ const Layout = () => {
               <img 
                 src="/ptit-logo.png" 
                 alt="PTIT Logo" 
-                className="w-12 h-12 object-contain"
+                className="w-12 h-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate('/')}
               />
             </div>
           ) : (
@@ -63,7 +64,8 @@ const Layout = () => {
               <img 
                 src="/ptit-logo.png" 
                 alt="PTIT Logo" 
-                className="w-16 h-16 object-contain"
+                className="w-16 h-16 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate('/')}
               />
             </div>
           )}
