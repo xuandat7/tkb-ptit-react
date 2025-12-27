@@ -96,7 +96,8 @@ const LoginPage = () => {
               <img 
                 src="/ptit-logo.png" 
                 alt="PTIT Logo" 
-                className="w-16 h-16 object-contain"
+                className="w-16 h-16 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate('/dashboard')}
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Quản lý TKB</h1>
@@ -172,20 +173,15 @@ const LoginPage = () => {
               )}
             </button>
 
-            {/* Links */}
-            <div className="mt-6 flex items-center justify-between text-sm">
-              <a href="#" className="text-red-600 hover:text-red-700 font-medium transition">
-                Quên mật khẩu?
-              </a>
-              <button
-                type="button"
-                onClick={() => navigate('/register')}
-                className="text-red-600 hover:text-red-700 font-medium transition"
-                disabled={loading}
-              >
-                Đăng ký
-              </button>
-            </div>
+            {/* Register Button */}
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              className="w-full mt-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-2.5 rounded-lg hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              disabled={loading}
+            >
+              Đăng ký
+            </button>
           </form>
 
           {/* Footer */}
