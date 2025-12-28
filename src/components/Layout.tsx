@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Home, CheckCircle, FileText, HelpCircle, ChevronLeft, ChevronRight, GraduationCap, LogOut, User, Users } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Home, CheckCircle, FileText, ChevronLeft, ChevronRight, GraduationCap, LogOut, User, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const Layout = () => {
@@ -20,15 +20,12 @@ const Layout = () => {
       { path: '/saved-schedules', label: 'Thời khóa biểu', icon: FileText },
       { path: '/schedule-validation', label: 'Hậu kiểm', icon: CheckCircle },
     ]
-    
+
     // Thêm menu quản lý người dùng nếu là admin
     if (user?.role === 'ADMIN') {
       baseItems.push({ path: '/users', label: 'Quản lý người dùng', icon: Users })
     }
-    
-    // Thêm Hướng dẫn ở cuối cùng
-    baseItems.push({ path: '/tkb-guide', label: 'Hướng dẫn', icon: HelpCircle })
-    
+
     return baseItems
   }, [user?.role])
 
@@ -52,18 +49,18 @@ const Layout = () => {
         <div className={`transition-all duration-300 ${isCollapsed ? 'p-4' : 'p-6'}`}>
           {isCollapsed ? (
             <div className="flex justify-center">
-              <img 
-                src="/ptit-logo.png" 
-                alt="PTIT Logo" 
+              <img
+                src="/ptit-logo.png"
+                alt="PTIT Logo"
                 className="w-12 h-12 object-contain cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate('/')}
               />
             </div>
           ) : (
             <div className="flex flex-col items-center">
-              <img 
-                src="/ptit-logo.png" 
-                alt="PTIT Logo" 
+              <img
+                src="/ptit-logo.png"
+                alt="PTIT Logo"
                 className="w-16 h-16 object-contain cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate('/')}
               />
@@ -77,13 +74,11 @@ const Layout = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-2 py-3 text-sm font-medium transition-colors ${
-                  isCollapsed ? 'px-4 justify-center' : 'px-6'
-                } ${
-                  isActive(item.path)
+                className={`flex items-center gap-2 py-3 text-sm font-medium transition-colors ${isCollapsed ? 'px-4 justify-center' : 'px-6'
+                  } ${isActive(item.path)
                     ? 'bg-red-50 text-red-600 border-r-2 border-red-600'
                     : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                  }`}
                 title={isCollapsed ? item.label : undefined}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -97,9 +92,8 @@ const Layout = () => {
         <div className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white group">
           <div className="relative">
             <div
-              className={`w-full flex items-center gap-3 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer ${
-                isCollapsed ? 'px-4 py-4 justify-center' : 'px-6 py-4'
-              }`}
+              className={`w-full flex items-center gap-3 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer ${isCollapsed ? 'px-4 py-4 justify-center' : 'px-6 py-4'
+                }`}
               title={isCollapsed ? user?.fullName || 'Người dùng' : undefined}
             >
               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -115,7 +109,7 @@ const Layout = () => {
                   </div>
                 </div>
               )}
-              
+
               {/* Logout Icon - Show on Hover when Collapsed */}
               {isCollapsed && (
                 <button
@@ -162,7 +156,7 @@ const Layout = () => {
         <main className={`flex-1 p-4 ${location.pathname === '/subjects' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <Outlet />
         </main>
-        
+
         {/* Footer */}
         <footer className="bg-white border-t border-gray-200 py-4 px-4 mt-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-2 text-sm text-gray-600">

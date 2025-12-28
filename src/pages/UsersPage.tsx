@@ -25,11 +25,11 @@ const UsersPage = () => {
         const filteredUsers = (response.data.data || []).filter((user: User) => user.role !== 'ADMIN')
         setUsers(filteredUsers)
       } else {
-        notify.error('Không thể tải danh sách người dùng', { confirmText: 'Đóng', showCancel: false })
+        toast.error('Không thể tải danh sách người dùng')
       }
     } catch (error: any) {
       console.error('Error loading users:', error)
-      notify.error(error.response?.data?.message || 'Không thể tải danh sách người dùng', { confirmText: 'Đóng', showCancel: false })
+      toast.error(error.response?.data?.message || 'Không thể tải danh sách người dùng')
     } finally {
       setLoading(false)
     }
@@ -42,7 +42,7 @@ const UsersPage = () => {
   const handleToggleStatus = async (user: User) => {
     const newStatus = !user.enabled
     const action = newStatus ? 'kích hoạt' : 'vô hiệu hóa'
-    
+
     notify.warning(
       `Bạn có chắc chắn muốn ${action} người dùng "${user.username}"?`,
       {
@@ -57,11 +57,11 @@ const UsersPage = () => {
               toast.success(`Đã ${action} người dùng "${user.username}"`, { duration: 3000 })
               loadUsers()
             } else {
-              notify.error(`Không thể ${action} người dùng`, { confirmText: 'Đóng', showCancel: false })
+              toast.error(`Không thể ${action} người dùng`)
             }
           } catch (error: any) {
             console.error('Error toggling user status:', error)
-            notify.error(error.response?.data?.message || `Lỗi khi ${action} người dùng`, { confirmText: 'Đóng', showCancel: false })
+            toast.error(error.response?.data?.message || `Lỗi khi ${action} người dùng`)
           }
           notify.close()
         }
@@ -84,11 +84,11 @@ const UsersPage = () => {
               toast.success(`Đã xóa người dùng "${user.username}"`, { duration: 3000 })
               loadUsers()
             } else {
-              notify.error('Không thể xóa người dùng', { confirmText: 'Đóng', showCancel: false })
+              toast.error('Không thể xóa người dùng')
             }
           } catch (error: any) {
             console.error('Error deleting user:', error)
-            notify.error(error.response?.data?.message || 'Lỗi khi xóa người dùng', { confirmText: 'Đóng', showCancel: false })
+            toast.error(error.response?.data?.message || 'Lỗi khi xóa người dùng')
           }
           notify.close()
         }
@@ -108,8 +108,8 @@ const UsersPage = () => {
   }
 
   const getRoleBadge = (role: string) => {
-    return role === 'ADMIN' 
-      ? 'bg-purple-100 text-purple-800' 
+    return role === 'ADMIN'
+      ? 'bg-purple-100 text-purple-800'
       : 'bg-blue-100 text-blue-800'
   }
 
@@ -150,36 +150,33 @@ const UsersPage = () => {
           {/* Tất cả */}
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-              statusFilter === 'all'
+            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${statusFilter === 'all'
                 ? 'bg-red-50 text-red-700 border-l-4 border-red-600'
                 : 'text-gray-700 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <span>Tất cả ({users.length})</span>
           </button>
-          
+
           {/* Đang hoạt động */}
           <button
             onClick={() => setStatusFilter('enabled')}
-            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
-              statusFilter === 'enabled'
+            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${statusFilter === 'enabled'
                 ? 'bg-green-50 text-green-700 border-l-4 border-green-600'
                 : 'text-gray-700 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <CheckCircle className="w-4 h-4" />
             <span>Đang hoạt động ({users.filter((u) => u.enabled).length})</span>
           </button>
-          
+
           {/* Bị vô hiệu hóa */}
           <button
             onClick={() => setStatusFilter('disabled')}
-            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
-              statusFilter === 'disabled'
+            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${statusFilter === 'disabled'
                 ? 'bg-red-50 text-red-700 border-l-4 border-red-600'
                 : 'text-gray-700 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <XCircle className="w-4 h-4" />
             <span>Bị vô hiệu hóa ({users.filter((u) => !u.enabled).length})</span>
@@ -202,11 +199,11 @@ const UsersPage = () => {
             <div className="p-6 text-center text-gray-500">
               <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p className="text-lg mb-2">
-                {statusFilter === 'all' 
-                  ? 'Chưa có người dùng nào' 
+                {statusFilter === 'all'
+                  ? 'Chưa có người dùng nào'
                   : statusFilter === 'enabled'
-                  ? 'Không có người dùng nào đang hoạt động'
-                  : 'Không có người dùng nào bị vô hiệu hóa'
+                    ? 'Không có người dùng nào đang hoạt động'
+                    : 'Không có người dùng nào bị vô hiệu hóa'
                 }
               </p>
             </div>
@@ -275,20 +272,18 @@ const UsersPage = () => {
                         {/* Toggle Switch */}
                         <button
                           onClick={() => handleToggleStatus(user)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                            user.enabled
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${user.enabled
                               ? 'bg-green-600 focus:ring-green-500'
                               : 'bg-gray-300 focus:ring-gray-400'
-                          }`}
+                            }`}
                           title={user.enabled ? 'Vô hiệu hóa' : 'Kích hoạt'}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              user.enabled ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.enabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
                           />
                         </button>
-                        
+
                         {/* Delete Button */}
                         <button
                           onClick={() => handleDelete(user)}

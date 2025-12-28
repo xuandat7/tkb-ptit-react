@@ -20,7 +20,7 @@ const SubjectsPage = () => {
   const [filterClassYear, setFilterClassYear] = useState('')
   const [filterMajor, setFilterMajor] = useState('')
   const [filterProgramType, setFilterProgramType] = useState('')
-  
+
   // Dropdown data from API
   const [programTypes, setProgramTypes] = useState<string[]>([])
   const [classYears, setClassYears] = useState<string[]>([])
@@ -28,7 +28,7 @@ const SubjectsPage = () => {
   const [faculties, setFaculties] = useState<Faculty[]>([])
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [academicYears, setAcademicYears] = useState<string[]>([])
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(18)
@@ -60,14 +60,14 @@ const SubjectsPage = () => {
   const [majorSearchInput, setMajorSearchInput] = useState('')
   const [selectedFacultyId, setSelectedFacultyId] = useState('')
   const [showMajorDropdown, setShowMajorDropdown] = useState(false)
-  
+
   // Separate state for majors in "Add Subject" modal
   const [modalMajors, setModalMajors] = useState<Major[]>([])
-  
+
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<number[]>([])
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [idsToDelete, setIdsToDelete] = useState<number[]>([])
-  
+
   // State for semester selection in form
   const [selectedFormSemester, setSelectedFormSemester] = useState<string>('')
 
@@ -143,8 +143,8 @@ const SubjectsPage = () => {
     try {
       setLoading(true)
       const response = await subjectService.getAll(
-        currentPage, 
-        pageSize, 
+        currentPage,
+        pageSize,
         searchTerm || undefined,
         filterSemesterName || undefined,
         filterClassYear || undefined,
@@ -152,7 +152,7 @@ const SubjectsPage = () => {
         filterProgramType || undefined,
         filterAcademicYear || undefined
       )
-      
+
       if (response.data.success) {
         setSubjects(response.data.data.items)
         setTotalElements(response.data.data.totalElements)
@@ -170,10 +170,10 @@ const SubjectsPage = () => {
     try {
       const response = await facultyService.getAll()
       console.log('Full faculty response:', response.data)
-      
+
       // Handle both wrapped and direct array response
       let facultyData: Faculty[] = []
-      
+
       if (response.data.success && response.data.data) {
         // Wrapped response: {success: true, data: [...]}
         facultyData = response.data.data
@@ -181,7 +181,7 @@ const SubjectsPage = () => {
         // Direct array response: [{id, facultyName}, ...]
         facultyData = response.data
       }
-      
+
       console.log('Faculties loaded:', facultyData)
       setFaculties(facultyData)
     } catch (error) {
@@ -195,7 +195,7 @@ const SubjectsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validation theo backend DTO
     if (!formData.subjectCode.trim()) {
       notify.error('Vui lòng nhập mã môn', { confirmText: 'Đóng', showCancel: false })
@@ -225,11 +225,11 @@ const SubjectsPage = () => {
       notify.error('Vui lòng nhập mã ngành hoặc đánh dấu môn chung', { confirmText: 'Đóng', showCancel: false })
       return
     }
-    
+
     try {
       // Get major code from direct input
       const majorCodeInput = majorSearchInput.trim()
-      
+
       // Build request body theo API specification
       const submitData: SubjectRequest = {
         subjectCode: formData.subjectCode,
@@ -258,7 +258,7 @@ const SubjectsPage = () => {
           facultyId: selectedFacultyId,
         }),
       }
-      
+
       if (editingSubject) {
         // EDIT MODE: Include semesterName and academicYear when updating
         submitData.semesterName = editingSubject.semesterName
@@ -364,7 +364,7 @@ const SubjectsPage = () => {
     const majorsToFilter = modalMajors.length > 0 ? modalMajors : majors
     if (!majorSearchInput.trim()) return majorsToFilter.slice(0, 10) // Show first 10 when no search
     const searchLower = majorSearchInput.toLowerCase()
-    return majorsToFilter.filter(major => 
+    return majorsToFilter.filter(major =>
       major.majorName?.toLowerCase().includes(searchLower) ||
       major.majorCode.toLowerCase().includes(searchLower)
     ).slice(0, 10) // Limit to 10 results
@@ -374,7 +374,7 @@ const SubjectsPage = () => {
   const fetchMajorsForModal = async () => {
     try {
       const response = await majorService.getAll()
-      
+
       if (response.data.success) {
         setModalMajors(response.data.data)
         console.log('✅ Loaded majors for Add Subject modal:', response.data.data.length, 'majors')
@@ -425,7 +425,7 @@ const SubjectsPage = () => {
   const handleDeleteClick = (id?: number) => {
     const ids = id ? [id] : selectedSubjectIds
     if (ids.length === 0) return
-    
+
     setIdsToDelete(ids)
     setShowDeleteConfirmModal(true)
   }
@@ -445,13 +445,13 @@ const SubjectsPage = () => {
 
     try {
       setImporting(true)
-      
+
       // Gọi API upload Excel
       const response = await curriculumService.importExcel(file, semester)
-      
+
       if (response.data.success && response.data.data) {
         const result = response.data.data
-        
+
         // Hiển thị thông báo thành công
         if (result.successCount > 0) {
           toast.success(
@@ -459,30 +459,30 @@ const SubjectsPage = () => {
             { duration: 3000 }
           )
         }
-        
+
         // Hiển thị cảnh báo nếu có môn bị trùng
         if (result.skippedCount > 0 && result.warnings && result.warnings.length > 0) {
           const warningMessage = result.warnings.slice(0, 3).join('\n')
           const moreWarnings = result.warnings.length > 3 ? `\n... và ${result.warnings.length - 3} cảnh báo khác` : ''
-          
-          notify.warning(
+
+          toast.error(
             `Đã bỏ qua ${result.skippedCount} môn học bị trùng lặp:\n${warningMessage}${moreWarnings}`,
-            { confirmText: 'Đã hiểu', showCancel: false }
+            { duration: 5000 }
           )
         }
-        
+
         // Reload danh sách môn học
         fetchSubjects()
-        
+
         // Đóng modal
         setShowImportModal(false)
       } else {
-        notify.error(response.data.message || 'Không thể upload file', { confirmText: 'Đóng', showCancel: false })
+        toast.error(response.data.message || 'Không thể upload file')
       }
     } catch (error: any) {
       console.error('Upload error:', error)
       const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi upload file'
-      notify.error(errorMessage, { confirmText: 'Đóng', showCancel: false })
+      toast.error(errorMessage)
     } finally {
       setImporting(false)
     }
@@ -581,9 +581,8 @@ const SubjectsPage = () => {
           <select
             value={filterAcademicYear}
             onChange={(e) => setFilterAcademicYear(e.target.value)}
-            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterAcademicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterAcademicYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả năm học</option>
             {academicYears.map(year => (
@@ -593,9 +592,8 @@ const SubjectsPage = () => {
           <select
             value={filterSemesterName}
             onChange={(e) => setFilterSemesterName(e.target.value)}
-            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterSemesterName ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterSemesterName ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả học kỳ</option>
             {semesters
@@ -608,9 +606,8 @@ const SubjectsPage = () => {
           <select
             value={filterClassYear}
             onChange={(e) => setFilterClassYear(e.target.value)}
-            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterClassYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterClassYear ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả khóa</option>
             {classYears.map(year => (
@@ -620,9 +617,8 @@ const SubjectsPage = () => {
           <select
             value={filterMajor}
             onChange={(e) => setFilterMajor(e.target.value)}
-            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterMajor ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterMajor ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả ngành</option>
             {uniqueMajors.map(major => (
@@ -632,9 +628,8 @@ const SubjectsPage = () => {
           <select
             value={filterProgramType}
             onChange={(e) => setFilterProgramType(e.target.value)}
-            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-              filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-            }`}
+            className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterProgramType ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+              }`}
           >
             <option value="">Tất cả hệ đào tạo</option>
             {programTypes.map(type => (
@@ -769,8 +764,8 @@ const SubjectsPage = () => {
                   <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.credits}</td>
                   <td className="px-1.5 py-1.5 text-xs text-gray-500 border-r border-gray-200">{subject.theoryHours}</td>
                   <td className="px-1.5 py-1.5 text-xs font-medium">
-                    <button 
-                      onClick={() => handleViewDetail(subject)} 
+                    <button
+                      onClick={() => handleViewDetail(subject)}
                       className="text-green-600 hover:text-green-900 mr-0.5"
                       title="Xem chi tiết"
                     >
@@ -795,7 +790,7 @@ const SubjectsPage = () => {
             <div className="text-gray-700">
               Hiển thị {subjects.length} trên tổng số {totalElements} môn học
             </div>
-            
+
           </div>
           <div className="flex gap-1">
             <button
@@ -805,11 +800,11 @@ const SubjectsPage = () => {
             >
               <ChevronLeft className="w-3 h-3" />
             </button>
-            
+
             {/* Page numbers with smart pagination: 1..5...10 */}
             {(() => {
               const pages: (number | string)[] = []
-              
+
               if (totalPages <= 7) {
                 // Nếu <= 7 trang, hiển thị tất cả
                 for (let i = 1; i <= totalPages; i++) {
@@ -818,7 +813,7 @@ const SubjectsPage = () => {
               } else {
                 // Luôn hiển thị trang 1
                 pages.push(1)
-                
+
                 // Tính toán trang ở giữa
                 if (currentPage <= 4) {
                   // Nếu ở đầu: hiển thị 2, 3, 4, 5
@@ -838,7 +833,7 @@ const SubjectsPage = () => {
                   pages.push(totalPages)
                 }
               }
-              
+
               return pages.map((page, index) => {
                 if (page === '...') {
                   return (
@@ -847,23 +842,22 @@ const SubjectsPage = () => {
                     </span>
                   )
                 }
-                
+
                 return (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page as number)}
-                    className={`px-2 py-0.5 border rounded text-xs ${
-                      currentPage === page 
-                        ? 'bg-red-600 text-white border-red-600' 
-                        : 'border-red-300 hover:bg-red-50 text-red-600'
-                    }`}
+                    className={`px-2 py-0.5 border rounded text-xs ${currentPage === page
+                      ? 'bg-red-600 text-white border-red-600'
+                      : 'border-red-300 hover:bg-red-50 text-red-600'
+                      }`}
                   >
                     {page}
                   </button>
                 )
               })
             })()}
-            
+
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage >= totalPages}
@@ -888,7 +882,7 @@ const SubjectsPage = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
@@ -920,7 +914,7 @@ const SubjectsPage = () => {
                   <p className="text-lg text-gray-900">{selectedSubject.examFormat}</p>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-500">Số sinh viên</label>
@@ -956,7 +950,7 @@ const SubjectsPage = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -978,7 +972,7 @@ const SubjectsPage = () => {
       )}
 
       {showModal && (
-        <div 
+        <div
           className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
           style={{ margin: 0, padding: 0 }}
           onClick={(e) => {
@@ -1025,7 +1019,7 @@ const SubjectsPage = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-5 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số tín chỉ *</label>
@@ -1100,7 +1094,7 @@ const SubjectsPage = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-6 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Sĩ số/lớp</label>
@@ -1222,7 +1216,7 @@ const SubjectsPage = () => {
                   />
                 </div>
               </div>
-              
+
               {/* Semester, Faculty and Major selection - only show when creating new subject */}
               {!editingSubject && (
                 <div className="grid gap-3 grid-cols-3">
@@ -1244,7 +1238,7 @@ const SubjectsPage = () => {
                       ))}
                     </select>
                   </div>
-                  
+
                   {/* Faculty selection */}
                   <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1272,68 +1266,68 @@ const SubjectsPage = () => {
                       )}
                     </select>
                   </div>
-                  
+
                   {/* Major selection */}
                   <div className="relative">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Ngành {!isCommonSubject && '*'}
                     </label>
-                  {!isCommonSubject && (
-                    <>
-                      <input
-                        type="text"
-                        value={majorSearchInput}
-                        onChange={(e) => setMajorSearchInput(e.target.value)}
-                        className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                        placeholder="Nhập mã ngành (vd: AT, CN, KH...)"
-                      />
-                      <div className="mt-3 flex items-center justify-end">
+                    {!isCommonSubject && (
+                      <>
+                        <input
+                          type="text"
+                          value={majorSearchInput}
+                          onChange={(e) => setMajorSearchInput(e.target.value)}
+                          className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                          placeholder="Nhập mã ngành (vd: AT, CN, KH...)"
+                        />
+                        <div className="mt-3 flex items-center justify-end">
+                          <div className="flex items-center gap-2.5">
+                            <input
+                              type="checkbox"
+                              id="isCommonSubject"
+                              checked={isCommonSubject}
+                              onChange={(e) => {
+                                setIsCommonSubject(e.target.checked)
+                                if (e.target.checked) {
+                                  setMajorSearchInput('')
+                                }
+                              }}
+                              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                            />
+                            <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                              Môn chung
+                            </label>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {isCommonSubject && (
+                      <div className="mt-3 flex items-center justify-between">
+                        <p className="text-xs text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
                         <div className="flex items-center gap-2.5">
                           <input
                             type="checkbox"
-                            id="isCommonSubject"
+                            id="isCommonSubjectBottom"
                             checked={isCommonSubject}
                             onChange={(e) => {
                               setIsCommonSubject(e.target.checked)
-                              if (e.target.checked) {
+                              if (!e.target.checked) {
                                 setMajorSearchInput('')
                               }
                             }}
                             className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                           />
-                          <label htmlFor="isCommonSubject" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
+                          <label htmlFor="isCommonSubjectBottom" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
                             Môn chung
                           </label>
                         </div>
                       </div>
-                    </>
-                  )}
-                  {isCommonSubject && (
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-gray-500">Môn học này áp dụng cho tất cả các ngành</p>
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="checkbox"
-                          id="isCommonSubjectBottom"
-                          checked={isCommonSubject}
-                          onChange={(e) => {
-                            setIsCommonSubject(e.target.checked)
-                            if (!e.target.checked) {
-                              setMajorSearchInput('')
-                            }
-                          }}
-                          className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                        />
-                        <label htmlFor="isCommonSubjectBottom" className="text-xs font-medium text-gray-700 cursor-pointer whitespace-nowrap">
-                          Môn chung
-                        </label>
-                      </div>
-                    </div>
-                  )}
+                    )}
                   </div>
                 </div>
               )}
-              
+
               <div className="flex gap-4">
                 <button
                   type="button"
@@ -1357,7 +1351,7 @@ const SubjectsPage = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -1366,7 +1360,7 @@ const SubjectsPage = () => {
             }
           }}
         >
-          <div 
+          <div
             className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1381,7 +1375,7 @@ const SubjectsPage = () => {
             {/* Body */}
             <div className="px-5 py-4">
               <p className="text-gray-700 text-sm">
-                {idsToDelete.length === 1 
+                {idsToDelete.length === 1
                   ? 'Bạn có chắc chắn muốn xóa môn học này không?'
                   : (
                     <>
@@ -1390,7 +1384,7 @@ const SubjectsPage = () => {
                   )
                 }
               </p>
-             
+
             </div>
 
             {/* Footer */}

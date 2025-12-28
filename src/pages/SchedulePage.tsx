@@ -123,6 +123,7 @@ const TKBPage = () => {
   const [savedResults, setSavedResults] = useState<SavedResult[]>(persistedState?.savedResults || [])
   const [failedSubjects, setFailedSubjects] = useState<FailedSubject[]>(persistedState?.failedSubjects || [])
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [assigningRooms, setAssigningRooms] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
@@ -169,7 +170,7 @@ const TKBPage = () => {
       if (classYear) setClassYear('')
       return
     }
-    
+
     loadClassYears()
   }, [semester, academicYear, systemType])
 
@@ -180,11 +181,11 @@ const TKBPage = () => {
       setMajorGroups([])
       return
     }
-    
+
     if (!semester || !academicYear || !systemType || !classYear) {
       return
     }
-    
+
     loadMajorGroups()
   }, [semester, academicYear, systemType, classYear])
 
@@ -965,12 +966,12 @@ const TKBPage = () => {
 
   const saveToResults = async () => {
     if (results.length === 0) {
-      toast.error('Không có dữ liệu TKB để lưu')
+      toast.error('Không có TKB để lưu')
       return
     }
 
     try {
-      setLoading(true)
+      setSaving(true)
 
       // Transform TKBResultRow to backend Schedule format
       const schedules = results.map((row) => {
@@ -1052,7 +1053,7 @@ const TKBPage = () => {
       console.error('Error saving schedules:', error)
       toast.error(error.response?.data?.message || 'Không thể lưu TKB vào database')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
@@ -1212,7 +1213,7 @@ const TKBPage = () => {
             <p className="text-red-100 text-sm">Tạo thời khóa biểu tự động theo tổ hợp ngành</p>
           </div>
           <div className="flex gap-2">
-            
+
             <button
               onClick={() => setShowImportModal(true)}
               disabled={importing}
@@ -1462,10 +1463,10 @@ const TKBPage = () => {
                               }
                             />
                           ) : (
-                            <input 
-                              type="checkbox" 
-                              disabled 
-                              className="w-3.5 h-3.5 opacity-50 cursor-not-allowed" 
+                            <input
+                              type="checkbox"
+                              disabled
+                              className="w-3.5 h-3.5 opacity-50 cursor-not-allowed"
                               title="Chỉ áp dụng cho hệ chung"
                             />
                           )}
@@ -1624,7 +1625,7 @@ const TKBPage = () => {
             <div className="flex justify-start mt-4">
               <button
                 onClick={generateTKB}
-                disabled={loading || batchRows.length === 0}
+                disabled={loading || assigningRooms || saving || batchRows.length === 0}
                 className="flex items-center gap-3 bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none font-semibold text-sm"
               >
                 {loading ? (
@@ -1647,8 +1648,8 @@ const TKBPage = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleAssignRooms}
-                disabled={assigningRooms || loading}
-                className="flex items-center gap-2 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={assigningRooms || loading || saving}
+                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {assigningRooms ? (
                   <>
@@ -1663,10 +1664,10 @@ const TKBPage = () => {
               </button>
               <button
                 onClick={saveToResults}
-                disabled={loading}
+                disabled={saving || loading || assigningRooms}
                 className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? (
+                {saving ? (
                   <>
                     <Loader className="w-5 h-5 animate-spin" />
                     Đang lưu...
@@ -1677,12 +1678,6 @@ const TKBPage = () => {
                   </>
                 )}
               </button>
-              <Link
-                to="/saved-schedules"
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Xem TKB đã lưu
-              </Link>
             </div>
           </div>
           <div>

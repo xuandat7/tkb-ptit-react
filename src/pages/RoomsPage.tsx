@@ -56,7 +56,7 @@ const RoomsPage = () => {
   const [filterBuilding, setFilterBuilding] = useState<string>('ALL')
   const [filterCapacityMin, setFilterCapacityMin] = useState<string>('')
   const [filterCapacityMax, setFilterCapacityMax] = useState<string>('')
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(14)
@@ -69,7 +69,7 @@ const RoomsPage = () => {
     status: 'AVAILABLE',
     floor: 1,
   })
-  
+
   // Modal for semester tab occupied slots
   const [showOccupiedSlotsModal, setShowOccupiedSlotsModal] = useState(false)
   const [selectedRoomStatus, setSelectedRoomStatus] = useState<RoomStatusBySemester | null>(null)
@@ -103,8 +103,8 @@ const RoomsPage = () => {
   useEffect(() => {
     if (activeTab === 'semester' && selectedSemesterId) {
       fetchRoomsStatus(
-        selectedSemesterId, 
-        semesterCurrentPage, 
+        selectedSemesterId,
+        semesterCurrentPage,
         semesterItemsPerPage,
         semesterSearchTerm,
         semesterSortBy,
@@ -155,8 +155,8 @@ const RoomsPage = () => {
   }
 
   const fetchRoomsStatus = async (
-    semesterId: number, 
-    page: number = 1, 
+    semesterId: number,
+    page: number = 1,
     pageSize: number = 10,
     search: string = '',
     sortBy: string = 'building',
@@ -172,19 +172,19 @@ const RoomsPage = () => {
         sortBy,
         direction
       }
-      
+
       if (search.trim()) {
         params.search = search.trim()
       }
-      
+
       if (status !== 'ALL') {
         params.occupancyStatus = status
       }
-      
+
       if (type !== 'ALL') {
         params.type = type
       }
-      
+
       const response = await api.get(`/v1/room-occupancies/rooms-status/semester/${semesterId}`, { params })
       const data = response.data.content || []
       const total = response.data.total || 0
@@ -221,7 +221,7 @@ const RoomsPage = () => {
     e.preventDefault()
     try {
       const payload = mapFormDataToPayload(formData)
-      
+
       if (editingRoom) {
         // Update thông tin phòng trước
         await roomService.update(editingRoom.id, payload)
@@ -248,7 +248,7 @@ const RoomsPage = () => {
       console.error('Lỗi khi lưu phòng học:', error)
       // Hiển thị lỗi chi tiết từ API nếu có
       const errorMessage = error?.response?.data?.message || 'Có lỗi xảy ra khi lưu phòng học'
-      notify.error(errorMessage, { confirmText: 'Đóng', showCancel: false })
+      toast.error(errorMessage)
     }
   }
 
@@ -287,7 +287,7 @@ const RoomsPage = () => {
       toast.success(`Đã xóa ${ids.length} phòng học thành công`, { duration: 3000 })
       fetchRooms()
     } catch (error) {
-      notify.error('Không thể xóa phòng học', { confirmText: 'Đóng', showCancel: false })
+      toast.error('Không thể xóa phòng học')
     }
   }
 
@@ -311,7 +311,7 @@ const RoomsPage = () => {
       setLoadingOccupancyDetails(true)
       setRoomOccupancyDetails([]) // Reset data cũ
       setModalCurrentPage(1) // Reset trang về 1
-      
+
       const response = await api.get(`/v1/room-occupancies/room/${room.id}`)
       const data = response.data.content || []
       setRoomOccupancyDetails(data)
@@ -346,10 +346,10 @@ const RoomsPage = () => {
       const matchesSearch =
         (room.roomCode?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (room.building?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-      
+
       // Building filter
       const matchesBuilding = filterBuilding === 'ALL' || room.building === filterBuilding
-      
+
       // Capacity filter
       let matchesCapacity = true
       if (filterCapacityMin) {
@@ -358,7 +358,7 @@ const RoomsPage = () => {
       if (filterCapacityMax) {
         matchesCapacity = matchesCapacity && room.capacity <= parseInt(filterCapacityMax)
       }
-      
+
       return matchesSearch && matchesBuilding && matchesCapacity
     })
   }, [rooms, searchTerm, filterBuilding, filterCapacityMin, filterCapacityMax])
@@ -416,21 +416,19 @@ const RoomsPage = () => {
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('list')}
-            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'list'
-                ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-            }`}
+            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'list'
+              ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
           >
             Danh sách phòng học
           </button>
           <button
             onClick={() => setActiveTab('semester')}
-            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === 'semester'
-                ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-            }`}
+            className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'semester'
+              ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
           >
             Trạng thái theo kì học
           </button>
@@ -450,13 +448,12 @@ const RoomsPage = () => {
                   className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
-              
+
               <select
                 value={filterBuilding}
                 onChange={(e) => setFilterBuilding(e.target.value)}
-                className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                  filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                }`}
+                className={`px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterBuilding && filterBuilding !== 'ALL' ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                  }`}
               >
                 <option value="ALL">Tất cả tòa nhà</option>
                 {uniqueBuildings.map((building) => (
@@ -465,214 +462,211 @@ const RoomsPage = () => {
                   </option>
                 ))}
               </select>
-              
+
               <input
                 type="number"
                 placeholder="Sức chứa tối thiểu"
                 value={filterCapacityMin}
                 onChange={(e) => setFilterCapacityMin(e.target.value)}
-                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                  filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                }`}
+                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterCapacityMin ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                  }`}
               />
-              
+
               <input
                 type="number"
                 placeholder="Sức chứa tối đa"
                 value={filterCapacityMax}
                 onChange={(e) => setFilterCapacityMax(e.target.value)}
-                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                  filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
-                }`}
+                className={`w-36 px-3 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${filterCapacityMax ? 'border-red-500 bg-red-50 font-semibold' : 'border-gray-300'
+                  }`}
               />
             </div>
 
-        {/* Filter Tags - Hiển thị các filter đang active */}
-        {(filterBuilding && filterBuilding !== 'ALL') || filterCapacityMin || filterCapacityMax || searchTerm ? (
-          <div className="mb-4 flex items-center gap-2 flex-wrap">
-            {filterBuilding && filterBuilding !== 'ALL' && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                <span>Tòa: {filterBuilding}</span>
-                <button
-                  onClick={() => setFilterBuilding('ALL')}
-                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {filterCapacityMin && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                <span>Min: {filterCapacityMin}</span>
-                <button
-                  onClick={() => setFilterCapacityMin('')}
-                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {filterCapacityMax && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                <span>Max: {filterCapacityMax}</span>
-                <button
-                  onClick={() => setFilterCapacityMax('')}
-                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            {searchTerm && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                <span>Tìm kiếm: {searchTerm}</span>
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="ml-0.5 hover:bg-red-200 rounded p-0.5"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            )}
-            <button
-              onClick={() => {
-                setFilterBuilding('ALL')
-                setFilterCapacityMin('')
-                setFilterCapacityMax('')
-                setSearchTerm('')
-              }}
-              className="px-2 py-1 text-xs text-red-600 hover:text-red-800 font-medium underline"
-            >
-              Xóa tất cả
-            </button>
-          </div>
-        ) : null}
-
-
-
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-xs">
-            <thead className="bg-red-600">
-              <tr>
-                <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700 w-16">STT</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sức chứa</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white">
-              {paginatedRooms.map((room, index) => (
-                <tr 
-                  key={room.id} 
-                  className="hover:bg-red-50 border-b border-gray-200"
-                >
-                  <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                  <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
-                  <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
-                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
-                    <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
-                      <Edit className="w-5 h-5 inline" />
-                    </button>
-                    <button onClick={() => handleDeleteClick(room.id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-5 h-5 inline" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-wrap gap-3 flex-shrink-0">
-          <div className="flex items-center gap-2 text-xs">
-            <div className="text-gray-700">
-              Hiển thị {paginatedRooms.length} trên tổng số {filteredRooms.length} phòng học
-            </div>
-            
-          </div>
-          {totalPages > 1 && (
-            <div className="flex gap-1">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
-              >
-                <ChevronLeft className="w-3 h-3" />
-              </button>
-              
-              {/* Page numbers with smart pagination: 1..5...10 */}
-              {(() => {
-                const pages: (number | string)[] = []
-                
-                if (totalPages <= 7) {
-                  // Nếu <= 7 trang, hiển thị tất cả
-                  for (let i = 1; i <= totalPages; i++) {
-                    pages.push(i)
-                  }
-                } else {
-                  // Luôn hiển thị trang 1
-                  pages.push(1)
-                  
-                  // Tính toán trang ở giữa
-                  if (currentPage <= 4) {
-                    // Nếu ở đầu: hiển thị 2, 3, 4, 5
-                    pages.push(2, 3, 4, 5)
-                    pages.push('...')
-                    pages.push(totalPages)
-                  } else if (currentPage >= totalPages - 3) {
-                    // Nếu ở cuối: hiển thị totalPages-4, totalPages-3, totalPages-2, totalPages-1
-                    pages.push('...')
-                    pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1)
-                    pages.push(totalPages)
-                  } else {
-                    // Nếu ở giữa: hiển thị currentPage-1, currentPage, currentPage+1
-                    pages.push('...')
-                    pages.push(currentPage - 1, currentPage, currentPage + 1)
-                    pages.push('...')
-                    pages.push(totalPages)
-                  }
-                }
-                
-                return pages.map((page, index) => {
-                  if (page === '...') {
-                    return (
-                      <span key={`ellipsis-${index}`} className="px-1 py-0.5 text-xs text-gray-500">
-                        ...
-                      </span>
-                    )
-                  }
-                  
-                  return (
+            {/* Filter Tags - Hiển thị các filter đang active */}
+            {(filterBuilding && filterBuilding !== 'ALL') || filterCapacityMin || filterCapacityMax || searchTerm ? (
+              <div className="mb-4 flex items-center gap-2 flex-wrap">
+                {filterBuilding && filterBuilding !== 'ALL' && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>Tòa: {filterBuilding}</span>
                     <button
-                      key={page}
-                      onClick={() => handlePageChange(page as number)}
-                      className={`px-2 py-0.5 border rounded text-xs ${
-                        currentPage === page
-                          ? 'bg-red-600 text-white border-red-600'
-                          : 'border-red-300 hover:bg-red-50 text-red-600'
-                      }`}
+                      onClick={() => setFilterBuilding('ALL')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
                     >
-                      {page}
+                      <X className="w-3 h-3" />
                     </button>
-                  )
-                })
-              })()}
-              
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
-              >
-                <ChevronRight className="w-3 h-3" />
-              </button>
+                  </div>
+                )}
+                {filterCapacityMin && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>Min: {filterCapacityMin}</span>
+                    <button
+                      onClick={() => setFilterCapacityMin('')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                {filterCapacityMax && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>Max: {filterCapacityMax}</span>
+                    <button
+                      onClick={() => setFilterCapacityMax('')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                {searchTerm && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                    <span>Tìm kiếm: {searchTerm}</span>
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="ml-0.5 hover:bg-red-200 rounded p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    setFilterBuilding('ALL')
+                    setFilterCapacityMin('')
+                    setFilterCapacityMax('')
+                    setSearchTerm('')
+                  }}
+                  className="px-2 py-1 text-xs text-red-600 hover:text-red-800 font-medium underline"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+            ) : null}
+
+
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-xs">
+                <thead className="bg-red-600">
+                  <tr>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700 w-16">STT</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Mã phòng</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Tòa nhà</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Sức chứa</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {paginatedRooms.map((room, index) => (
+                    <tr
+                      key={room.id}
+                      className="hover:bg-red-50 border-b border-gray-200"
+                    >
+                      <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                      <td className="px-2 py-2 text-xs font-medium text-gray-900 border-r border-gray-200">{room.roomCode}</td>
+                      <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.building}</td>
+                      <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.capacity} người</td>
+                      <td className="px-2 py-2 text-xs text-gray-500 border-r border-gray-200">{room.typeDisplayName}</td>
+                      <td className="px-2 py-2 whitespace-nowrap text-xs font-medium">
+                        <button onClick={() => handleEdit(room)} className="text-blue-600 hover:text-blue-900 mr-2">
+                          <Edit className="w-5 h-5 inline" />
+                        </button>
+                        <button onClick={() => handleDeleteClick(room.id)} className="text-red-600 hover:text-red-900">
+                          <Trash2 className="w-5 h-5 inline" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-wrap gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2 text-xs">
+                <div className="text-gray-700">
+                  Hiển thị {paginatedRooms.length} trên tổng số {filteredRooms.length} phòng học
+                </div>
+
+              </div>
+              {totalPages > 1 && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </button>
+
+                  {/* Page numbers with smart pagination: 1..5...10 */}
+                  {(() => {
+                    const pages: (number | string)[] = []
+
+                    if (totalPages <= 7) {
+                      // Nếu <= 7 trang, hiển thị tất cả
+                      for (let i = 1; i <= totalPages; i++) {
+                        pages.push(i)
+                      }
+                    } else {
+                      // Luôn hiển thị trang 1
+                      pages.push(1)
+
+                      // Tính toán trang ở giữa
+                      if (currentPage <= 4) {
+                        // Nếu ở đầu: hiển thị 2, 3, 4, 5
+                        pages.push(2, 3, 4, 5)
+                        pages.push('...')
+                        pages.push(totalPages)
+                      } else if (currentPage >= totalPages - 3) {
+                        // Nếu ở cuối: hiển thị totalPages-4, totalPages-3, totalPages-2, totalPages-1
+                        pages.push('...')
+                        pages.push(totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1)
+                        pages.push(totalPages)
+                      } else {
+                        // Nếu ở giữa: hiển thị currentPage-1, currentPage, currentPage+1
+                        pages.push('...')
+                        pages.push(currentPage - 1, currentPage, currentPage + 1)
+                        pages.push('...')
+                        pages.push(totalPages)
+                      }
+                    }
+
+                    return pages.map((page, index) => {
+                      if (page === '...') {
+                        return (
+                          <span key={`ellipsis-${index}`} className="px-1 py-0.5 text-xs text-gray-500">
+                            ...
+                          </span>
+                        )
+                      }
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page as number)}
+                          className={`px-2 py-0.5 border rounded text-xs ${currentPage === page
+                            ? 'bg-red-600 text-white border-red-600'
+                            : 'border-red-300 hover:bg-red-50 text-red-600'
+                            }`}
+                        >
+                          {page}
+                        </button>
+                      )
+                    })
+                  })()}
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-0.5 border border-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50 text-red-600 text-xs"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -757,7 +751,7 @@ const RoomsPage = () => {
                   <thead className="bg-red-600">
                     <tr>
                       <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700 w-16">STT</th>
-                      <th 
+                      <th
                         className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 cursor-pointer hover:bg-red-700"
                         onClick={() => handleSortChange('name')}
                       >
@@ -771,7 +765,7 @@ const RoomsPage = () => {
                       <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">
                         Tòa nhà
                       </th>
-                      <th 
+                      <th
                         className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700 cursor-pointer hover:bg-red-700"
                         onClick={() => handleSortChange('capacity')}
                       >
@@ -785,7 +779,7 @@ const RoomsPage = () => {
                       <th className="px-2 py-2 text-left text-xs font-medium text-white uppercase border border-red-700">Loại</th>
                       <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700">Slot đã dùng</th>
                       <th className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700">Slot còn lại</th>
-                      <th 
+                      <th
                         className="px-2 py-2 text-center text-xs font-medium text-white uppercase border border-red-700 cursor-pointer hover:bg-red-700"
                         onClick={() => handleSortChange('occupancyRate')}
                       >
@@ -801,8 +795,8 @@ const RoomsPage = () => {
                   </thead>
                   <tbody className="bg-white">
                     {roomsStatus.map((room, index) => (
-                      <tr 
-                        key={room.id} 
+                      <tr
+                        key={room.id}
                         className="hover:bg-red-50 border-b border-gray-200 cursor-pointer"
                         onClick={() => handleViewOccupiedSlots(room)}
                       >
@@ -817,30 +811,29 @@ const RoomsPage = () => {
                         <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{room.totalAvailableSlots}</td>
                         <td className="px-2 py-2 text-xs text-center text-gray-700 border-r border-gray-200">{room.occupancyRate.toFixed(2)}%</td>
                         <td className="px-2 py-2 text-center border-r border-gray-200">
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            room.occupancyStatus === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${room.occupancyStatus === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
                             room.occupancyStatus === 'UNAVAILABLE' ? 'bg-gray-100 text-gray-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
+                              'bg-red-100 text-red-800'
+                            }`}>
                             {room.occupancyStatus === 'AVAILABLE' ? 'Chưa dùng' :
-                             room.occupancyStatus === 'UNAVAILABLE' ? 'Không dùng được' :
-                             'Đã dùng'}
+                              room.occupancyStatus === 'UNAVAILABLE' ? 'Không dùng được' :
+                                'Đã dùng'}
                           </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                
+
                 {/* Pagination for Semester Tab */}
                 <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200 flex-wrap gap-3">
                   <div className="flex items-center gap-2 text-xs">
                     <div className="text-gray-700">
                       Hiển thị {roomsStatus.length} trên tổng số {semesterTotalItems} phòng học
                     </div>
-                    
+
                   </div>
-                  
+
                   {Math.ceil(semesterTotalItems / semesterItemsPerPage) > 1 && (
                     <div className="flex gap-1">
                       <button
@@ -850,11 +843,11 @@ const RoomsPage = () => {
                       >
                         <ChevronLeft className="w-3 h-3" />
                       </button>
-                      
+
                       {(() => {
                         const totalPages = Math.ceil(semesterTotalItems / semesterItemsPerPage)
                         const pages: (number | string)[] = []
-                        
+
                         if (totalPages <= 7) {
                           for (let i = 1; i <= totalPages; i++) {
                             pages.push(i)
@@ -876,17 +869,16 @@ const RoomsPage = () => {
                             pages.push(totalPages)
                           }
                         }
-                        
-                        return pages.map((page, idx) => 
+
+                        return pages.map((page, idx) =>
                           typeof page === 'number' ? (
                             <button
                               key={idx}
                               onClick={() => setSemesterCurrentPage(page)}
-                              className={`px-2 py-0.5 border rounded text-xs ${
-                                semesterCurrentPage === page
-                                  ? 'bg-red-600 text-white border-red-600'
-                                  : 'border-red-300 text-red-600 hover:bg-red-50'
-                              }`}
+                              className={`px-2 py-0.5 border rounded text-xs ${semesterCurrentPage === page
+                                ? 'bg-red-600 text-white border-red-600'
+                                : 'border-red-300 text-red-600 hover:bg-red-50'
+                                }`}
                             >
                               {page}
                             </button>
@@ -897,7 +889,7 @@ const RoomsPage = () => {
                           )
                         )
                       })()}
-                      
+
                       <button
                         onClick={() => setSemesterCurrentPage(semesterCurrentPage + 1)}
                         disabled={semesterCurrentPage === Math.ceil(semesterTotalItems / semesterItemsPerPage)}
@@ -915,7 +907,7 @@ const RoomsPage = () => {
       </div>
 
       {showModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -1026,7 +1018,7 @@ const RoomsPage = () => {
 
       {/* Occupied Slots Modal for Semester Tab */}
       {showOccupiedSlotsModal && selectedRoomStatus && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -1047,11 +1039,11 @@ const RoomsPage = () => {
             >
               <X className="w-6 h-6" />
             </button>
-            
+
             <h2 className="text-2xl font-bold mb-4">
               Lịch sử dụng phòng {selectedRoomStatus.name} - {selectedRoomStatus.building}
             </h2>
-            
+
             <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="bg-gray-50 p-3 rounded-lg">
                 <p className="text-gray-600">Kì học</p>
@@ -1110,7 +1102,7 @@ const RoomsPage = () => {
                     </tbody>
                   </table>
                 </div>
-                
+
                 {/* Pagination for Modal */}
                 {Math.ceil(roomOccupancyDetails.length / modalItemsPerPage) > 1 && (
                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
@@ -1125,11 +1117,11 @@ const RoomsPage = () => {
                       >
                         <ChevronLeft className="w-3 h-3" />
                       </button>
-                      
+
                       {(() => {
                         const totalPages = Math.ceil(roomOccupancyDetails.length / modalItemsPerPage)
                         const pages: (number | string)[] = []
-                        
+
                         if (totalPages <= 7) {
                           for (let i = 1; i <= totalPages; i++) {
                             pages.push(i)
@@ -1151,17 +1143,16 @@ const RoomsPage = () => {
                             pages.push(totalPages)
                           }
                         }
-                        
-                        return pages.map((page, idx) => 
+
+                        return pages.map((page, idx) =>
                           typeof page === 'number' ? (
                             <button
                               key={idx}
                               onClick={() => setModalCurrentPage(page)}
-                              className={`px-2 py-0.5 border rounded text-xs ${
-                                modalCurrentPage === page
-                                  ? 'bg-red-600 text-white border-red-600'
-                                  : 'border-red-300 text-red-600 hover:bg-red-50'
-                              }`}
+                              className={`px-2 py-0.5 border rounded text-xs ${modalCurrentPage === page
+                                ? 'bg-red-600 text-white border-red-600'
+                                : 'border-red-300 text-red-600 hover:bg-red-50'
+                                }`}
                             >
                               {page}
                             </button>
@@ -1172,7 +1163,7 @@ const RoomsPage = () => {
                           )
                         )
                       })()}
-                      
+
                       <button
                         onClick={() => setModalCurrentPage(modalCurrentPage + 1)}
                         disabled={modalCurrentPage === Math.ceil(roomOccupancyDetails.length / modalItemsPerPage)}

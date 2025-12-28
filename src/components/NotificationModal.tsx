@@ -45,10 +45,10 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
     },
     warning: {
       icon: AlertTriangle,
-      bgColor: 'from-yellow-500 to-yellow-600',
+      bgColor: 'from-red-500 to-red-600',
       iconBgColor: 'bg-white/20',
       iconColor: 'text-white',
-      buttonColor: 'bg-yellow-600 hover:bg-yellow-700',
+      buttonColor: 'bg-red-600 hover:bg-red-700',
     },
     info: {
       icon: Info,
@@ -71,7 +71,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -79,7 +79,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
         }
       }}
     >
-      <div 
+      <div
         className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
