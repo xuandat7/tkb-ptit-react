@@ -3,6 +3,8 @@ import { Trash2, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import api, { subjectService, semesterService, roomService, type Semester } from '../services/api'
+import { useNotification } from '../hooks/useNotification'
+import NotificationModal from '../components/NotificationModal'
 
 // Semester entity from backend (schedule relationship)
 interface SemesterInfo {
@@ -108,6 +110,9 @@ const SavedSchedulesPage: React.FC = () => {
   const [showDeleteClassModal, setShowDeleteClassModal] = useState(false)
   const [classToDelete, setClassToDelete] = useState<GroupedSchedule | null>(null)
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
+
+  // Initialize notification hook
+  const notify = useNotification()
 
   useEffect(() => {
     loadSchedules()
@@ -766,10 +771,10 @@ const SavedSchedulesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal xóa tất cả */}
+      {/* Modal xóa tất cả - Red Warning Style */}
       {showDeleteAllModal && (
         <div
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowDeleteAllModal(false)
@@ -778,44 +783,58 @@ const SavedSchedulesPage: React.FC = () => {
             }
           }}
         >
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold mb-4 text-gray-900">Xóa lịch học theo học kỳ</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Chọn năm học:</label>
-              <select
-                value={deleteAllAcademicYear}
-                onChange={(e) => {
-                  setDeleteAllAcademicYear(e.target.value)
-                  setDeleteAllSemester('')
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">-- Chọn năm học --</option>
-                {academicYearOptions.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header - Red warning style matching NotificationModal */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 px-5 py-3 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3. 464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-white">Xác nhận xóa</h3>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Chọn học kỳ:</label>
-              <select
-                value={deleteAllSemester}
-                onChange={(e) => setDeleteAllSemester(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                disabled={!deleteAllAcademicYear}
-              >
-                <option value="">-- Chọn học kỳ --</option>
-                {semesterOptions
-                  .filter(s => !deleteAllAcademicYear || s.academicYear === deleteAllAcademicYear)
-                  .map(sem => (
-                    <option key={sem.id} value={sem.semesterName}>{sem.semesterName}</option>
-                  ))}
-              </select>
+
+            {/* Body */}
+            <div className="px-5 py-4">
+              <p className="text-gray-700 text-sm mb-3">Bạn có chắc chắn muốn xóa phòng học này không?</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Chọn năm học:</label>
+                  <select
+                    value={deleteAllAcademicYear}
+                    onChange={(e) => {
+                      setDeleteAllAcademicYear(e.target.value)
+                      setDeleteAllSemester('')
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                  >
+                    <option value="">-- Chọn năm học --</option>
+                    {academicYearOptions.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Chọn học kỳ:</label>
+                  <select
+                    value={deleteAllSemester}
+                    onChange={(e) => setDeleteAllSemester(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                    disabled={!deleteAllAcademicYear}
+                  >
+                    <option value="">-- Chọn học kỳ --</option>
+                    {semesterOptions
+                      .filter(s => !deleteAllAcademicYear || s.academicYear === deleteAllAcademicYear)
+                      .map(sem => (
+                        <option key={sem.id} value={sem.semesterName}>{sem.semesterName}</option>
+                      ))}
+                  </select>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-red-500 mb-4">
-              Hành động này sẽ xóa tất cả lịch học của học kỳ đã chọn!
-            </p>
-            <div className="flex gap-3 justify-end">
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-5 py-3 flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => {
@@ -823,120 +842,142 @@ const SavedSchedulesPage: React.FC = () => {
                   setDeleteAllAcademicYear('')
                   setDeleteAllSemester('')
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-white text-gray-700 text-sm font-medium transition-colors"
               >
                 Hủy
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteAll}
-                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 transition-all ${deleteAllLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 disabled={deleteAllLoading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {deleteAllLoading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
-                    Đang xóa...
-                  </>
-                ) : (
-                  'Xóa tất cả'
+                {deleteAllLoading && (
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  </svg>
                 )}
+                {deleteAllLoading ? 'Đang xóa...' : 'Xóa'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal xóa theo ngành */}
+      {/* Modal xóa theo ngành - Red Warning Style */}
       {showDeleteMajorModal && (
         <div
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setShowDeleteMajorModal(false)
-              setMajorToDelete('')
-              setDeleteMajorAcademicYear('')
-              setDeleteMajorSemester('')
+              cancelDeleteByMajor()
             }
           }}
         >
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold mb-4 text-gray-900">Xóa lịch học theo ngành</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Chọn năm học:</label>
-              <select
-                value={deleteMajorAcademicYear}
-                onChange={(e) => {
-                  setDeleteMajorAcademicYear(e.target.value)
-                  setDeleteMajorSemester('')
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">-- Chọn năm học --</option>
-                {academicYearOptions.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header - Red warning style matching NotificationModal */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 px-5 py-3 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-white">Xác nhận xóa</h3>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Chọn học kỳ:</label>
-              <select
-                value={deleteMajorSemester}
-                onChange={(e) => setDeleteMajorSemester(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                disabled={!deleteMajorAcademicYear}
-              >
-                <option value="">-- Chọn học kỳ --</option>
-                {semesterOptions
-                  .filter(s => !deleteMajorAcademicYear || s.academicYear === deleteMajorAcademicYear)
-                  .map(sem => (
-                    <option key={sem.id} value={sem.semesterName}>{sem.semesterName}</option>
-                  ))}
-              </select>
+
+            {/* Body */}
+            <div className="px-5 py-4">
+              <p className="text-gray-700 text-sm mb-3">Bạn có chắc chắn muốn xóa phòng học này không?</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Chọn năm học:</label>
+                  <select
+                    value={deleteMajorAcademicYear}
+                    onChange={(e) => {
+                      setDeleteMajorAcademicYear(e.target.value)
+                      setDeleteMajorSemester('')
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                  >
+                    <option value="">-- Chọn năm học --</option>
+                    {academicYearOptions.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Chọn học kỳ:</label>
+                  <select
+                    value={deleteMajorSemester}
+                    onChange={(e) => setDeleteMajorSemester(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                    disabled={!deleteMajorAcademicYear}
+                  >
+                    <option value="">-- Chọn học kỳ --</option>
+                    {semesterOptions
+                      .filter(s => !deleteMajorAcademicYear || s.academicYear === deleteMajorAcademicYear)
+                      .map(sem => (
+                        <option key={sem.id} value={sem.semesterName}>{sem.semesterName}</option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Chọn ngành cần xóa:</label>
+                  <select
+                    value={majorToDelete}
+                    onChange={(e) => setMajorToDelete(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                  >
+                    <option value="">-- Chọn ngành --</option>
+                    {majorOptions.map(major => (
+                      <option key={major.id} value={major.majorCode}>{major.majorCode}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Chọn ngành cần xóa:</label>
-              <select
-                value={majorToDelete}
-                onChange={(e) => setMajorToDelete(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">-- Chọn ngành --</option>
-                {majorOptions.map(major => (
-                  <option key={major.id} value={major.majorCode}>{major.majorCode}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-sm text-red-500 mb-4">
-              Hành động này sẽ xóa tất cả lịch học của ngành đã chọn trong học kỳ này!
-            </p>
-            <div className="flex gap-3 justify-end">
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-5 py-3 flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={cancelDeleteByMajor}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-white text-gray-700 text-sm font-medium transition-colors"
               >
                 Hủy
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteByMajor}
-                className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 transition-all ${deleteMajorLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
                 disabled={deleteMajorLoading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {deleteMajorLoading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
-                    Đang xóa...
-                  </>
-                ) : (
-                  'Xóa'
+                {deleteMajorLoading && (
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  </svg>
                 )}
+                {deleteMajorLoading ? 'Đang xóa...' : 'Xóa'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* NotificationModal */}
+      <NotificationModal
+        isOpen={notify.notification.isOpen}
+        onClose={notify.close}
+        type={notify.notification.type}
+        title={notify.notification.title}
+        message={notify.notification.message}
+        confirmText={notify.notification.confirmText}
+        cancelText={notify.notification.cancelText}
+        showCancel={notify.notification.showCancel}
+        onConfirm={notify.notification.onConfirm}
+      />
     </div>
   )
 }
