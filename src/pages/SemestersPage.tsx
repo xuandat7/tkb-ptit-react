@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, Calendar, Clock, BookOpen, X } from 'lucide-react'
 import { semesterService, Semester, SemesterRequest } from '../services/api'
+import { useNotification } from '../hooks/useNotification'
+import NotificationModal from '../components/NotificationModal'
 import toast from 'react-hot-toast'
 import DatePickerInput from '../components/DatePickerInput'
 
 const SemestersPage = () => {
+  const notify = useNotification()
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -29,11 +32,11 @@ const SemestersPage = () => {
       if (response.data.success) {
         setSemesters(response.data.data)
       } else {
-        toast.error('Không thể tải danh sách học kỳ')
+        notify.error('Không thể tải danh sách học kỳ', { confirmText: 'Đóng', showCancel: false })
       }
     } catch (error) {
       console.error('Error loading semesters:', error)
-      toast.error('Lỗi khi tải danh sách học kỳ')
+      notify.error('Lỗi khi tải danh sách học kỳ', { confirmText: 'Đóng', showCancel: false })
     } finally {
       setLoading(false)
     }
@@ -90,22 +93,22 @@ const SemestersPage = () => {
           semesterToDelete.academicYear
         )
         if (deleteResponse.data.success) {
-          toast.success(`Đã xóa ${deleteResponse.data.data} môn học`)
+          toast.success(`Đã xóa ${deleteResponse.data.data} môn học`, { duration: 3000 })
         }
       }
 
       // Xóa semester
       const response = await semesterService.delete(semesterToDelete.id)
       if (response.data.success) {
-        toast.success('Xóa học kỳ thành công')
+        toast.success('Xóa học kỳ thành công', { duration: 3000 })
         loadSemesters()
       } else {
-        toast.error('Không thể xóa học kỳ')
+        notify.error('Không thể xóa học kỳ', { confirmText: 'Đóng', showCancel: false })
       }
     } catch (error: any) {
       console.error('Error deleting semester:', error)
       const errorMsg = error.response?.data?.message || 'Lỗi khi xóa học kỳ'
-      toast.error(errorMsg)
+      notify.error(errorMsg, { confirmText: 'Đóng', showCancel: false })
     } finally {
       setShowDeleteModal(false)
       setSemesterToDelete(null)
@@ -116,7 +119,7 @@ const SemestersPage = () => {
   // Xử lý lưu (thêm hoặc sửa)
   const handleSave = async () => {
     if (!formData.semesterName || !formData.startDate || !formData.endDate || !formData.academicYear) {
-      toast.error('Vui lòng điền đầy đủ thông tin required')
+      notify.error('Vui lòng điền đầy đủ thông tin required', { confirmText: 'Đóng', showCancel: false })
       return
     }
 
@@ -126,16 +129,16 @@ const SemestersPage = () => {
         : await semesterService.create(formData)
 
       if (response.data.success) {
-        toast.success(editingSemester ? 'Cập nhật học kỳ thành công' : 'Thêm học kỳ thành công')
+        toast.success(editingSemester ? 'Cập nhật học kỳ thành công' : 'Thêm học kỳ thành công', { duration: 3000 })
         setShowModal(false)
         loadSemesters()
       } else {
-        toast.error(response.data.message || 'Không thể lưu học kỳ')
+        notify.error(response.data.message || 'Không thể lưu học kỳ', { confirmText: 'Đóng', showCancel: false })
       }
     } catch (error: any) {
       console.error('Error saving semester:', error)
       const errorMsg = error.response?.data?.message || 'Lỗi khi lưu học kỳ'
-      toast.error(errorMsg)
+      notify.error(errorMsg, { confirmText: 'Đóng', showCancel: false })
     }
   }
 
@@ -144,14 +147,14 @@ const SemestersPage = () => {
     try {
       const response = await semesterService.setActive(semester.id)
       if (response.data.success) {
-        toast.success(`Đã kích hoạt học kỳ "${semester.semesterName}"`)
+        toast.success(`Đã kích hoạt học kỳ "${semester.semesterName}"`, { duration: 3000 })
         loadSemesters()
       } else {
-        toast.error('Không thể kích hoạt học kỳ')
+        notify.error('Không thể kích hoạt học kỳ', { confirmText: 'Đóng', showCancel: false })
       }
     } catch (error) {
       console.error('Error activating semester:', error)
-      toast.error('Lỗi khi kích hoạt học kỳ')
+      notify.error('Lỗi khi kích hoạt học kỳ', { confirmText: 'Đóng', showCancel: false })
     }
   }
 
@@ -508,6 +511,11 @@ const SemestersPage = () => {
           </div>
         </div>
       )}
+
+      <NotificationModal
+        {...notify.notification}
+        onClose={notify.close}
+      />
     </div>
   )
 }

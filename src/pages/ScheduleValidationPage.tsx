@@ -143,11 +143,7 @@ const ScheduleValidationPage: React.FC = () => {
             </div>
             
             <div className="p-3">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                <div className="text-center">
-                  <div className="text-xl font-bold text-red-600">{result.totalEntries}</div>
-                  <div className="text-2xs text-gray-600">Tổng số lịch học</div>
-                </div>
+              <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="text-center">
                   <div className="text-xl font-bold text-red-600">{result.conflictResult.totalConflicts}</div>
                   <div className="text-2xs text-gray-600">Tổng số xung đột</div>
@@ -200,36 +196,36 @@ const ScheduleValidationPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Room Conflicts */}
               {result.roomConflictCount > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 max-h-[600px] overflow-y-auto">
                   <div className="bg-red-600 text-white px-3 py-2 rounded-t-lg">
-                    <h3 className="text-sm font-bold flex items-center">
-                      <Home className="mr-2" size={16} />
+                    <h3 className="text-xs font-semibold flex items-center">
+                      <Home className="mr-1.5" size={14} />
                       Xung đột phòng học ({result.roomConflictCount})
                     </h3>
                   </div>
                   <div className="p-3 space-y-2">
                     {result.conflictResult.roomConflicts.map((conflict: RoomConflict, index: number) => (
                       <div key={index} className="border border-red-200 rounded-lg border-l-4 border-l-red-500">
-                        <div className="p-4">
-                          <h6 className="font-semibold text-red-700 flex items-center mb-3">
-                            <AlertTriangle className="mr-2" size={18} />
+                        <div className="p-3">
+                          <h6 className="text-xs font-semibold text-red-700 flex items-center mb-2">
+                            <AlertTriangle className="mr-1.5" size={14} />
                             {conflict.conflictDescription}
                           </h6>
                           
                           {/* Không hiển thị thông tin thời gian nữa vì đã có trong conflictDescription */}
                           
                           <div>
-                            <strong className="text-gray-700">Chi tiết xung đột:</strong>
-                            <div className="space-y-2 mt-2">
+                            <strong className="text-xs text-gray-700">Chi tiết xung đột:</strong>
+                            <div className="space-y-1.5 mt-1.5">
                               {conflict.conflictingSchedules.map((schedule: ScheduleEntry, scheduleIndex: number) => (
-                                <div key={scheduleIndex} className="bg-gray-50 rounded-md p-3">
+                                <div key={scheduleIndex} className="bg-gray-50 rounded-md p-2">
                                   <div className="flex justify-between items-start">
-                                    <span className="font-medium">
+                                    <span className="text-xs font-medium">
                                       <strong>{schedule.subjectCode}</strong> - {schedule.subjectName}
                                     </span>
-                                    <span className="text-sm text-gray-600">{schedule.classGroup}</span>
+                                    <span className="text-xs text-gray-600">{schedule.classGroup}</span>
                                   </div>
-                                  <div className="text-sm text-gray-600 mt-1">
+                                  <div className="text-xs text-gray-600 mt-0.5">
                                     GV: {schedule.teacherName} ({schedule.teacherId}) | 
                                     SV: {schedule.studentCount}
                                   </div>
@@ -246,36 +242,36 @@ const ScheduleValidationPage: React.FC = () => {
 
               {/* Teacher Conflicts */}
               {result.teacherConflictCount > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div className="bg-orange-600 text-white px-6 py-4 rounded-t-lg">
-                    <h3 className="text-xl font-bold flex items-center">
-                      <UserCheck className="mr-3" size={24} />
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 max-h-[600px] overflow-y-auto">
+                  <div className="bg-orange-600 text-white px-3 py-2 rounded-t-lg">
+                    <h3 className="text-xs font-semibold flex items-center">
+                      <UserCheck className="mr-1.5" size={14} />
                       Xung đột giảng viên ({result.teacherConflictCount})
                     </h3>
                   </div>
-                  <div className="p-6 space-y-4">
+                  <div className="p-3 space-y-2">
                     {result.conflictResult.teacherConflicts.map((conflict: TeacherConflict, index: number) => (
                       <div key={index} className="border border-orange-200 rounded-lg border-l-4 border-l-orange-500">
-                        <div className="p-4">
-                          <h6 className="font-semibold text-orange-700 flex items-center mb-3">
-                            <AlertTriangle className="mr-2" size={18} />
+                        <div className="p-3">
+                          <h6 className="text-xs font-semibold text-orange-700 flex items-center mb-2">
+                            <AlertTriangle className="mr-1.5" size={14} />
                             {conflict.conflictDescription}
                           </h6>
                           
                           {/* Không hiển thị thông tin thời gian nữa vì đã có trong conflictDescription */}
                           
                           <div>
-                            <strong className="text-gray-700">Chi tiết xung đột:</strong>
-                            <div className="space-y-2 mt-2">
+                            <strong className="text-xs text-gray-700">Chi tiết xung đột:</strong>
+                            <div className="space-y-1.5 mt-1.5">
                               {conflict.conflictingSchedules.map((schedule: ScheduleEntry, scheduleIndex: number) => (
-                                <div key={scheduleIndex} className="bg-gray-50 rounded-md p-3">
+                                <div key={scheduleIndex} className="bg-gray-50 rounded-md p-2">
                                   <div className="flex justify-between items-start">
-                                    <span className="font-medium">
+                                    <span className="text-xs font-medium">
                                       <strong>{schedule.subjectCode}</strong> - {schedule.subjectName}
                                     </span>
-                                    <span className="text-sm text-gray-600">{schedule.room}</span>
+                                    <span className="text-xs text-gray-600">{schedule.room}</span>
                                   </div>
-                                  <div className="text-sm text-gray-600 mt-1">
+                                  <div className="text-xs text-gray-600 mt-0.5">
                                     Nhóm: {schedule.classGroup} | SV: {schedule.studentCount}
                                   </div>
                                 </div>
@@ -290,31 +286,6 @@ const ScheduleValidationPage: React.FC = () => {
               )}
             </div>
           )}
-
-          {/* Action buttons */}
-          <div className="mt-8 text-center space-x-4">
-            <button
-              onClick={handleReset}
-              className="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 inline-flex items-center"
-            >
-              <Upload className="mr-2" size={20} />
-              Kiểm tra file khác
-            </button>
-            <button
-              onClick={handlePrint}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 inline-flex items-center"
-            >
-              <FileText className="mr-2" size={20} />
-              In báo cáo
-            </button>
-            <button
-              onClick={handleExport}
-              className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 inline-flex items-center"
-            >
-              <Download className="mr-2" size={20} />
-              Xuất báo cáo
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -368,10 +339,7 @@ const ScheduleValidationPage: React.FC = () => {
                     <CheckCircle className="text-red-500 mr-2 mt-0.5 flex-shrink-0" size={14} />
                     <span>Hệ thống sẽ tự động phát hiện xung đột phòng học và giảng viên</span>
                   </li>
-                  <li className="flex items-start text-gray-700 text-sm">
-                    <CheckCircle className="text-red-500 mr-2 mt-0.5 flex-shrink-0" size={14} />
-                    <span>Xem kết quả và download báo cáo chi tiết</span>
-                  </li>
+                  
                 </ul>
               </div>
 

@@ -1003,7 +1003,7 @@ const TKBPage = () => {
             .filter(id => id !== null && id !== undefined)
         )] as number[]
 
-        let successMessage = 'Đã lưu TKB vào database thành công!'
+        let successMessage = 'Lưu thành công Thời khóa biểu!'
 
         // Update trạng thái phòng thành OCCUPIED
         if (usedRoomIds.length > 0) {

@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, X } from 'lucide
 import { roomService, type Room, type RoomRequest, type RoomApiPayload, semesterService, type Semester, api } from '../services/api'
 import { useNotification } from '../hooks/useNotification'
 import NotificationModal from '../components/NotificationModal'
+import toast from 'react-hot-toast'
 
 interface OccupiedSlot {
   dayOfWeek: number
@@ -228,7 +229,7 @@ const RoomsPage = () => {
         if (formData.status) {
           await roomService.updateStatus(editingRoom.id, formData.status)
         }
-        notify.success('Cập nhật phòng học thành công', { confirmText: 'Đóng', showCancel: false })
+        toast.success('Cập nhật phòng học thành công', { duration: 3000 })
       } else {
         // Tạo phòng mới trước
         const response = await roomService.create(payload)
@@ -237,7 +238,7 @@ const RoomsPage = () => {
         if (newRoomId && formData.status && formData.status !== 'AVAILABLE') {
           await roomService.updateStatus(newRoomId, formData.status)
         }
-        notify.success('Tạo phòng học thành công', { confirmText: 'Đóng', showCancel: false })
+        toast.success('Tạo phòng học thành công', { duration: 3000 })
       }
       setShowModal(false)
       setEditingRoom(null)
@@ -283,7 +284,7 @@ const RoomsPage = () => {
     try {
       // Xóa từng phòng một
       await Promise.all(ids.map(id => roomService.delete(id)))
-      notify.success(`Đã xóa ${ids.length} phòng học thành công`, { confirmText: 'Đóng', showCancel: false })
+      toast.success(`Đã xóa ${ids.length} phòng học thành công`, { duration: 3000 })
       fetchRooms()
     } catch (error) {
       notify.error('Không thể xóa phòng học', { confirmText: 'Đóng', showCancel: false })

@@ -4,6 +4,7 @@ import { subjectService, curriculumService, majorService, facultyService, semest
 import { useNotification } from '../hooks/useNotification'
 import NotificationModal from '../components/NotificationModal'
 import ImportFileModal from '../components/ImportFileModal'
+import toast from 'react-hot-toast'
 
 const SubjectsPage = () => {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -267,10 +268,7 @@ const SubjectsPage = () => {
           submitData.academicYear = semester.academicYear
         }
         await subjectService.update(editingSubject.id, submitData)
-        notify.success('Cập nhật môn học thành công', {
-          confirmText: 'Đóng',
-          showCancel: false
-        })
+        toast.success('Cập nhật môn học thành công', { duration: 3000 })
       } else {
         // CREATE MODE: When creating new subject, get academicYear from selected semester
         if (!selectedFormSemester) {
@@ -286,10 +284,7 @@ const SubjectsPage = () => {
           return
         }
         await subjectService.create(submitData)
-        notify.success('Tạo môn học thành công', {
-          confirmText: 'Đóng',
-          showCancel: false
-        })
+        toast.success('Tạo môn học thành công', { duration: 3000 })
       }
       setShowModal(false)
       setEditingSubject(null)
@@ -417,10 +412,7 @@ const SubjectsPage = () => {
     try {
       // Xóa từng môn một
       await Promise.all(ids.map(id => subjectService.delete(id)))
-      notify.success(`Đã xóa ${ids.length} môn học thành công`, {
-        confirmText: 'Đóng',
-        showCancel: false
-      })
+      toast.success(`Đã xóa ${ids.length} môn học thành công`, { duration: 3000 })
       setSelectedSubjectIds([])
       fetchSubjects()
     } catch (error: any) {
@@ -462,9 +454,9 @@ const SubjectsPage = () => {
         
         // Hiển thị thông báo thành công
         if (result.successCount > 0) {
-          notify.success(
+          toast.success(
             `Đã upload thành công ${result.successCount} môn học từ file ${file.name}`,
-            { confirmText: 'Đóng', showCancel: false }
+            { duration: 3000 }
           )
         }
         

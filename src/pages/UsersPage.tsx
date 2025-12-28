@@ -3,6 +3,7 @@ import { Power, PowerOff, Trash2, Users, CheckCircle, XCircle, Filter, AlertTria
 import { userService, User } from '../services/api'
 import { useNotification } from '../hooks/useNotification'
 import NotificationModal from '../components/NotificationModal'
+import toast from 'react-hot-toast'
 
 type StatusFilter = 'all' | 'enabled' | 'disabled'
 
@@ -53,7 +54,7 @@ const UsersPage = () => {
           try {
             const response = await userService.toggleStatus(user.id, newStatus)
             if (response.data.success) {
-              notify.success(`Đã ${action} người dùng "${user.username}"`, { confirmText: 'Đóng', showCancel: false })
+              toast.success(`Đã ${action} người dùng "${user.username}"`, { duration: 3000 })
               loadUsers()
             } else {
               notify.error(`Không thể ${action} người dùng`, { confirmText: 'Đóng', showCancel: false })
@@ -80,7 +81,7 @@ const UsersPage = () => {
           try {
             const response = await userService.delete(user.id)
             if (response.data.success) {
-              notify.success(`Đã xóa người dùng "${user.username}"`, { confirmText: 'Đóng', showCancel: false })
+              toast.success(`Đã xóa người dùng "${user.username}"`, { duration: 3000 })
               loadUsers()
             } else {
               notify.error('Không thể xóa người dùng', { confirmText: 'Đóng', showCancel: false })
