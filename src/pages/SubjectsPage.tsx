@@ -465,9 +465,13 @@ const SubjectsPage = () => {
           const warningMessage = result.warnings.slice(0, 3).join('\n')
           const moreWarnings = result.warnings.length > 3 ? `\n... và ${result.warnings.length - 3} cảnh báo khác` : ''
 
-          toast.error(
+          notify.warning(
             `Đã bỏ qua ${result.skippedCount} môn học bị trùng lặp:\n${warningMessage}${moreWarnings}`,
-            { duration: 5000 }
+            { 
+              title: 'Cảnh báo',
+              confirmText: 'Đóng', 
+              showCancel: false 
+            }
           )
         }
 
