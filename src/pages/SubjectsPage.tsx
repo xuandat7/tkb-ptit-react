@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, Eye, ChevronLeft, ChevronRight, X, Upload } from 'lucide-react'
 import { subjectService, curriculumService, majorService, facultyService, semesterService, type Subject, type SubjectRequest, type Major, type Faculty, type Semester } from '../services/api'
-import toast from 'react-hot-toast'
+import { useNotification } from '../hooks/useNotification'
+import NotificationModal from '../components/NotificationModal'
 import ImportFileModal from '../components/ImportFileModal'
 
 const SubjectsPage = () => {
@@ -68,6 +69,9 @@ const SubjectsPage = () => {
   
   // State for semester selection in form
   const [selectedFormSemester, setSelectedFormSemester] = useState<string>('')
+
+  // Notification
+  const notify = useNotification()
 
   // Debounce search term
   useEffect(() => {
@@ -181,7 +185,10 @@ const SubjectsPage = () => {
       setFaculties(facultyData)
     } catch (error) {
       console.error('Lỗi khi tải danh sách khoa:', error)
-      toast.error('Không thể tải danh sách khoa')
+      notify.error('Không thể tải danh sách khoa', {
+        confirmText: 'Đóng',
+        showCancel: false
+      })
     }
   }
 
@@ -190,31 +197,31 @@ const SubjectsPage = () => {
     
     // Validation theo backend DTO
     if (!formData.subjectCode.trim()) {
-      toast.error('Vui lòng nhập mã môn')
+      notify.error('Vui lòng nhập mã môn', { confirmText: 'Đóng', showCancel: false })
       return
     }
     if (!formData.subjectName.trim()) {
-      toast.error('Vui lòng nhập tên môn')
+      notify.error('Vui lòng nhập tên môn', { confirmText: 'Đóng', showCancel: false })
       return
     }
     if (!formData.credits || formData.credits <= 0) {
-      toast.error('Vui lòng nhập số tín chỉ hợp lệ (1-10)')
+      notify.error('Vui lòng nhập số tín chỉ hợp lệ (1-10)', { confirmText: 'Đóng', showCancel: false })
       return
     }
     if (!formData.classYear.trim()) {
-      toast.error('Vui lòng nhập khóa học')
+      notify.error('Vui lòng nhập khóa học', { confirmText: 'Đóng', showCancel: false })
       return
     }
     if (!formData.numberOfStudents || formData.numberOfStudents <= 0) {
-      toast.error('Vui lòng nhập số sinh viên hợp lệ')
+      notify.error('Vui lòng nhập số sinh viên hợp lệ', { confirmText: 'Đóng', showCancel: false })
       return
     }
     if (!selectedFacultyId.trim()) {
-      toast.error('Vui lòng chọn khoa')
+      notify.error('Vui lòng chọn khoa', { confirmText: 'Đóng', showCancel: false })
       return
     }
     if (!majorSearchInput.trim() && !isCommonSubject) {
-      toast.error('Vui lòng nhập mã ngành hoặc đánh dấu môn chung')
+      notify.error('Vui lòng nhập mã ngành hoặc đánh dấu môn chung', { confirmText: 'Đóng', showCancel: false })
       return
     }
     
@@ -260,11 +267,14 @@ const SubjectsPage = () => {
           submitData.academicYear = semester.academicYear
         }
         await subjectService.update(editingSubject.id, submitData)
-        toast.success('Cập nhật môn học thành công', { duration: 5000 })
+        notify.success('Cập nhật môn học thành công', {
+          confirmText: 'Đóng',
+          showCancel: false
+        })
       } else {
         // CREATE MODE: When creating new subject, get academicYear from selected semester
         if (!selectedFormSemester) {
-          toast.error('Vui lòng chọn học kỳ')
+          notify.error('Vui lòng chọn học kỳ', { confirmText: 'Đóng', showCancel: false })
           return
         }
         const semester = semesters.find(s => s.semesterName === selectedFormSemester)
@@ -272,18 +282,21 @@ const SubjectsPage = () => {
           submitData.academicYear = semester.academicYear
           submitData.semesterName = selectedFormSemester
         } else {
-          toast.error('Không tìm thấy thông tin học kỳ')
+          notify.error('Không tìm thấy thông tin học kỳ', { confirmText: 'Đóng', showCancel: false })
           return
         }
         await subjectService.create(submitData)
-        toast.success('Tạo môn học thành công', { duration: 5000 })
+        notify.success('Tạo môn học thành công', {
+          confirmText: 'Đóng',
+          showCancel: false
+        })
       }
       setShowModal(false)
       setEditingSubject(null)
       resetForm()
       fetchSubjects()
     } catch (error) {
-      toast.error('Có lỗi xảy ra')
+      notify.error('Có lỗi xảy ra', { confirmText: 'Đóng', showCancel: false })
     }
   }
 
@@ -371,11 +384,11 @@ const SubjectsPage = () => {
         setModalMajors(response.data.data)
         console.log('✅ Loaded majors for Add Subject modal:', response.data.data.length, 'majors')
       } else {
-        toast.error('Không thể tải danh sách ngành')
+        notify.error('Không thể tải danh sách ngành', { confirmText: 'Đóng', showCancel: false })
       }
     } catch (error) {
       console.error('❌ Error loading majors for modal:', error)
-      toast.error('Lỗi khi tải danh sách ngành')
+      notify.error('Lỗi khi tải danh sách ngành', { confirmText: 'Đóng', showCancel: false })
     }
   }
 
@@ -404,13 +417,16 @@ const SubjectsPage = () => {
     try {
       // Xóa từng môn một
       await Promise.all(ids.map(id => subjectService.delete(id)))
-      toast.success(`Đã xóa ${ids.length} môn học thành công`, { duration: 5000 })
+      notify.success(`Đã xóa ${ids.length} môn học thành công`, {
+        confirmText: 'Đóng',
+        showCancel: false
+      })
       setSelectedSubjectIds([])
       fetchSubjects()
     } catch (error: any) {
       console.error('Delete error:', error)
       const errorMessage = error.response?.data?.message || error.message || 'Không thể xóa môn học'
-      toast.error(errorMessage)
+      notify.error(errorMessage, { confirmText: 'Đóng', showCancel: false })
     }
   }
 
@@ -431,7 +447,7 @@ const SubjectsPage = () => {
 
   const handleFileImportConfirm = async (file: File, semester?: string) => {
     if (!semester) {
-      toast.error('Vui lòng chọn học kỳ trước khi upload')
+      notify.error('Vui lòng chọn học kỳ trước khi upload', { confirmText: 'Đóng', showCancel: false })
       return
     }
 
@@ -446,31 +462,20 @@ const SubjectsPage = () => {
         
         // Hiển thị thông báo thành công
         if (result.successCount > 0) {
-          toast.success(
+          notify.success(
             `Đã upload thành công ${result.successCount} môn học từ file ${file.name}`,
-            { duration: 5000 }
+            { confirmText: 'Đóng', showCancel: false }
           )
         }
         
         // Hiển thị cảnh báo nếu có môn bị trùng
         if (result.skippedCount > 0 && result.warnings && result.warnings.length > 0) {
-          // Hiển thị warning với danh sách chi tiết
           const warningMessage = result.warnings.slice(0, 3).join('\n')
           const moreWarnings = result.warnings.length > 3 ? `\n... và ${result.warnings.length - 3} cảnh báo khác` : ''
           
-          toast(
+          notify.warning(
             `Đã bỏ qua ${result.skippedCount} môn học bị trùng lặp:\n${warningMessage}${moreWarnings}`,
-            { 
-              duration: 8000,
-              icon: '⚠️',
-              style: {
-                maxWidth: '600px',
-                whiteSpace: 'pre-line',
-                background: '#fff3cd',
-                color: '#856404',
-                border: '1px solid #ffeeba'
-              }
-            }
+            { confirmText: 'Đã hiểu', showCancel: false }
           )
         }
         
@@ -480,12 +485,12 @@ const SubjectsPage = () => {
         // Đóng modal
         setShowImportModal(false)
       } else {
-        toast.error(response.data.message || 'Không thể upload file')
+        notify.error(response.data.message || 'Không thể upload file', { confirmText: 'Đóng', showCancel: false })
       }
     } catch (error: any) {
       console.error('Upload error:', error)
       const errorMessage = error.response?.data?.message || error.message || 'Lỗi khi upload file'
-      toast.error(errorMessage)
+      notify.error(errorMessage, { confirmText: 'Đóng', showCancel: false })
     } finally {
       setImporting(false)
     }
@@ -1393,9 +1398,7 @@ const SubjectsPage = () => {
                   )
                 }
               </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Hành động này không thể hoàn tác.
-              </p>
+             
             </div>
 
             {/* Footer */}
@@ -1435,6 +1438,19 @@ const SubjectsPage = () => {
         semester={selectedSemesterName}
         onSemesterChange={setSelectedSemesterName}
         isLoading={importing}
+      />
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notify.notification.isOpen}
+        onClose={notify.close}
+        type={notify.notification.type}
+        title={notify.notification.title}
+        message={notify.notification.message}
+        confirmText={notify.notification.confirmText}
+        cancelText={notify.notification.cancelText}
+        showCancel={notify.notification.showCancel}
+        onConfirm={notify.notification.onConfirm}
       />
     </div>
   )

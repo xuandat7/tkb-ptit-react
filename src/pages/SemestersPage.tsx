@@ -476,21 +476,11 @@ const SemestersPage = () => {
                 {semesterToDelete.subjectCount > 0 && (
                   <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-yellow-800 font-medium mb-2">
-                      ⚠️ Học kỳ này có {semesterToDelete.subjectCount} môn học
+                      ⚠️ Cảnh báo
                     </p>
-                    <label className="flex items-start space-x-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={deleteSubjects}
-                        onChange={(e) => setDeleteSubjects(e.target.checked)}
-                        className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                      />
-                      <span className="text-sm text-gray-700">
-                        Xóa luôn tất cả {semesterToDelete.subjectCount} môn học của học kỳ này
-                      </span>
-                    </label>
+                    
                     <p className="text-red-600 text-xs mt-2 ml-6">
-                      * Hệ thống cũng sẽ xóa toàn bộ thời khóa biểu đã sinh của học kỳ này
+                       Hệ thống cũng sẽ xóa toàn bộ thời khóa biểu đã sinh của học kỳ này, môn học, trạng thái phòng học sử dụng
                     </p>
                   </div>
                 )}

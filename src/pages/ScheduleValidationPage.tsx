@@ -108,7 +108,6 @@ const ScheduleValidationPage: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setSuccess('Đã tải file mẫu thành công!');
     } catch (error) {
       console.error('Error downloading sample file:', error);
       setError('Không thể tải file mẫu. Vui lòng thử lại!');

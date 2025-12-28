@@ -127,7 +127,6 @@ const ImportFileModal: React.FC<ImportFileModalProps> = ({
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      toast.success('Đã tải file mẫu thành công!')
     } catch (error) {
       console.error('Error downloading sample file:', error)
       toast.error('Không thể tải file mẫu. Vui lòng thử lại!')

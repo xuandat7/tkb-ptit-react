@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { roomService, type Room, type RoomRequest, type RoomApiPayload, semesterService, type Semester, api } from '../services/api'
-import toast from 'react-hot-toast'
+import { useNotification } from '../hooks/useNotification'
+import NotificationModal from '../components/NotificationModal'
 
 interface OccupiedSlot {
   dayOfWeek: number
@@ -67,8 +68,6 @@ const RoomsPage = () => {
     status: 'AVAILABLE',
     floor: 1,
   })
-  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
-  const [idsToDelete, setIdsToDelete] = useState<number[]>([])
   
   // Modal for semester tab occupied slots
   const [showOccupiedSlotsModal, setShowOccupiedSlotsModal] = useState(false)
@@ -91,6 +90,9 @@ const RoomsPage = () => {
   const [semesterSortDirection, setSemesterSortDirection] = useState<'asc' | 'desc'>('asc')
   const [semesterFilterStatus, setSemesterFilterStatus] = useState<string>('ALL')
   const [semesterFilterType, setSemesterFilterType] = useState<string>('ALL')
+
+  // Notification
+  const notify = useNotification()
 
   useEffect(() => {
     fetchRooms()
@@ -132,7 +134,7 @@ const RoomsPage = () => {
       }))
       setRooms(mappedRooms)
     } catch (error) {
-      toast.error('Không thể tải danh sách phòng học')
+      notify.error('Không thể tải danh sách phòng học', { confirmText: 'Đóng', showCancel: false })
     } finally {
       setLoading(false)
     }
@@ -147,7 +149,7 @@ const RoomsPage = () => {
         setSelectedSemesterId(semesterList[0].id)
       }
     } catch (error) {
-      toast.error('Không thể tải danh sách kì học')
+      notify.error('Không thể tải danh sách kì học', { confirmText: 'Đóng', showCancel: false })
     }
   }
 
@@ -188,7 +190,7 @@ const RoomsPage = () => {
       setRoomsStatus(data)
       setSemesterTotalItems(total)
     } catch (error) {
-      toast.error('Không thể tải trạng thái phòng học')
+      notify.error('Không thể tải trạng thái phòng học', { confirmText: 'Đóng', showCancel: false })
     } finally {
       setLoadingRoomsStatus(false)
     }
@@ -226,7 +228,7 @@ const RoomsPage = () => {
         if (formData.status) {
           await roomService.updateStatus(editingRoom.id, formData.status)
         }
-        toast.success('Cập nhật phòng học thành công')
+        notify.success('Cập nhật phòng học thành công', { confirmText: 'Đóng', showCancel: false })
       } else {
         // Tạo phòng mới trước
         const response = await roomService.create(payload)
@@ -235,7 +237,7 @@ const RoomsPage = () => {
         if (newRoomId && formData.status && formData.status !== 'AVAILABLE') {
           await roomService.updateStatus(newRoomId, formData.status)
         }
-        toast.success('Tạo phòng học thành công')
+        notify.success('Tạo phòng học thành công', { confirmText: 'Đóng', showCancel: false })
       }
       setShowModal(false)
       setEditingRoom(null)
@@ -245,7 +247,7 @@ const RoomsPage = () => {
       console.error('Lỗi khi lưu phòng học:', error)
       // Hiển thị lỗi chi tiết từ API nếu có
       const errorMessage = error?.response?.data?.message || 'Có lỗi xảy ra khi lưu phòng học'
-      toast.error(errorMessage)
+      notify.error(errorMessage, { confirmText: 'Đóng', showCancel: false })
     }
   }
 
@@ -281,22 +283,24 @@ const RoomsPage = () => {
     try {
       // Xóa từng phòng một
       await Promise.all(ids.map(id => roomService.delete(id)))
-      toast.success(`Đã xóa ${ids.length} phòng học thành công`, { duration: 5000 })
+      notify.success(`Đã xóa ${ids.length} phòng học thành công`, { confirmText: 'Đóng', showCancel: false })
       fetchRooms()
     } catch (error) {
-      toast.error('Không thể xóa phòng học')
+      notify.error('Không thể xóa phòng học', { confirmText: 'Đóng', showCancel: false })
     }
   }
 
   const handleDeleteClick = (id: number) => {
-    setIdsToDelete([id])
-    setShowDeleteConfirmModal(true)
-  }
-
-  const confirmDelete = () => {
-    handleDelete(idsToDelete)
-    setShowDeleteConfirmModal(false)
-    setIdsToDelete([])
+    notify.error('Bạn có chắc chắn muốn xóa phòng học này không?', {
+      title: 'Xác nhận xóa',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      showCancel: true,
+      onConfirm: () => {
+        handleDelete([id])
+        notify.close()
+      }
+    })
   }
 
   const handleViewOccupiedSlots = async (room: RoomStatusBySemester) => {
@@ -311,7 +315,7 @@ const RoomsPage = () => {
       const data = response.data.content || []
       setRoomOccupancyDetails(data)
     } catch (error) {
-      toast.error('Không thể tải lịch sử dụng phòng')
+      notify.error('Không thể tải lịch sử dụng phòng', { confirmText: 'Đóng', showCancel: false })
     } finally {
       setLoadingOccupancyDetails(false)
     }
@@ -909,49 +913,6 @@ const RoomsPage = () => {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirmModal && (
-        <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex items-center justify-center z-50 m-0 p-0"
-          style={{ margin: 0, padding: 0 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowDeleteConfirmModal(false)
-              setIdsToDelete([])
-            }
-          }}
-        >
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold mb-4 text-gray-900">Xác nhận xóa</h3>
-            <p className="text-gray-700 mb-6">
-              {idsToDelete.length === 1 
-                ? 'Bạn có chắc chắn muốn xóa phòng học này không?'
-                : `Bạn có chắc chắn muốn xóa ${idsToDelete.length} phòng học đã chọn không?`
-              }
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDeleteConfirmModal(false)
-                  setIdsToDelete([])
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Xóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {showModal && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -1226,6 +1187,19 @@ const RoomsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notify.notification.isOpen}
+        onClose={notify.close}
+        type={notify.notification.type}
+        title={notify.notification.title}
+        message={notify.notification.message}
+        confirmText={notify.notification.confirmText}
+        cancelText={notify.notification.cancelText}
+        showCancel={notify.notification.showCancel}
+        onConfirm={notify.notification.onConfirm}
+      />
     </div>
   )
 }

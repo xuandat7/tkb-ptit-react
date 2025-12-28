@@ -1,19 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Power, PowerOff, Trash2, Users, CheckCircle, XCircle, Filter, AlertTriangle } from 'lucide-react'
 import { userService, User } from '../services/api'
-import toast from 'react-hot-toast'
+import { useNotification } from '../hooks/useNotification'
+import NotificationModal from '../components/NotificationModal'
 
 type StatusFilter = 'all' | 'enabled' | 'disabled'
 
 const UsersPage = () => {
+  const notify = useNotification()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  
-  // Modal state
-  const [showModal, setShowModal] = useState(false)
-  const [modalAction, setModalAction] = useState<'toggle' | 'delete'>('toggle')
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
   const loadUsers = async () => {
     try {
@@ -27,11 +24,11 @@ const UsersPage = () => {
         const filteredUsers = (response.data.data || []).filter((user: User) => user.role !== 'ADMIN')
         setUsers(filteredUsers)
       } else {
-        toast.error('Không thể tải danh sách người dùng')
+        notify.error('Không thể tải danh sách người dùng', { confirmText: 'Đóng', showCancel: false })
       }
     } catch (error: any) {
       console.error('Error loading users:', error)
-      toast.error(error.response?.data?.message || 'Không thể tải danh sách người dùng')
+      notify.error(error.response?.data?.message || 'Không thể tải danh sách người dùng', { confirmText: 'Đóng', showCancel: false })
     } finally {
       setLoading(false)
     }
@@ -42,58 +39,60 @@ const UsersPage = () => {
   }, [])
 
   const handleToggleStatus = async (user: User) => {
-    setSelectedUser(user)
-    setModalAction('toggle')
-    setShowModal(true)
+    const newStatus = !user.enabled
+    const action = newStatus ? 'kích hoạt' : 'vô hiệu hóa'
+    
+    notify.warning(
+      `Bạn có chắc chắn muốn ${action} người dùng "${user.username}"?`,
+      {
+        title: `Xác nhận ${action} người dùng`,
+        confirmText: newStatus ? 'Kích hoạt' : 'Vô hiệu hóa',
+        cancelText: 'Hủy',
+        showCancel: true,
+        onConfirm: async () => {
+          try {
+            const response = await userService.toggleStatus(user.id, newStatus)
+            if (response.data.success) {
+              notify.success(`Đã ${action} người dùng "${user.username}"`, { confirmText: 'Đóng', showCancel: false })
+              loadUsers()
+            } else {
+              notify.error(`Không thể ${action} người dùng`, { confirmText: 'Đóng', showCancel: false })
+            }
+          } catch (error: any) {
+            console.error('Error toggling user status:', error)
+            notify.error(error.response?.data?.message || `Lỗi khi ${action} người dùng`, { confirmText: 'Đóng', showCancel: false })
+          }
+          notify.close()
+        }
+      }
+    )
   }
 
   const handleDelete = async (user: User) => {
-    setSelectedUser(user)
-    setModalAction('delete')
-    setShowModal(true)
-  }
-
-  const confirmAction = async () => {
-    if (!selectedUser) return
-
-    if (modalAction === 'toggle') {
-      const newStatus = !selectedUser.enabled
-      const action = newStatus ? 'kích hoạt' : 'vô hiệu hóa'
-      
-      try {
-        const response = await userService.toggleStatus(selectedUser.id, newStatus)
-        if (response.data.success) {
-          toast.success(`Đã ${action} người dùng "${selectedUser.username}"`)
-          loadUsers()
-        } else {
-          toast.error(`Không thể ${action} người dùng`)
+    notify.error(
+      `Bạn có chắc chắn muốn xóa người dùng "${user.username}"?`,
+      {
+        title: 'Xác nhận xóa người dùng',
+        confirmText: 'Xóa',
+        cancelText: 'Hủy',
+        showCancel: true,
+        onConfirm: async () => {
+          try {
+            const response = await userService.delete(user.id)
+            if (response.data.success) {
+              notify.success(`Đã xóa người dùng "${user.username}"`, { confirmText: 'Đóng', showCancel: false })
+              loadUsers()
+            } else {
+              notify.error('Không thể xóa người dùng', { confirmText: 'Đóng', showCancel: false })
+            }
+          } catch (error: any) {
+            console.error('Error deleting user:', error)
+            notify.error(error.response?.data?.message || 'Lỗi khi xóa người dùng', { confirmText: 'Đóng', showCancel: false })
+          }
+          notify.close()
         }
-      } catch (error: any) {
-        console.error('Error toggling user status:', error)
-        toast.error(error.response?.data?.message || `Lỗi khi ${action} người dùng`)
       }
-    } else if (modalAction === 'delete') {
-      try {
-        const response = await userService.delete(selectedUser.id)
-        if (response.data.success) {
-          toast.success(`Đã xóa người dùng "${selectedUser.username}"`)
-          loadUsers()
-        } else {
-          toast.error('Không thể xóa người dùng')
-        }
-      } catch (error: any) {
-        console.error('Error deleting user:', error)
-        toast.error(error.response?.data?.message || 'Lỗi khi xóa người dùng')
-      }
-    }
-
-    setShowModal(false)
-    setSelectedUser(null)
-  }
-
-  const cancelAction = () => {
-    setShowModal(false)
-    setSelectedUser(null)
+    )
   }
 
   const formatDate = (dateString?: string) => {
@@ -307,90 +306,10 @@ const UsersPage = () => {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
-      {showModal && selectedUser && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            {/* Background overlay */}
-            <div 
-              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-              onClick={cancelAction}
-            ></div>
-
-            {/* Modal panel */}
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${
-                    modalAction === 'delete' ? 'bg-red-100' : 'bg-yellow-100'
-                  } sm:mx-0 sm:h-10 sm:w-10`}>
-                    {modalAction === 'delete' ? (
-                      <Trash2 className="h-6 w-6 text-red-600" />
-                    ) : (
-                      <AlertTriangle className="h-6 w-6 text-yellow-600" />
-                    )}
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">
-                      {modalAction === 'delete' 
-                        ? 'Xác nhận xóa người dùng' 
-                        : `Xác nhận ${selectedUser.enabled ? 'vô hiệu hóa' : 'kích hoạt'} người dùng`
-                      }
-                    </h3>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        {modalAction === 'delete' ? (
-                          <>
-                            Bạn có chắc chắn muốn xóa người dùng{' '}
-                            <span className="font-semibold text-gray-900">{selectedUser.username}</span>?{' '}
-                            Hành động này không thể hoàn tác.
-                          </>
-                        ) : (
-                          <>
-                            Bạn có chắc chắn muốn{' '}
-                            <span className="font-semibold text-gray-900">
-                              {selectedUser.enabled ? 'vô hiệu hóa' : 'kích hoạt'}
-                            </span>{' '}
-                            người dùng{' '}
-                            <span className="font-semibold text-gray-900">{selectedUser.username}</span>?
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
-                <button
-                  type="button"
-                  onClick={confirmAction}
-                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${
-                    modalAction === 'delete'
-                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                      : selectedUser.enabled
-                      ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500'
-                      : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                  }`}
-                >
-                  {modalAction === 'delete' 
-                    ? 'Xóa' 
-                    : selectedUser.enabled 
-                    ? 'Vô hiệu hóa' 
-                    : 'Kích hoạt'
-                  }
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelAction}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <NotificationModal
+        {...notify.notification}
+        onClose={notify.close}
+      />
     </div>
   )
 }
