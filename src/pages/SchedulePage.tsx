@@ -92,6 +92,9 @@ const TKBPage = () => {
           systemType: parsed.systemType || '',
           classYear: parsed.classYear || '',
           selectedMajorGroup: parsed.selectedMajorGroup || '',
+          classYears: parsed.classYears || [],
+          programTypes: parsed.programTypes || [],
+          majorGroups: parsed.majorGroups || [],
           batchRows: parsed.batchRows || [],
           results: parsed.results || [],
           savedResults: parsed.savedResults || [],
@@ -112,9 +115,9 @@ const TKBPage = () => {
   const [allSemesters, setAllSemesters] = useState<Semester[]>([])
   const [systemType, setSystemType] = useState(persistedState?.systemType || 'Chính quy')
   const [classYear, setClassYear] = useState(persistedState?.classYear || '')
-  const [classYears, setClassYears] = useState<string[]>([])
-  const [programTypes, setProgramTypes] = useState<string[]>([])
-  const [majorGroups, setMajorGroups] = useState<string[]>([])
+  const [classYears, setClassYears] = useState<string[]>(persistedState?.classYears || [])
+  const [programTypes, setProgramTypes] = useState<string[]>(persistedState?.programTypes || [])
+  const [majorGroups, setMajorGroups] = useState<string[]>(persistedState?.majorGroups || [])
   const [selectedMajorGroup, setSelectedMajorGroup] = useState(persistedState?.selectedMajorGroup || '')
   const [batchRows, setBatchRows] = useState<BatchRowWithCombination[]>(persistedState?.batchRows || [])
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
@@ -127,6 +130,9 @@ const TKBPage = () => {
   const [importing, setImporting] = useState(false)
   const [assigningRooms, setAssigningRooms] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
+  
+  // Track if this is initial mount to prevent unnecessary API calls
+  const [isInitialMount, setIsInitialMount] = useState(true)
 
   // Persist state to localStorage whenever it changes
   useEffect(() => {
@@ -136,21 +142,29 @@ const TKBPage = () => {
       systemType,
       classYear,
       selectedMajorGroup,
+      classYears,
+      programTypes,
+      majorGroups,
       batchRows,
       results,
       savedResults,
       failedSubjects,
     }
     localStorage.setItem('tkbPageState', JSON.stringify(stateToSave))
-  }, [semester, academicYear, systemType, classYear, selectedMajorGroup, batchRows, results, savedResults, failedSubjects])
+  }, [semester, academicYear, systemType, classYear, selectedMajorGroup, classYears, programTypes, majorGroups, batchRows, results, savedResults, failedSubjects])
 
   // Load semesters on component mount
   useEffect(() => {
     loadSemesters()
+    // Mark initial mount as complete after a short delay
+    const timer = setTimeout(() => setIsInitialMount(false), 100)
+    return () => clearTimeout(timer)
   }, [])
 
   // Load program types when semester and academicYear change
   useEffect(() => {
+    if (isInitialMount) return // Skip on initial mount
+    
     if (semester && academicYear) {
       loadProgramTypes()
     } else {
@@ -164,6 +178,8 @@ const TKBPage = () => {
 
   // Load class years when program type changes (but only if semester and year are set)
   useEffect(() => {
+    if (isInitialMount) return // Skip on initial mount
+    
     // Skip if systemType is 'Chung' or required fields missing
     if (!semester || !academicYear || !systemType || systemType === 'Chung') {
       setClassYears([])
@@ -176,6 +192,8 @@ const TKBPage = () => {
 
   // Load major groups when class year changes (but only if all prerequisites are met)
   useEffect(() => {
+    if (isInitialMount) return // Skip on initial mount
+    
     // Skip if systemType is 'Chung' or required fields missing
     if (systemType === 'Chung') {
       setMajorGroups([])
