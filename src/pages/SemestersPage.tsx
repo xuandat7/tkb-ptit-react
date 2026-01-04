@@ -10,6 +10,7 @@ const SemestersPage = () => {
   const notify = useNotification()
   const [semesters, setSemesters] = useState<Semester[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingSemester, setEditingSemester] = useState<Semester | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -86,6 +87,7 @@ const SemestersPage = () => {
     if (!semesterToDelete) return
 
     try {
+      setDeleting(true)
       // Nếu chọn xóa cả môn học
       if (deleteSubjects && semesterToDelete.subjectCount > 0) {
         const deleteResponse = await semesterService.deleteSubjectsBySemesterNameAndAcademicYear(
@@ -110,6 +112,7 @@ const SemestersPage = () => {
       const errorMsg = error.response?.data?.message || 'Lỗi khi xóa học kỳ'
       notify.error(errorMsg, { confirmText: 'Đóng', showCancel: false })
     } finally {
+      setDeleting(false)
       setShowDeleteModal(false)
       setSemesterToDelete(null)
       setDeleteSubjects(false)
@@ -497,15 +500,24 @@ const SemestersPage = () => {
                   setSemesterToDelete(null)
                   setDeleteSubjects(false)
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Hủy
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Xác nhận xóa
+                {deleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Đang xóa...
+                  </>
+                ) : (
+                  'Xác nhận xóa'
+                )}
               </button>
             </div>
           </div>
