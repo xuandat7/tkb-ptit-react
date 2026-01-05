@@ -1358,52 +1358,50 @@ const TKBPage = () => {
             </select>
           </div>
 
-          {systemType !== 'Chung' && (
-            <div className="min-w-[130px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Chọn khóa:</label>
-              <select
-                value={classYear}
-                onChange={(e) => {
-                  setClassYear(e.target.value)
-                  setSelectedMajorGroup('') // Reset subsequent filters
-                  setBatchRows([])
-                }}
-                disabled={!systemType || !semester}
-                className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${!systemType || !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-                  }`}
-              >
-                <option value="">-- Chọn khóa --</option>
-                {classYears.map((year) => (
-                  <option key={year} value={year}>
-                    Khóa {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="min-w-[130px]">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Chọn khóa:</label>
+            <select
+              value={classYear}
+              onChange={(e) => {
+                setClassYear(e.target.value)
+                setSelectedMajorGroup('') // Reset subsequent filters
+                setBatchRows([])
+              }}
+              disabled={systemType === 'Chung' || !systemType || !semester}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
+                systemType === 'Chung' || !systemType || !semester ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              }`}
+            >
+              <option value="">-- Chọn khóa --</option>
+              {classYears.map((year) => (
+                <option key={year} value={year}>
+                  Khóa {year}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {systemType !== 'Chung' && (
-            <div className="flex-1 min-w-[180px]">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Chọn ngành:</label>
-              <select
-                value={selectedMajorGroup}
-                onChange={(e) => {
-                  setSelectedMajorGroup(e.target.value)
-                  setBatchRows([])
-                }}
-                disabled={!majorGroups.length || !classYear}
-                className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${!majorGroups.length || !classYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
-                  }`}
-              >
-                <option value="">-- Chọn ngành --</option>
-                {majorGroups.map((group, idx) => (
-                  <option key={idx} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Chọn ngành:</label>
+            <select
+              value={selectedMajorGroup}
+              onChange={(e) => {
+                setSelectedMajorGroup(e.target.value)
+                setBatchRows([])
+              }}
+              disabled={systemType === 'Chung' || !majorGroups.length || !classYear}
+              className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg ${
+                systemType === 'Chung' || !majorGroups.length || !classYear ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''
+              }`}
+            >
+              <option value="">-- Chọn ngành --</option>
+              {majorGroups.map((group, idx) => (
+                <option key={idx} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div>
             <button
