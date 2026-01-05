@@ -5,6 +5,8 @@ import { subjectService, roomService, semesterService, type SubjectByMajor, type
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import ImportFileModal from '../components/ImportFileModal'
+import NotificationModal from '../components/NotificationModal'
+import { useNotification } from '../hooks/useNotification'
 
 interface BatchRow {
   mmh: string
@@ -80,6 +82,8 @@ interface FailedSubject {
 }
 
 const TKBPage = () => {
+  const notify = useNotification()
+  
   // Load persisted state from localStorage
   const loadPersistedState = () => {
     try {
@@ -1118,7 +1122,13 @@ const TKBPage = () => {
         }
       })
 
+      console.log('🔍 Full response:', response.data)
+
       if (response.data.success) {
+        // Debug: Log response to check structure
+        console.log('🔍 Assign rooms response:', response.data.data)
+        console.log('🔍 Warnings:', response.data.data.warningsNoRoom)
+        
         // Flatten response to update results
         const flatResults: TKBResultRow[] = []
         response.data.data.items.forEach((item: any) => {
@@ -1128,14 +1138,29 @@ const TKBPage = () => {
         })
 
         setResults(flatResults)
-        toast.success('Đã gán phòng học thành công!', { id: 'assign-rooms' })
+        
+        // Check for warnings about rooms not found
+        const warnings = response.data.data.warningsNoRoom
+        if (warnings && warnings.length > 0) {
+          // Show warning for subjects without rooms using notification modal
+          const warningMessage = `Đã gán phòng học thành công!\n\nTuy nhiên, không tìm thấy phòng phù hợp cho ${warnings.length} môn học:\n\n${warnings.map((w: string, index: number) => `${index + 1}. ${w}`).join('\n')}`
+          notify.warning(warningMessage, { 
+            confirmText: 'Đã hiểu', 
+            showCancel: false 
+          })
+          toast.dismiss('assign-rooms')
+        } else {
+          toast.success('Đã gán phòng học thành công cho tất cả các môn!', { id: 'assign-rooms' })
+        }
       } else {
+        console.log('🔍 Response not success:', response.data)
         toast.error('Không thể gán phòng: ' + (response.data.message || 'Lỗi'), {
           id: 'assign-rooms'
         })
       }
     } catch (error: any) {
-      console.error('Error assigning rooms:', error)
+      console.error('❌ Error assigning rooms:', error)
+      console.error('❌ Error response:', error.response?.data)
       toast.error(error.response?.data?.message || 'Không thể gán phòng học', {
         id: 'assign-rooms'
       })
@@ -1404,9 +1429,7 @@ const TKBPage = () => {
                   <th className="px-2 py-2 border text-xs w-[8%]">Sĩ số/lớp</th>
                   <th className="px-2 py-2 border text-xs w-[6%]">Khóa</th>
                   <th className="px-2 py-2 border text-xs w-[8%]">Ngành</th>
-                  {systemType !== 'chung' && (
-                    <th className="px-2 py-2 border text-xs w-[6%]">Gộp ngành</th>
-                  )}
+                  <th className="px-2 py-2 border text-xs w-[6%]">Gộp ngành</th>
                   <th className="px-2 py-2 border text-xs w-[6%]">Đăng ký chung</th>
                   <th className="px-2 py-2 border text-xs w-[6%]">Xóa</th>
                 </tr>
@@ -1454,8 +1477,8 @@ const TKBPage = () => {
                         <td className="px-2 py-2 border text-center">
                           {row.nganh}
                         </td>
-                        {systemType !== 'chung' && (
-                          <td className="px-2 py-2 border text-center">
+                        <td className="px-2 py-2 border text-center">
+                          {systemType !== 'Chung' ? (
                             <input
                               type="checkbox"
                               checked={row.isGrouped || false}
@@ -1468,10 +1491,17 @@ const TKBPage = () => {
                                   : 'Gộp ngành học chung'
                               }
                             />
-                          </td>
-                        )}
+                          ) : (
+                            <input
+                              type="checkbox"
+                              disabled
+                              className="w-3.5 h-3.5 opacity-50 cursor-not-allowed"
+                              title="Chỉ áp dụng cho hệ thường"
+                            />
+                          )}
+                        </td>
                         <td className="px-2 py-2 border text-center">
-                          {systemType === 'chung' ? (
+                          {systemType === 'Chung' ? (
                             <input
                               type="checkbox"
                               checked={row.isCommonRegistration || false}
@@ -1832,6 +1862,10 @@ const TKBPage = () => {
         isLoading={importing}
       />
 
+      <NotificationModal
+        {...notify.notification}
+        onClose={notify.close}
+      />
     </div>
   )
 }

@@ -93,7 +93,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
         {/* Body */}
         <div className="px-5 py-4">
-          <p className="text-gray-700 text-sm">
+          <p className="text-gray-700 text-sm whitespace-pre-line">
             {message}
           </p>
         </div>
