@@ -1044,10 +1044,27 @@ const TKBPage = () => {
         // Show single toast with all information
         toast.success(successMessage, { duration: 4000 })
 
-        // Lưu kết quả vào room results
+        // Lưu kết quả vào room results - rebuild occupied rooms từ results
         try {
-          await roomService.saveResults()
-          console.log('Room results saved successfully')
+          // Rebuild occupied rooms từ results để đảm bảo backend có thông tin đầy đủ
+          // ngay cả khi người dùng đã chuyển trang trước đó
+          const occupiedRooms: string[] = []
+          results.forEach(row => {
+            if (row.phong && row.thu && row.kip) {
+              const occupationKey = `${row.phong}|${row.thu}|${row.kip}`
+              if (!occupiedRooms.includes(occupationKey)) {
+                occupiedRooms.push(occupationKey)
+              }
+            }
+          })
+          
+          // Gửi occupied rooms lên backend cùng với params
+          await api.post('/rooms/save-results', {
+            occupiedRooms: occupiedRooms,
+            academicYear: academicYear,
+            semester: semester
+          })
+          console.log('Room results saved successfully with', occupiedRooms.length, 'occupied rooms')
         } catch (saveError: any) {
           console.error('Error saving room results:', saveError)
           // Không hiển thị error toast vì đây là secondary action
